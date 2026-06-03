@@ -5537,16 +5537,13 @@ function $(id) { return document.getElementById(id); }
   function resumePaymentFromReturnUrl() {
     const params = new URLSearchParams(location.search);
     const returnedOrder = params.get('cityrail_paid');
-    let pending = '';
-    try { pending = localStorage.getItem('cityrail_pending_order') || ''; } catch {}
-    const orderId = returnedOrder || pending;
-    if (!orderId) return;
+    if (!returnedOrder) return;
     setTimeout(() => {
       const modal = ensurePaymentModal();
       modal.classList.add('visible');
       const status = $('cityrail-pay-status');
       if (status) status.textContent = '正在确认支付结果…';
-      startPaymentPolling(orderId);
+      startPaymentPolling(returnedOrder);
     }, 800);
   }
   resumePaymentFromReturnUrl();
