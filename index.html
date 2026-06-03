@@ -5831,6 +5831,132 @@ function $(id) { return document.getElementById(id); }
 
 	  })();
 
+// ==================== PERFORMANCE MODE ====================
+(function(){
+  const STORAGE_KEY = 'cityrail_performance_mode';
+  const ROOT_CLASS = 'cityrail-performance-mode';
+  const doc = document;
+
+  function isOn() {
+    try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch(e) { return false; }
+  }
+  function setStored(on) {
+    try { localStorage.setItem(STORAGE_KEY, on ? '1' : '0'); } catch(e) {}
+  }
+  function syncToggle(on) {
+    const toggle = doc.getElementById('st-performance-mode');
+    if (toggle) toggle.className = 'settings-toggle ' + (on ? 'on' : 'off');
+  }
+  function ensureStyle() {
+    if (doc.getElementById('cityrail-performance-mode-style')) return;
+    const style = doc.createElement('style');
+    style.id = 'cityrail-performance-mode-style';
+    style.textContent = `
+      body.${ROOT_CLASS} *, body.${ROOT_CLASS} *::before, body.${ROOT_CLASS} *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+      body.${ROOT_CLASS} .station-label,
+      body.${ROOT_CLASS} .leaflet-tooltip-pane,
+      body.${ROOT_CLASS} .od-icon-wrapper,
+      body.${ROOT_CLASS} .cityrail-od-icon,
+      body.${ROOT_CLASS} .od-flow-line,
+      body.${ROOT_CLASS} .transfer-corridor-label,
+      body.${ROOT_CLASS} .transfer-corridor-platform-dot,
+      body.${ROOT_CLASS} .transfer-corridor-joint-dot,
+      body.${ROOT_CLASS} .cityrail-v102-transfer-pane,
+      body.${ROOT_CLASS} .transfer-corridor-v100,
+      body.${ROOT_CLASS} .transfer-corridor-v101 {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      body.${ROOT_CLASS} .ctrl-card,
+      body.${ROOT_CLASS} #settings-panel,
+      body.${ROOT_CLASS} #line-config-v137-overlay,
+      body.${ROOT_CLASS} .leaflet-marker-icon,
+      body.${ROOT_CLASS} .train-marker,
+      body.${ROOT_CLASS} .train-marker-overload {
+        box-shadow: none !important;
+        filter: none !important;
+        backdrop-filter: none !important;
+      }
+      .cityrail-performance-settings-row .sr-label::after {
+        content: " 大型线网";
+        margin-left: 8px;
+        font-size: 10px;
+        color: rgba(255,255,255,.48);
+        font-weight: 700;
+      }
+    `;
+    doc.head.appendChild(style);
+  }
+  function ensureSettingsRow() {
+    const panel = doc.getElementById('settings-panel');
+    if (!panel || doc.getElementById('cityrail-performance-settings-row')) return;
+    const row = doc.createElement('div');
+    row.id = 'cityrail-performance-settings-row';
+    row.className = 'settings-row cityrail-performance-settings-row';
+    row.setAttribute('data-setting', 'performance-mode');
+    row.innerHTML = '<span class="sr-label">性能模式</span><div class="settings-toggle off" id="st-performance-mode"></div>';
+    const ref = panel.querySelector('[data-setting="openrailway"]');
+    if (ref && ref.nextSibling) panel.insertBefore(row, ref.nextSibling);
+    else panel.insertBefore(row, panel.querySelector('.settings-divider') || null);
+    row.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      applyPerformanceMode(!isOn(), true);
+    }, true);
+  }
+  function disableCostlyLayers() {
+    try {
+      if (typeof state !== 'undefined') state.showLabels = false;
+      const mapEl = doc.getElementById('map');
+      if (mapEl) mapEl.classList.add('hide-labels');
+      const stLabels = doc.getElementById('st-labels');
+      if (stLabels) stLabels.className = 'settings-toggle off';
+    } catch(e) {}
+    try {
+      if (typeof setOpenRailwayEnabled === 'function') setOpenRailwayEnabled(false);
+      const stOrm = doc.getElementById('st-openrailway');
+      if (stOrm) stOrm.className = 'settings-toggle off';
+    } catch(e) {}
+    try {
+      if (window.CityRailODIcons && typeof window.CityRailODIcons.disable === 'function') window.CityRailODIcons.disable();
+    } catch(e) {}
+    try {
+      window.__cityrailV100TransferEnabled = false;
+      const stTransfer = doc.getElementById('st-transfer-corridors');
+      if (stTransfer) stTransfer.className = 'settings-toggle off';
+    } catch(e) {}
+  }
+  function applyPerformanceMode(on, persist) {
+    on = !!on;
+    ensureStyle();
+    if (persist) setStored(on);
+    doc.body && doc.body.classList.toggle(ROOT_CLASS, on);
+    syncToggle(on);
+    if (on) disableCostlyLayers();
+    try { if (typeof updateSettingsUI === 'function') updateSettingsUI(); } catch(e) {}
+    syncToggle(on);
+  }
+  function boot() {
+    ensureStyle();
+    ensureSettingsRow();
+    applyPerformanceMode(isOn(), false);
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.CityRailPerformanceMode = {
+    enable: () => applyPerformanceMode(true, true),
+    disable: () => applyPerformanceMode(false, true),
+    toggle: () => applyPerformanceMode(!isOn(), true),
+    isOn
+  };
+})();
+
 // ==================== INVITE CODE ====================
 const INVITE_CODE = '260327';
 const _inviteBoxes = document.querySelectorAll('#invite-digits .invite-digit-box');
@@ -28342,7 +28468,12 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cr135-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);}
       .cr135-hname{font-size:18px;font-weight:950;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .cr135-tabs{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-      .cr135-tab,.cr135-cmd,.cr135-small{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.075);color:#fff;border-radius:10px;padding:7px 10px;font-weight:850;cursor:pointer;}
+      .cr135-tab,.cr135-cmd,.cr135-small,.cr135-line-cmd{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.075);color:#fff;border-radius:10px;padding:7px 10px;font-weight:850;cursor:pointer;}
+      .cr135-cmd:hover,.cr135-small:hover,.cr135-line-cmd:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.30);}
+      .cr135-cmd:disabled,.cr135-line-cmd:disabled,.cr135-small:disabled{opacity:.42;cursor:not-allowed;}
+      .cr135-cmd.warn{background:rgba(255,214,10,.14);border-color:rgba(255,214,10,.45);}
+      .cr135-cmd.ok,.cr135-line-cmd.ok{background:rgba(48,209,88,.13);border-color:rgba(48,209,88,.42);}
+      .cr135-cmd.danger{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.42);}
       .cr135-tab.active{background:rgba(10,132,255,.30);border-color:rgba(10,132,255,.62);}
       .cr135-body{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;padding:10px;}
       .cr135-ats{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;background:#02060b;border:1px solid rgba(255,255,255,.10);border-radius:14px;overflow:hidden;}
@@ -28357,7 +28488,17 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cr135-stctl{display:flex;align-items:center;justify-content:space-between;gap:7px;border-bottom:1px solid rgba(255,255,255,.08);padding:7px 0;font-size:12px;}
       .cr135-stctl b{max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       .cr135-note{color:rgba(255,255,255,.60);font-size:12px;line-height:1.55;margin-top:10px;}
-      .cr135-command-panel{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;margin:10px 0 12px;}
+      .cr135-command-panel,.cr135-advice-panel,.cr135-selected-panel{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;margin:10px 0 12px;}
+      .cr135-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+      .cr135-panel-head h3,.cr135-command-panel h3,.cr135-advice-panel h3,.cr135-selected-panel h3{margin:0;font-size:14px;font-weight:950;}
+      .cr135-pill{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;color:rgba(255,255,255,.72);background:rgba(255,255,255,.06);}
+      .cr135-selected-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+      .cr135-selected-grid div,.cr135-advice-item{border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.045);padding:7px;}
+      .cr135-selected-grid span,.cr135-advice-item span{display:block;color:rgba(255,255,255,.55);font-size:10px;font-weight:800;}
+      .cr135-selected-grid b,.cr135-advice-item b{display:block;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .cr135-line-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+      .cr135-line-cmd{width:100%;font-size:12px;}
+      .cr135-notice{border-left:3px solid #0a84ff;background:rgba(10,132,255,.12);border-radius:10px;padding:8px 9px;color:rgba(255,255,255,.82);font-size:12px;line-height:1.45;margin:8px 0;}
       .cr135-overtake-panel{margin-top:8px;}
       .cr135-overtake-list{max-height:300px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.13);}
       .cr135-overtake-list .cr135-stctl{padding:8px 8px;}
@@ -28408,6 +28549,8 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       if(train&&ov.contains(train)){ e.preventDefault(); e.stopPropagation(); owner.selectedTrain=train.dataset.train; owner.lastSig=''; renderAts(true); return; }
       const cmd=e.target.closest&&e.target.closest('[data-cmd]');
       if(cmd&&ov.contains(cmd)){ e.preventDefault(); e.stopPropagation(); applyCommand(cmd.dataset.cmd); return; }
+      const lineCmd=e.target.closest&&e.target.closest('[data-line-cmd]');
+      if(lineCmd&&ov.contains(lineCmd)){ e.preventDefault(); e.stopPropagation(); applyLineCommand(lineCmd.dataset.lineCmd,lineCmd.dataset.station); return; }
       const ovBtn=e.target.closest&&e.target.closest('[data-ov]');
       if(ovBtn&&ov.contains(ovBtn)){ e.preventDefault(); e.stopPropagation(); const line=lineById(owner.lineId)||getLines()[0]; setOvertake(line,ovBtn.dataset.ov,!overtakeIds(line).has(sid(ovBtn.dataset.ov))); return; }
     });
@@ -28430,13 +28573,15 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       if(!ov) return;
       const train=target.closest('.cr135-train[data-train]');
       const cmd=target.closest('[data-cmd]');
+      const lineCmd=target.closest('[data-line-cmd]');
       const ovBtn=target.closest('[data-ov]');
-      if(!train&&!cmd&&!ovBtn) return;
+      if(!train&&!cmd&&!lineCmd&&!ovBtn) return;
       e.__cityrailV146Handled=true;
       e.preventDefault();
       e.stopPropagation();
       if(train){ owner.selectedTrain=train.dataset.train; owner.lastSig=''; renderAts(true); return; }
       if(cmd){ applyCommand(cmd.dataset.cmd); return; }
+      if(lineCmd){ applyLineCommand(lineCmd.dataset.lineCmd,lineCmd.dataset.station); return; }
       const line=lineById(owner.lineId)||getLines()[0];
       if(line) setOvertake(line,ovBtn.dataset.ov,!overtakeIds(line).has(sid(ovBtn.dataset.ov)));
     },true);
@@ -28579,6 +28724,12 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function renderAll(force){ renderLineList(); renderAts(force); updatePerfHud(); setMapTrainRenderingSuspended(); }
   function renderLineList(){ const list=D.querySelector('#line-config-v137-overlay .cr135-list,#line-config-v135-overlay .cr135-list'); if(!list) return; const ls=getLines().slice().sort((a,b)=>num(a.no||a.id,999)-num(b.no||b.id,999)||lineName(a).localeCompare(lineName(b),'zh-CN')); list.innerHTML=ls.length?ls.map(l=>`<button class="cr135-line ${sid(l.id)===sid(owner.lineId)?'active':''}" data-line="${esc(l.id)}"><span class="cr135-dot" style="background:${esc(lineColor(l))}"></span><span>${esc(lineName(l))}</span></button>`).join(''):'<div class="cr135-empty">暂无线路</div>'; }
   function bindScroll(lineId,mode){ const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov) return; const sc=ov.querySelector('.cr135-scroll'), rg=ov.querySelector('.cr135-range'); if(!sc||!rg) return; const key=sid(lineId)+'|'+sid(mode); const max=Math.max(0,sc.scrollWidth-sc.clientWidth); rg.max=String(Math.max(1,max)); rg.value=String(Math.min(max,num(owner.scroll[key],sc.scrollLeft))); sc.scrollLeft=Math.min(max,num(owner.scroll[key],sc.scrollLeft)); sc.onscroll=()=>{owner.scroll[key]=sc.scrollLeft; rg.value=String(sc.scrollLeft);}; rg.oninput=()=>{sc.scrollLeft=num(rg.value,0); owner.scroll[key]=sc.scrollLeft;}; }
+  function trainStateLabel(t){ const s=sid(t&&t.state); if(t&&t._dispatchHold) return '扣车中'; if(t&&t._dispatchSkipNext) return '跳停下一站'; if(/dwell|station|停/i.test(s)) return '停站作业'; if(/wait|hold|等待/i.test(s)) return '等待进路'; if(/acceler/i.test(s)) return '启动加速'; if(/cruis|run|move/i.test(s)) return '区间运行'; if(/turn|terminal|折返/i.test(s)) return '终端折返'; return s||'运行中'; }
+  function trainStationName(line,t,key){ const ids=lineStations(line); let id=sid(t&&t[key]); if(id){ const st=stationById(id); if(st&&st.name) return st.name; } const idx=Math.max(0,Math.min(ids.length-1,Math.round(num(t&&t.nextStationIdx,num(t&&t.currentStationIdx,0))))); const st=stationById(ids[idx]); return (st&&st.name)||ids[idx]||'—'; }
+  function bestInternalWaitingStation(line,ids){ let best={id:'',name:'—',w:0}; ids.forEach((id,i)=>{ if(i<=0||i>=ids.length-1) return; const w=totalWaiting(line,id), st=stationById(id); if(w>best.w) best={id,name:(st&&st.name)||id,w}; }); return best; }
+  function selectedTrainPanel(line,selected){ if(!selected) return '<section class="cr135-selected-panel"><div class="cr135-panel-head"><h3>列车选择</h3><span class="cr135-pill">待选择</span></div><div class="cr135-note">点击 ATS 图中的列车后，可以下达扣车、放行、跳停或清除命令。</div></section>'; const cmd=selected._dispatchHold?'扣车':(selected._dispatchSkipNext?'跳停':'常规'); return `<section class="cr135-selected-panel"><div class="cr135-panel-head"><h3>已选列车</h3><span class="cr135-pill">${esc(cmd)}</span></div><div class="cr135-selected-grid"><div><span>车次/编号</span><b>${esc(trainId(selected))}</b></div><div><span>方向</span><b>${trainDir(selected)===0?'上行':'下行'}</b></div><div><span>当前位置</span><b>${esc(trainStationName(line,selected,'currentStationId'))}</b></div><div><span>下一站</span><b>${esc(trainStationName(line,selected,'nextStationId'))}</b></div><div><span>运行状态</span><b>${esc(trainStateLabel(selected))}</b></div><div><span>载客</span><b>${fmt(selected.passengers||selected.load||0)}人</b></div></div></section>`; }
+  function commandNotice(){ const raw=D.documentElement.dataset.cityrailDispatchNotice||D.documentElement.dataset.cityrailLastDispatch||''; return raw?`<div class="cr135-notice">${esc(raw)}</div>`:''; }
+  function lineAdvice(line,all,ids,allWait,max,bestOv){ const held=all.filter(t=>t._dispatchHold).length, skip=all.filter(t=>t._dispatchSkipNext).length, crowded=all.filter(t=>num(t.passengers||t.load,0)>=160).length; let action='维持运行图'; if(held>0&&allWait>max.w*2) action='优先放行扣车'; else if(max.w>=160) action='在客流高站前后组织跳停/越行'; else if(crowded>=3) action='减少连续满载列车停站时间'; const headway=all.length&&ids.length>1?Math.max(2,Math.round(ids.length*2.6/all.length)):null; return `<section class="cr135-advice-panel"><div class="cr135-panel-head"><h3>运调建议</h3><span class="cr135-pill">${esc(action)}</span></div><div class="cr135-advice-item"><span>拥堵站</span><b>${esc(max.name)} · ${fmt(max.w)}人</b></div><div class="cr135-selected-grid"><div><span>估算间隔</span><b>${headway?fmt(headway)+'分':'—'}</b></div><div><span>扣车/跳停</span><b>${fmt(held)} / ${fmt(skip)}</b></div><div><span>满载风险</span><b>${fmt(crowded)}列</b></div><div><span>推荐越行</span><b>${esc(bestOv.name)}</b></div></div></section>`; }
   function renderAts(force){
     const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov) return; const line=lineById(owner.lineId)||getLines()[0]; if(line&&!owner.lineId) owner.lineId=sid(line.id);
     ov.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',sid(b.dataset.mode)===sid(owner.mode)));
@@ -28596,11 +28747,13 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     const localStoppedAtOvertake=t=>{ const idx=Math.round(trainSeq(line,t)); const stationId=ids[Math.max(0,Math.min(N-1,idx))]; const near=Math.abs(trainSeq(line,t)-idx)<0.18; return !isExpress(t)&&near&&oset.has(sid(stationId))&&/dwell|wait|hold|station|停|等待|holding/i.test(sid(t.state)); };
     const lanes=Object.create(null); shown.forEach(t=>{const dir=trainDir(t)===1?1:0,x=stableX(line,t,left,gap),onSide=localStoppedAtOvertake(t),base=dir===0?yUp:yDn,key=dir+'|'+Math.round(x/46),k=lanes[key]||0;lanes[key]=k+1;const y=onSide?(yMid+(dir===0?-8:8)):(base+(dir===0?-104:104)+(k%2)*(dir===0?-32:32)),held=!!(t&&t._dispatchHold)||/hold|holding|扣停/i.test(sid(t&&t.state)),c=held?'#ffd60a':(isExpress(t)?'#0a84ff':(isRed(t)?'#ff453a':'#30d158')),sel=sid(owner.selectedTrain)===trainId(t); svg+=`<g class="cr135-train ${sel?'selected':''}" data-train="${esc(trainId(t))}"><rect x="${x-32}" y="${y-15}" width="64" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">${fmt(t.passengers||t.load||0)}</text><path d="M${dir===0?x+37:x-37},${y} l${dir===0?10:-10},-6 v12 z" fill="${c}"/></g>`;});
     svg+='</svg>'; board.style.width=width+'px'; board.innerHTML=svg;
-    const allWait=ids.reduce((a,id)=>a+totalWaiting(line,id),0), onboard=all.reduce((a,t)=>a+num(t.passengers||t.load,0),0); let max={name:'—',w:0}; ids.forEach(id=>{const w=totalWaiting(line,id),st=stationById(id); if(w>max.w) max={name:(st&&st.name)||id,w};}); const selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain));
-    side.innerHTML=`<h3>调度状态</h3><div class="cr135-kpi"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div><section class="cr135-command-panel"><h3>列车调度命令</h3><div class="cr135-note">${selected?`已选列车：${esc(trainId(selected))}<br>方向：${trainDir(selected)===0?'上行':'下行'}<br>状态：${esc(sid(selected.state))}<br>载客：${fmt(selected.passengers||selected.load||0)}人`:'点击图中列车后可执行调度命令'}</div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd" data-cmd="hold">扣车/延长停站</button><button type="button" class="cr135-cmd" data-cmd="release">放行</button><button type="button" class="cr135-cmd" data-cmd="skip">跳停下一站</button><button type="button" class="cr135-cmd" data-cmd="clear">清除命令</button></div><div class="cr135-note">调度命令已接入列车状态机：扣车保持停站/机外等待，放行恢复运行，跳停会改写下一目标站。</div></section><section class="cr135-overtake-panel"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map(id=>{const st=stationById(id),on=overtakeIds(line).has(sid(id));return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}">${on?'取消越行站':'升级为越行站'}</button></div>`;}).join('')}</div></section><div class="cr135-note">越行站与快慢车系统共用同一 expressService.overtakeStations 数据；慢车在越行站进侧线待避，快车走正线通过。</div>`;
+    const allWait=ids.reduce((a,id)=>a+totalWaiting(line,id),0), onboard=all.reduce((a,t)=>a+num(t.passengers||t.load,0),0); let max={name:'—',w:0}; ids.forEach(id=>{const w=totalWaiting(line,id),st=stationById(id); if(w>max.w) max={name:(st&&st.name)||id,w};}); const selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain)); const bestOv=bestInternalWaitingStation(line,ids); const noSelected=selected?'':' disabled';
+    side.innerHTML=`<h3>运行调度</h3><div class="cr135-kpi"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div>${commandNotice()}${lineAdvice(line,all,ids,allWait,max,bestOv)}${selectedTrainPanel(line,selected)}<section class="cr135-command-panel"><div class="cr135-panel-head"><h3>列车命令</h3><span class="cr135-pill">单车</span></div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd warn" data-cmd="hold"${noSelected}>扣车/延长停站</button><button type="button" class="cr135-cmd ok" data-cmd="release"${noSelected}>放行</button><button type="button" class="cr135-cmd danger" data-cmd="skip"${noSelected}>跳停下一站</button><button type="button" class="cr135-cmd" data-cmd="clear"${noSelected}>清除命令</button></div><div class="cr135-note">单车命令接入列车状态机：扣车保持停站/机外等待，放行恢复运行，跳停会改写下一目标站。</div></section><section class="cr135-command-panel"><div class="cr135-panel-head"><h3>全线调整</h3><span class="cr135-pill">线路级</span></div><div class="cr135-line-actions"><button type="button" class="cr135-line-cmd ok" data-line-cmd="release-all">全线放行</button><button type="button" class="cr135-line-cmd" data-line-cmd="clear-skip">清除跳停</button><button type="button" class="cr135-line-cmd" data-line-cmd="clear-hold">解除扣车</button><button type="button" class="cr135-line-cmd" data-line-cmd="suggest-overtake" data-station="${esc(bestOv.id)}"${bestOv.id?'':' disabled'}>推荐越行站</button></div><div class="cr135-note">全线调整用于恢复运行秩序；推荐越行站会把客流最高的非终端站加入越行配置。</div></section><section class="cr135-overtake-panel"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map((id,i)=>{const st=stationById(id),on=overtakeIds(line).has(sid(id)),locked=i<=0||i>=ids.length-1;return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}"${locked?' disabled':''}>${locked?'终端站':(on?'取消越行站':'升级为越行站')}</button></div>`;}).join('')}</div></section><div class="cr135-note">越行站与快慢车系统共用同一 expressService.overtakeStations 数据；慢车在越行站进侧线待避，快车走正线通过。</div>`;
     bindScroll(line.id,owner.mode);
   }
   function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;t._holdingShort=false;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;if(['holding_short','dwelling'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._manualHoldUntil;t._holdingShort=false;if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); renderAts(true); return true; }
+  function releaseTrain(t,includeSkip){ if(!t) return; delete t._dispatchHold; delete t._dispatchCommand; delete t._manualHoldUntil; t._holdingShort=false; t._v136HeldBehindLocal=false; t._v136LocalYielding=false; if(includeSkip) delete t._dispatchSkipNext; if(['holding_short','dwelling'].includes(sid(t.state))){ t.state='accelerating'; t.speed=0; t.dwellRemaining=0; } t._dispatchUpdatedAt=Date.now(); }
+  function applyLineCommand(cmd,stationId){ const line=lineById(owner.lineId)||getLines()[0]; if(!line) return false; const all=trainsFor(line,'both'); let changed=0, label=''; if(cmd==='release-all'){ all.forEach(t=>{ releaseTrain(t,true); changed++; }); label=`${lineName(line)} 全线放行 ${fmt(changed)} 列`; } else if(cmd==='clear-hold'){ all.forEach(t=>{ if(t._dispatchHold||t._manualHoldUntil===Infinity){ releaseTrain(t,false); changed++; } }); label=`${lineName(line)} 已解除扣车 ${fmt(changed)} 列`; } else if(cmd==='clear-skip'){ all.forEach(t=>{ if(t._dispatchSkipNext){ delete t._dispatchSkipNext; if(t._dispatchCommand==='skip-next') delete t._dispatchCommand; t._dispatchUpdatedAt=Date.now(); changed++; } }); label=`${lineName(line)} 已清除跳停 ${fmt(changed)} 列`; } else if(cmd==='suggest-overtake'){ const ids=lineStations(line), id=sid(stationId); if(!id||ids.indexOf(id)<=0||ids.indexOf(id)>=ids.length-1) return false; const st=stationById(id); setOvertake(line,id,true); label=`${lineName(line)} 已将 ${(st&&st.name)||id} 设置为越行站`; changed=1; } else return false; owner.lastSig=''; D.documentElement.dataset.cityrailDispatchNotice=label; D.documentElement.dataset.cityrailLastDispatch=[sid(line.id),sid(cmd),String(changed)].join(':'); renderAts(true); return true; }
   function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','#line-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
   function fixClicks(){
     D.querySelectorAll('#cityrail-train-canvas-v114,#cityrail-train-canvas-v50,#cityrail-train-canvas-v31,.cityrail-train-canvas,canvas[id*="train-canvas"],canvas[class*="train-canvas"],#cityrail-v114-perf,.perf-hud').forEach(el=>{el.style.pointerEvents='none';});
