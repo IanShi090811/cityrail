@@ -27075,7 +27075,6 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       #sd-waiting-section .v101-line-title{display:flex;align-items:center;gap:7px;font-weight:650;color:rgba(255,255,255,.9);}
       #sd-waiting-section .v101-line-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
       #sd-waiting-section .v101-dir-line{font-size:12px;color:rgba(255,255,255,.72);padding-left:17px;line-height:1.45;}
-      #sd-transfer-section{display:block!important;}
       #sd-transfer-toggles .v101-transfer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
       #sd-transfer-toggles .v101-transfer-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
       #sd-transfer-toggles .v101-transfer-btn.on{background:rgba(48,209,88,.18);border-color:rgba(48,209,88,.48);color:#b7ffca;}
@@ -27396,7 +27395,6 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       #sd-waiting-section .v102-line-title{display:flex;align-items:center;gap:7px;font-weight:650;color:rgba(255,255,255,.9);}
       #sd-waiting-section .v102-line-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
       #sd-waiting-section .v102-dir-line{font-size:12px;color:rgba(255,255,255,.72);padding-left:17px;line-height:1.45;}
-      #sd-transfer-section{display:block!important;}
       #sd-transfer-toggles .v102-transfer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);}
       #sd-transfer-toggles .v102-transfer-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;}
       #sd-transfer-toggles .v102-transfer-btn.on{background:rgba(48,209,88,.18);border-color:rgba(48,209,88,.50);color:#b7ffca;}
@@ -27501,8 +27499,8 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function renderStationTransferSettings(stationId){
     stationId=stationId||inferCurrentStationId(); const sec=$('sd-transfer-section'), box=$('sd-transfer-toggles'); if(!sec||!box) return;
     const rows=stationId?getPhysicalTransferCandidates(stationId):[];
+    if(!rows.length){ sec.style.display='none'; box.innerHTML=''; return; }
     sec.style.display='block';
-    if(!rows.length){ box.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,.45);padding:8px 2px;">暂无可设置的物理换乘关系</div>'; return; }
     const html=rows.map((r,i)=>{ const on=relationEnabled(r); return `<div class="v102-transfer-row" data-v102-transfer-idx="${i}"><div><b>${esc(r.lineA.name||r.lineA.id)}</b> ⇄ <b>${esc(r.lineB.name||r.lineB.id)}</b><div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;">${r.sameStation?'同站台换乘':'物理通道 '+Math.round(r.distance)+'m'}</div></div><button class="v102-transfer-btn ${on?'on':'off'}" data-v102-transfer-toggle="${i}">${on?'已开启':'已关闭'}</button></div>`; }).join('');
     box.innerHTML=html; box.__v102Rows=rows;
   }
