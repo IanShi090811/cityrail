@@ -56,11 +56,28 @@ export async function parseBody(request) {
   }
 }
 
+export function getKV(env) {
+  return env && (env.CITYRAIL_KV || env.cityrail_kv || env.CITYRAILGAME_KV || env.KV);
+}
+
 export function requireKV(env) {
-  if (!env || !env.CITYRAIL_KV) {
-    throw new Error('CITYRAIL_KV binding is missing. Bind a Cloudflare KV namespace named CITYRAIL_KV.');
+  const kv = getKV(env);
+  if (!kv) {
+    throw new Error('CITYRAIL_KV binding is missing. Open Cloudflare Pages project cityrailgame → Settings → Bindings → Production, bind a KV namespace with variable name CITYRAIL_KV, then redeploy.');
   }
-  return env.CITYRAIL_KV;
+  return kv;
+}
+
+export function runtimeDiagnostics(env) {
+  const cfg = paymentConfig(env || {});
+  return {
+    kvBound: !!getKV(env),
+    hasAppId: !!cfg.appid,
+    hasSecret: !!cfg.secret,
+    hasGateway: !!cfg.gateway,
+    price: cfg.amount,
+    publicBaseUrl: cfg.publicBaseUrl || '',
+  };
 }
 
 export function paymentConfig(env) {
