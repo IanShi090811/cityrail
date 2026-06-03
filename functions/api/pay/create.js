@@ -54,20 +54,12 @@ export async function onRequestPost(context) {
 
     const upstreamResp = await fetch(cfg.gateway, {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: new URLSearchParams(Object.fromEntries(Object.entries(params).map(([k,v]) => [k, String(v)]))).toString(),
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(params),
     });
     const raw = await upstreamResp.text();
     let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      try {
-        data = Object.fromEntries(new URLSearchParams(raw).entries());
-      } catch {
-        data = { errcode: upstreamResp.status, errmsg: raw || upstreamResp.statusText };
-      }
-    }
+    try { data = JSON.parse(raw); } catch { data = { errcode: upstreamResp.status, errmsg: raw || upstreamResp.statusText }; }
 
     if (Number(data.errcode) !== 0) {
       return json({ error: data.errmsg || '支付网关创建订单失败', detail: data.errcode || upstreamResp.status }, 502);
@@ -101,6 +93,6 @@ export async function onRequestPost(context) {
 
     return json({ success: true, ...clientResponse, order: maskOrder(order) });
   } catch (err) {
-    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, String(err && err.message || '').includes('CITYRAIL_KV') ? 503 : 500);
+    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500);
   }
 }

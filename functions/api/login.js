@@ -18,6 +18,6 @@ export async function onRequestPost(context) {
     if (!ok) return json({ error: '用户名或密码错误' }, 401);
     return json({ success: true });
   } catch (err) {
-    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, String(err && err.message || '').includes('CITYRAIL_KV') ? 503 : 500);
+    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500);
   }
 }

@@ -3879,3 +3879,186 @@ html.cityrail-v145-ready .v145-line-status{
   font-weight: 800;
   cursor: pointer;
 }
+
+/* CityRail beginner tutorial */
+.cityrail-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+.cityrail-tutorial-overlay.visible { display: flex; }
+.cityrail-tutorial-panel {
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(760px, calc(100vh - 36px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(30,34,42,.96), rgba(9,12,18,.96));
+  color: #fff;
+  box-shadow: 0 32px 100px rgba(0,0,0,.52);
+}
+.cityrail-tutorial-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,.42);
+  letter-spacing: .12em;
+}
+.cityrail-tutorial-title {
+  margin-top: 5px;
+  font-size: 25px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+.cityrail-tutorial-close {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.82);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cityrail-tutorial-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 24px 18px;
+}
+.cityrail-tutorial-body::-webkit-scrollbar { width: 8px; }
+.cityrail-tutorial-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.20); border-radius: 999px; }
+.cityrail-tutorial-lede {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.68);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.cityrail-tutorial-list {
+  display: grid;
+  gap: 10px;
+}
+.cityrail-tutorial-point {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 36px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.cityrail-tutorial-point:last-child { border-bottom: 0; }
+.cityrail-tutorial-num {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(10,132,255,.16);
+  color: #8bc5ff;
+  font-size: 12px;
+  font-weight: 850;
+}
+.cityrail-tutorial-point b {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(255,255,255,.94);
+  font-size: 14px;
+}
+.cityrail-tutorial-point span {
+  display: block;
+  color: rgba(255,255,255,.58);
+  font-size: 13px;
+  line-height: 1.62;
+}
+.cityrail-tutorial-progress {
+  display: flex;
+  gap: 6px;
+  padding: 0 24px 16px;
+}
+.cityrail-tutorial-dot {
+  height: 4px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+}
+.cityrail-tutorial-dot.active { background: linear-gradient(90deg, #30D158, #0A84FF); }
+.cityrail-tutorial-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-optout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255,255,255,.60);
+  font-size: 13px;
+  user-select: none;
+}
+.cityrail-tutorial-optout input {
+  width: 17px;
+  height: 17px;
+  accent-color: #0A84FF;
+}
+.cityrail-tutorial-actions {
+  display: flex;
+  gap: 10px;
+}
+.cityrail-tutorial-actions button,
+.cityrail-tutorial-settings-btn {
+  height: 40px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: rgba(255,255,255,.075);
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+.cityrail-tutorial-actions .primary,
+.cityrail-tutorial-settings-btn {
+  border-color: rgba(10,132,255,.36);
+  background: linear-gradient(135deg, rgba(10,132,255,.92), rgba(0,102,204,.92));
+}
+.cityrail-tutorial-actions button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+.cityrail-tutorial-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .cityrail-tutorial-overlay { padding: 14px; }
+  .cityrail-tutorial-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); border-radius: 18px; }
+  .cityrail-tutorial-top,
+  .cityrail-tutorial-body,
+  .cityrail-tutorial-bottom { padding-left: 16px; padding-right: 16px; }
+  .cityrail-tutorial-bottom { align-items: stretch; flex-direction: column; }
+  .cityrail-tutorial-actions { width: 100%; }
+  .cityrail-tutorial-actions button { flex: 1; }
+}

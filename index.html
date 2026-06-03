@@ -3893,6 +3893,189 @@ html.cityrail-v145-ready .v145-line-status{
   cursor: pointer;
 }
 
+/* CityRail beginner tutorial */
+.cityrail-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+.cityrail-tutorial-overlay.visible { display: flex; }
+.cityrail-tutorial-panel {
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(760px, calc(100vh - 36px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(30,34,42,.96), rgba(9,12,18,.96));
+  color: #fff;
+  box-shadow: 0 32px 100px rgba(0,0,0,.52);
+}
+.cityrail-tutorial-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,.42);
+  letter-spacing: .12em;
+}
+.cityrail-tutorial-title {
+  margin-top: 5px;
+  font-size: 25px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+.cityrail-tutorial-close {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.82);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cityrail-tutorial-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 24px 18px;
+}
+.cityrail-tutorial-body::-webkit-scrollbar { width: 8px; }
+.cityrail-tutorial-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.20); border-radius: 999px; }
+.cityrail-tutorial-lede {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.68);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.cityrail-tutorial-list {
+  display: grid;
+  gap: 10px;
+}
+.cityrail-tutorial-point {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 36px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.cityrail-tutorial-point:last-child { border-bottom: 0; }
+.cityrail-tutorial-num {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(10,132,255,.16);
+  color: #8bc5ff;
+  font-size: 12px;
+  font-weight: 850;
+}
+.cityrail-tutorial-point b {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(255,255,255,.94);
+  font-size: 14px;
+}
+.cityrail-tutorial-point span {
+  display: block;
+  color: rgba(255,255,255,.58);
+  font-size: 13px;
+  line-height: 1.62;
+}
+.cityrail-tutorial-progress {
+  display: flex;
+  gap: 6px;
+  padding: 0 24px 16px;
+}
+.cityrail-tutorial-dot {
+  height: 4px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+}
+.cityrail-tutorial-dot.active { background: linear-gradient(90deg, #30D158, #0A84FF); }
+.cityrail-tutorial-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-optout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255,255,255,.60);
+  font-size: 13px;
+  user-select: none;
+}
+.cityrail-tutorial-optout input {
+  width: 17px;
+  height: 17px;
+  accent-color: #0A84FF;
+}
+.cityrail-tutorial-actions {
+  display: flex;
+  gap: 10px;
+}
+.cityrail-tutorial-actions button,
+.cityrail-tutorial-settings-btn {
+  height: 40px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: rgba(255,255,255,.075);
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+.cityrail-tutorial-actions .primary,
+.cityrail-tutorial-settings-btn {
+  border-color: rgba(10,132,255,.36);
+  background: linear-gradient(135deg, rgba(10,132,255,.92), rgba(0,102,204,.92));
+}
+.cityrail-tutorial-actions button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+.cityrail-tutorial-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .cityrail-tutorial-overlay { padding: 14px; }
+  .cityrail-tutorial-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); border-radius: 18px; }
+  .cityrail-tutorial-top,
+  .cityrail-tutorial-body,
+  .cityrail-tutorial-bottom { padding-left: 16px; padding-right: 16px; }
+  .cityrail-tutorial-bottom { align-items: stretch; flex-direction: column; }
+  .cityrail-tutorial-actions { width: 100%; }
+  .cityrail-tutorial-actions button { flex: 1; }
+}
+
 </style>
 
 </head>
@@ -4650,6 +4833,28 @@ html.cityrail-v145-ready .v145-line-status{
 /* Extracted from original index.html during low-risk modular refactor. Execution order is preserved. */
 (function(){
   function byId(id){ return document.getElementById(id); }
+  function havKm(a,b){
+    if(!a||!b) return 0;
+    var R=6371,lat1=n(a.lat)*Math.PI/180,lat2=n(b.lat)*Math.PI/180,dlat=(n(b.lat)-n(a.lat))*Math.PI/180,dlng=(n(b.lng)-n(a.lng))*Math.PI/180;
+    var x=Math.sin(dlat/2)*Math.sin(dlat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)*Math.sin(dlng/2);
+    return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));
+  }
+  function liveLineLength(st,line){
+    if(!line||!Array.isArray(line.stationIds)) return 0;
+    var sm={}; (st.stations||[]).forEach(function(sta){ if(sta&&sta.id) sm[sta.id]=sta; });
+    var wps=Array.isArray(line.waypoints)?line.waypoints:[],nodes=[];
+    line.stationIds.forEach(function(stationId,i){
+      var sta=sm[stationId]; if(!sta) return;
+      var pos=sta.linePositions&&sta.linePositions[line.id]?sta.linePositions[line.id]:sta;
+      nodes.push({lat:n(pos.lat),lng:n(pos.lng)});
+      if(i<line.stationIds.length-1){
+        wps.filter(function(w){ return n(w.segIdx)===i; }).sort(function(a,b){ return n(a.order)-n(b.order); }).forEach(function(w){ nodes.push({lat:n(w.lat),lng:n(w.lng)}); });
+      }
+    });
+    var total=0;
+    for(var i=1;i<nodes.length;i++) total+=havKm(nodes[i-1],nodes[i]);
+    return total;
+  }
 
   function showScreen(screenId){
     var s = byId(screenId);
@@ -5449,12 +5654,15 @@ function $(id) { return document.getElementById(id); }
         err.textContent = '无法连接服务器，请确保后端已启动';
         err.classList.add('visible');
         return;
-      }
-      const ls = $('login-screen'); if (ls) ls.classList.add('fade-out');
-      setTimeout(() => { if (ls) ls.style.display = 'none'; }, 500);
-      const cs = $('city-select-screen'); if (cs) cs.classList.add('visible');
-      if (typeof initCitySelect === 'function') initCitySelect();
-    });
+	      }
+	      const ls = $('login-screen'); if (ls) ls.classList.add('fade-out');
+	      setTimeout(() => { if (ls) ls.style.display = 'none'; }, 500);
+	      if (window.CityRailTutorial && typeof window.CityRailTutorial.setUser === 'function') {
+	        window.CityRailTutorial.setUser(u);
+	      }
+	      const cs = $('city-select-screen'); if (cs) cs.classList.add('visible');
+	      if (typeof initCitySelect === 'function') initCitySelect();
+	    });
   }
 
 	  function cityrailShowPaidAccess() {
@@ -5482,13 +5690,16 @@ function $(id) { return document.getElementById(id); }
 	    const modal = $('cityrail-pay-modal'); if (modal) modal.classList.remove('visible');
 	    const su = $('pay-success-username'); if (su) su.textContent = username || '请使用注册时填写的用户名';
 	    const sp = $('pay-success-password'); if (sp) sp.textContent = password || '请使用注册时填写的密码';
-	    const ss = $('payment-success-screen');
-	    if (ss) {
-	      ss.classList.remove('fade-out');
-	      ss.classList.add('visible');
-	    }
-	    _pendingReg = username && password ? { username, password } : null;
-	  }
+		    const ss = $('payment-success-screen');
+		    if (ss) {
+		      ss.classList.remove('fade-out');
+		      ss.classList.add('visible');
+		    }
+		    if (username && window.CityRailTutorial && typeof window.CityRailTutorial.markNewUser === 'function') {
+		      window.CityRailTutorial.markNewUser(username);
+		    }
+		    _pendingReg = username && password ? { username, password } : null;
+		  }
 
   function ensurePaymentModal() {
     let modal = $('cityrail-pay-modal');
@@ -5561,7 +5772,7 @@ function $(id) { return document.getElementById(id); }
       });
       const d = await r.json();
       if (!r.ok || !d.success) {
-        alert('创建支付订单失败: ' + (d.error || '未知错误') + (d.detail ? '\n' + d.detail : ''));
+        alert('创建支付订单失败: ' + (d.error || '未知错误'));
         return;
       }
 	      try { localStorage.setItem('cityrail_pending_order', d.trade_order_id); } catch {}
@@ -5588,8 +5799,8 @@ function $(id) { return document.getElementById(id); }
       modal.classList.add('visible');
       if (d.url && !d.url_qrcode) window.open(d.url, '_blank', 'noopener,noreferrer');
       startPaymentPolling(d.trade_order_id);
-    } catch (err) {
-      alert('无法连接支付接口。请确认当前域名的 /api/health 能返回 ok。\n' + (err && err.message ? err.message : ''));
+    } catch {
+      alert('无法连接服务器，请确保后端已启动');
     } finally {
       if (btn) { btn.classList.remove('pay-loading'); btn.style.pointerEvents = ''; }
     }
@@ -5626,6 +5837,9 @@ function $(id) { return document.getElementById(id); }
 	      const lu = $('login-username'); if (lu && account.username) lu.value = account.username;
 	      const lp = $('login-password'); if (lp && account.password) lp.value = account.password;
 	      const le = $('login-error'); if (le) le.classList.remove('visible');
+	      if (account.username && window.CityRailTutorial && typeof window.CityRailTutorial.setUser === 'function') {
+	        window.CityRailTutorial.setUser(account.username);
+	      }
 	      setTimeout(() => {
 	        const ls = $('login-screen');
 	        if (ls) {
@@ -5638,6 +5852,132 @@ function $(id) { return document.getElementById(id); }
 	  }
 
 	  })();
+
+// ==================== PERFORMANCE MODE ====================
+(function(){
+  const STORAGE_KEY = 'cityrail_performance_mode';
+  const ROOT_CLASS = 'cityrail-performance-mode';
+  const doc = document;
+
+  function isOn() {
+    try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch(e) { return false; }
+  }
+  function setStored(on) {
+    try { localStorage.setItem(STORAGE_KEY, on ? '1' : '0'); } catch(e) {}
+  }
+  function syncToggle(on) {
+    const toggle = doc.getElementById('st-performance-mode');
+    if (toggle) toggle.className = 'settings-toggle ' + (on ? 'on' : 'off');
+  }
+  function ensureStyle() {
+    if (doc.getElementById('cityrail-performance-mode-style')) return;
+    const style = doc.createElement('style');
+    style.id = 'cityrail-performance-mode-style';
+    style.textContent = `
+      body.${ROOT_CLASS} *, body.${ROOT_CLASS} *::before, body.${ROOT_CLASS} *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+      body.${ROOT_CLASS} .station-label,
+      body.${ROOT_CLASS} .leaflet-tooltip-pane,
+      body.${ROOT_CLASS} .od-icon-wrapper,
+      body.${ROOT_CLASS} .cityrail-od-icon,
+      body.${ROOT_CLASS} .od-flow-line,
+      body.${ROOT_CLASS} .transfer-corridor-label,
+      body.${ROOT_CLASS} .transfer-corridor-platform-dot,
+      body.${ROOT_CLASS} .transfer-corridor-joint-dot,
+      body.${ROOT_CLASS} .cityrail-v102-transfer-pane,
+      body.${ROOT_CLASS} .transfer-corridor-v100,
+      body.${ROOT_CLASS} .transfer-corridor-v101 {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      body.${ROOT_CLASS} .ctrl-card,
+      body.${ROOT_CLASS} #settings-panel,
+      body.${ROOT_CLASS} #line-config-v137-overlay,
+      body.${ROOT_CLASS} .leaflet-marker-icon,
+      body.${ROOT_CLASS} .train-marker,
+      body.${ROOT_CLASS} .train-marker-overload {
+        box-shadow: none !important;
+        filter: none !important;
+        backdrop-filter: none !important;
+      }
+      .cityrail-performance-settings-row .sr-label::after {
+        content: " 大型线网";
+        margin-left: 8px;
+        font-size: 10px;
+        color: rgba(255,255,255,.48);
+        font-weight: 700;
+      }
+    `;
+    doc.head.appendChild(style);
+  }
+  function ensureSettingsRow() {
+    const panel = doc.getElementById('settings-panel');
+    if (!panel || doc.getElementById('cityrail-performance-settings-row')) return;
+    const row = doc.createElement('div');
+    row.id = 'cityrail-performance-settings-row';
+    row.className = 'settings-row cityrail-performance-settings-row';
+    row.setAttribute('data-setting', 'performance-mode');
+    row.innerHTML = '<span class="sr-label">性能模式</span><div class="settings-toggle off" id="st-performance-mode"></div>';
+    const ref = panel.querySelector('[data-setting="openrailway"]');
+    if (ref && ref.nextSibling) panel.insertBefore(row, ref.nextSibling);
+    else panel.insertBefore(row, panel.querySelector('.settings-divider') || null);
+    row.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      applyPerformanceMode(!isOn(), true);
+    }, true);
+  }
+  function disableCostlyLayers() {
+    try {
+      if (typeof state !== 'undefined') state.showLabels = false;
+      const mapEl = doc.getElementById('map');
+      if (mapEl) mapEl.classList.add('hide-labels');
+      const stLabels = doc.getElementById('st-labels');
+      if (stLabels) stLabels.className = 'settings-toggle off';
+    } catch(e) {}
+    try {
+      if (typeof setOpenRailwayEnabled === 'function') setOpenRailwayEnabled(false);
+      const stOrm = doc.getElementById('st-openrailway');
+      if (stOrm) stOrm.className = 'settings-toggle off';
+    } catch(e) {}
+    try {
+      if (window.CityRailODIcons && typeof window.CityRailODIcons.disable === 'function') window.CityRailODIcons.disable();
+    } catch(e) {}
+    try {
+      window.__cityrailV100TransferEnabled = false;
+      const stTransfer = doc.getElementById('st-transfer-corridors');
+      if (stTransfer) stTransfer.className = 'settings-toggle off';
+    } catch(e) {}
+  }
+  function applyPerformanceMode(on, persist) {
+    on = !!on;
+    ensureStyle();
+    if (persist) setStored(on);
+    doc.body && doc.body.classList.toggle(ROOT_CLASS, on);
+    syncToggle(on);
+    if (on) disableCostlyLayers();
+    try { if (typeof updateSettingsUI === 'function') updateSettingsUI(); } catch(e) {}
+    syncToggle(on);
+  }
+  function boot() {
+    ensureStyle();
+    ensureSettingsRow();
+    applyPerformanceMode(isOn(), false);
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.CityRailPerformanceMode = {
+    enable: () => applyPerformanceMode(true, true),
+    disable: () => applyPerformanceMode(false, true),
+    toggle: () => applyPerformanceMode(!isOn(), true),
+    isOn
+  };
+})();
 
 // ==================== INVITE CODE ====================
 const INVITE_CODE = '260327';
@@ -5808,16 +6148,325 @@ function initCitySelect() {
         cityScreen.classList.add('fade-out');
         setTimeout(() => { cityScreen.style.display = 'none'; }, 500);
         // v51: 点击上海只进入空白底图，不自动加载默认线网、不自动启动模拟。
-        // 玩家可以手动画线，或通过“存档与诊断 → 导入文件”恢复包含车站/线路的存档。
-        if (typeof initBlankShanghaiMap === 'function') initBlankShanghaiMap();
-      });
-    }
-    grid.appendChild(el);
-  });
-}
+	        // 玩家可以手动画线，或通过“存档与诊断 → 导入文件”恢复包含车站/线路的存档。
+	        if (typeof initBlankShanghaiMap === 'function') initBlankShanghaiMap();
+	        if (window.CityRailTutorial && typeof window.CityRailTutorial.maybeAutoStart === 'function') {
+	          setTimeout(() => window.CityRailTutorial.maybeAutoStart(), 900);
+	        }
+	      });
+	    }
+	    grid.appendChild(el);
+	  });
+	}
 
-// ==================== CONSTANTS ====================
-const LINE_COLORS = [
+// ==================== BEGINNER TUTORIAL ====================
+(function(window, document) {
+  'use strict';
+
+  const NS = 'CityRailTutorial';
+  const AUTO_LIMIT = 3;
+  const CURRENT_USER_KEY = 'cityrail_tutorial_current_user';
+  const NEW_USER_PREFIX = 'cityrail_tutorial_new_user:';
+  const STATE_PREFIX = 'cityrail_tutorial_state:';
+
+  const slides = [
+    {
+      title: '欢迎来到 CityRail',
+      lede: '你正在使用的是一个城市轨道交通仿真工具。核心目标是先画出线路和车站，再观察列车运行、客流、换乘和运营数据。',
+      points: [
+        ['进入城市', '登录后选择上海进入地图。当前版本默认是空白底图，你可以手动画线，也可以在设置中导入已有存档。'],
+        ['操作顺序', '推荐先新建线路，再配置运营参数，最后开启时间模拟并观察控制中心与统计面板。'],
+        ['数据保存', '设置面板里可以保存、读取、导出和导入存档，适合在更新版本前备份。']
+      ]
+    },
+    {
+      title: '地图与时间控制',
+      lede: '主界面由地图、顶部工具栏和底部时间栏组成。地图负责建设线网，时间栏负责驱动列车与客流。',
+      points: [
+        ['底图切换', '顶部“深色”按钮会在深色、浅色和卫星图之间切换。设置里的 OpenRailwayMap 是额外铁路覆盖图层。'],
+        ['时间模拟', '底部播放按钮控制暂停与运行，左侧时间滑条决定一天中的时间，右侧速度滑条决定仿真倍速。'],
+        ['地图缩放', '放大后站名和列车显示更清晰；缩小时系统会自动隐藏部分细节，减少大型线网卡顿。']
+      ]
+    },
+    {
+      title: '新建线路',
+      lede: '点击“新建线路”后输入线路名和代表色，开始在地图上施画线路。',
+      points: [
+        ['放置车站', '左键在地图上放置车站。车站会参与客流生成、上下车、换乘和统计。'],
+        ['放置节点', '右键放置节点。节点只改变线路走向，不生成客流，也不会成为停靠站。'],
+        ['完成施画', '完成按钮会生成正式线路；取消按钮会放弃当前正在画的线路。']
+      ]
+    },
+    {
+      title: '线路配置',
+      lede: '点击线路后可以进入线路配置，调整线路名称、颜色、车型、编组、速度、发车间隔和首末班车时间。',
+      points: [
+        ['运营参数', '车型、编组、速度和发车间隔会影响运能、拥挤度和线路表现。'],
+        ['拓扑编辑', '在线路配置中可以继续添加车站或节点，系统会重建线路路径与列车运行路径。'],
+        ['线路运营', '面板底部展示上行/下行列车位置，帮助你检查线路运行是否顺畅。']
+      ]
+    },
+    {
+      title: '车站详情与换乘',
+      lede: '点击车站可以打开车站详情面板，查看客流、候车、OD 关系，并进行站点编辑。',
+      points: [
+        ['客流信息', '车站详情会显示功能区、进出站客流、各线路候车人数和主要 OD 关系。'],
+        ['换乘设置', '多线经过同一车站或相邻车站时，可以查看和配置换乘关系，换乘距离会影响路径选择。'],
+        ['移动与删除', '移动车站会重建相关线路图层和列车路径；删除车站会影响经过它的线路。']
+      ]
+    },
+    {
+      title: '统计与导航',
+      lede: '顶部统计和导航工具帮助你从乘客视角检查线网是否合理。',
+      points: [
+        ['站点统计', '站点统计展示全网车站的进站客流和送达客流排名，适合寻找压力站点。'],
+        ['线路统计', '线路统计展示长度、客流量、车型编组、速度和运能利用率。'],
+        ['模拟导航', '选择起点和终点后，系统会模拟乘客在当前线网中的路径，用来检查换乘和走向设计。']
+      ]
+    },
+    {
+      title: '控制中心',
+      lede: '控制中心是运营总览面板，适合在线网建成后观察全天运行表现。',
+      points: [
+        ['运营总览', '顶部显示时间、时段、模拟速度、在线列车、今日客运量、全网客强和线路数。'],
+        ['客流看板', '可以查看全网总客流、候车、票务收入、小时客流趋势和重点车站排行。'],
+        ['线路状态', '线路运营数据会显示快慢车、车型、编组、速度、长度、列车数、客流量和拥挤度。']
+      ]
+    },
+    {
+      title: '快慢车与调度',
+      lede: '线路配置和控制中心里包含更细的运营功能，用来处理大线网中的拥堵和运能问题。',
+      points: [
+        ['快慢车', '开启快慢车后，可以设置快车停站、慢车停站和越行站，模拟更复杂的运营组织。'],
+        ['越行站', '越行站允许慢车待避快车，适合长线路和客流差异较大的走廊。'],
+        ['调度命令', '控制中心可对列车执行扣车、放行、跳停和清除命令，用来处理临时拥堵。']
+      ]
+    },
+    {
+      title: '设置与存档',
+      lede: '设置面板集中管理显示效果、图层、存档和辅助功能。',
+      points: [
+        ['显示开关', '显示列车、显示站名、OpenRailwayMap、OD 流向图标和换乘通道都可以按需要开关。'],
+        ['存档管理', '保存和读取使用浏览器本地存储；导出和导入适合备份、迁移或发给别人测试。'],
+        ['再次打开教程', '设置面板里的“开启新手教程”可以随时重新打开本导览。']
+      ]
+    },
+    {
+      title: '建议的第一局',
+      lede: '如果你刚开始，可以按这个顺序体验完整功能，不需要一次记住所有按钮。',
+      points: [
+        ['先画一条线', '新建 5 到 8 个车站，完成后观察地图上的线路和站名。'],
+        ['再调参数', '打开线路配置，调整编组、速度和发车间隔，然后开启时间模拟。'],
+        ['最后看数据', '打开站点统计、线路统计、模拟导航和控制中心，找到拥挤站点后再改线网。']
+      ]
+    }
+  ];
+
+  function safeUser(user) {
+    const value = String(user || '').trim();
+    return value || 'guest';
+  }
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+
+  function stateKey(user) { return STATE_PREFIX + safeUser(user); }
+  function newUserKey(user) { return NEW_USER_PREFIX + safeUser(user); }
+
+  function getCurrentUser() {
+    try { return safeUser(localStorage.getItem(CURRENT_USER_KEY)); }
+    catch { return 'guest'; }
+  }
+
+  function setUser(user) {
+    const name = safeUser(user);
+    try { localStorage.setItem(CURRENT_USER_KEY, name); } catch {}
+    return name;
+  }
+
+  function markNewUser(user) {
+    const name = setUser(user);
+    try { localStorage.setItem(newUserKey(name), '1'); } catch {}
+  }
+
+  function getState(user) {
+    const state = readJSON(stateKey(user), {});
+    return {
+      shown: Math.max(0, Number(state.shown || 0)),
+      never: !!state.never
+    };
+  }
+
+  function saveStateFor(user, state) {
+    writeJSON(stateKey(user), {
+      shown: Math.max(0, Number(state.shown || 0)),
+      never: !!state.never
+    });
+  }
+
+  function isNewUser(user) {
+    try { return localStorage.getItem(newUserKey(user)) === '1'; }
+    catch { return false; }
+  }
+
+  function ensureOverlay() {
+    let overlay = document.getElementById('cityrail-tutorial-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'cityrail-tutorial-overlay';
+    overlay.className = 'cityrail-tutorial-overlay';
+    overlay.innerHTML = [
+      '<div class="cityrail-tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="cityrail-tutorial-title">',
+        '<div class="cityrail-tutorial-top">',
+          '<div>',
+            '<div class="cityrail-tutorial-kicker" id="cityrail-tutorial-step">CITYRAIL GUIDE</div>',
+            '<div class="cityrail-tutorial-title" id="cityrail-tutorial-title"></div>',
+          '</div>',
+          '<button type="button" class="cityrail-tutorial-close" id="cityrail-tutorial-close" aria-label="关闭">×</button>',
+        '</div>',
+        '<div class="cityrail-tutorial-body">',
+          '<p class="cityrail-tutorial-lede" id="cityrail-tutorial-lede"></p>',
+          '<div class="cityrail-tutorial-list" id="cityrail-tutorial-list"></div>',
+        '</div>',
+        '<div class="cityrail-tutorial-progress" id="cityrail-tutorial-progress"></div>',
+        '<div class="cityrail-tutorial-bottom">',
+          '<label class="cityrail-tutorial-optout">',
+            '<input type="checkbox" id="cityrail-tutorial-never">',
+            '<span>以后不再自动弹出</span>',
+          '</label>',
+          '<div class="cityrail-tutorial-actions">',
+            '<button type="button" id="cityrail-tutorial-prev">上一步</button>',
+            '<button type="button" class="primary" id="cityrail-tutorial-next">下一步</button>',
+          '</div>',
+        '</div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#cityrail-tutorial-close').addEventListener('click', close);
+    overlay.querySelector('#cityrail-tutorial-prev').addEventListener('click', () => showStep(activeStep - 1));
+    overlay.querySelector('#cityrail-tutorial-next').addEventListener('click', () => {
+      if (activeStep >= slides.length - 1) close();
+      else showStep(activeStep + 1);
+    });
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) close();
+    });
+    document.addEventListener('keydown', event => {
+      if (!overlay.classList.contains('visible')) return;
+      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowLeft') showStep(activeStep - 1);
+      if (event.key === 'ArrowRight') {
+        if (activeStep >= slides.length - 1) close();
+        else showStep(activeStep + 1);
+      }
+    });
+    return overlay;
+  }
+
+  let activeStep = 0;
+  let activeUser = 'guest';
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  }
+
+  function showStep(index) {
+    const overlay = ensureOverlay();
+    activeStep = Math.max(0, Math.min(slides.length - 1, Number(index) || 0));
+    const slide = slides[activeStep];
+    overlay.querySelector('#cityrail-tutorial-step').textContent = `CITYRAIL GUIDE ${activeStep + 1} / ${slides.length}`;
+    overlay.querySelector('#cityrail-tutorial-title').textContent = slide.title;
+    overlay.querySelector('#cityrail-tutorial-lede').textContent = slide.lede;
+    overlay.querySelector('#cityrail-tutorial-list').innerHTML = slide.points.map((point, idx) => [
+      '<div class="cityrail-tutorial-point">',
+        '<div class="cityrail-tutorial-num">', idx + 1, '</div>',
+        '<div><b>', escapeHtml(point[0]), '</b><span>', escapeHtml(point[1]), '</span></div>',
+      '</div>'
+    ].join('')).join('');
+    overlay.querySelector('#cityrail-tutorial-progress').innerHTML = slides.map((_, idx) => {
+      return '<div class="cityrail-tutorial-dot' + (idx <= activeStep ? ' active' : '') + '"></div>';
+    }).join('');
+    overlay.querySelector('#cityrail-tutorial-prev').disabled = activeStep === 0;
+    overlay.querySelector('#cityrail-tutorial-next').textContent = activeStep >= slides.length - 1 ? '完成' : '下一步';
+  }
+
+  function open(options) {
+    const opts = options || {};
+    activeUser = safeUser(opts.user || getCurrentUser());
+    const overlay = ensureOverlay();
+    const state = getState(activeUser);
+    const checkbox = overlay.querySelector('#cityrail-tutorial-never');
+    if (checkbox) checkbox.checked = !!state.never;
+    showStep(0);
+    overlay.classList.add('visible');
+    if (opts.auto) {
+      state.shown += 1;
+      saveStateFor(activeUser, state);
+    }
+  }
+
+  function close() {
+    const overlay = ensureOverlay();
+    const checkbox = overlay.querySelector('#cityrail-tutorial-never');
+    if (checkbox && checkbox.checked) {
+      const state = getState(activeUser);
+      state.never = true;
+      saveStateFor(activeUser, state);
+    }
+    overlay.classList.remove('visible');
+  }
+
+  function maybeAutoStart() {
+    const user = getCurrentUser();
+    if (!isNewUser(user)) return false;
+    const state = getState(user);
+    if (state.never || state.shown >= AUTO_LIMIT) return false;
+    open({ user, auto: true });
+    return true;
+  }
+
+  function installSettingsButton() {
+    const panel = document.getElementById('settings-panel');
+    if (!panel || document.getElementById('cityrail-tutorial-settings-row')) return;
+    const row = document.createElement('div');
+    row.id = 'cityrail-tutorial-settings-row';
+    row.className = 'settings-row cityrail-tutorial-settings-row';
+    row.innerHTML = '<span class="sr-label">新手教程</span><button type="button" class="cityrail-tutorial-settings-btn" id="cityrail-tutorial-open">开启新手教程</button>';
+    row.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      open({ user: getCurrentUser(), auto: false });
+    });
+    const divider = panel.querySelector('.settings-divider');
+    if (divider && divider.parentNode) divider.parentNode.insertBefore(row, divider);
+    else panel.appendChild(row);
+  }
+
+  function boot() {
+    installSettingsButton();
+    ensureOverlay();
+  }
+
+  window[NS] = { open, close, maybeAutoStart, markNewUser, setUser, installSettingsButton };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})(window, document);
+
+	// ==================== CONSTANTS ====================
+	const LINE_COLORS = [
   // 1-18号线 来自高德地图API官方配色
   '#E3002A','#86B81C','#FCD600','#5A2B8D','#96499A',
   '#F0087D','#EE782E','#01A2E2','#69C7F4','#C6AFD4',
@@ -8400,6 +9049,60 @@ function createTrainObj(line, direction, depTime, nodes) {
   return train;
 }
 
+function chooseBalancedSpawnStation(line, direction) {
+  if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return -1;
+  const totalStations = line.stationIds.length;
+  const loadByStation = Array(totalStations).fill(0);
+  state.trains.forEach(t => {
+    if (!t || t.lineId !== line.id || t.state === 'done' || t.state === 'waiting') return;
+    const idx = Math.max(0, Math.min(totalStations - 1, Math.round(Number(t.nextStationIdx) || 0)));
+    loadByStation[idx]++;
+  });
+  const minIdx = direction === 0 ? 0 : 1;
+  const maxIdx = direction === 0 ? totalStations - 2 : totalStations - 1;
+  let best = -1, bestScore = Infinity;
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const terminalPenalty = (i === 0 || i === totalStations - 1) ? 1.6 : 0;
+    const edgeBalance = Math.abs((i / Math.max(1, totalStations - 1)) - 0.5) * 0.15;
+    const score = loadByStation[i] * 10 + terminalPenalty + edgeBalance;
+    if (score < bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  }
+  return best;
+}
+
+function placeTrainAtStationBalanced(train, line, nodes, stationIdx, direction, dwellScale) {
+  if (!train || !line || !Array.isArray(nodes)) return false;
+  const totalStations = line.stationIds.length;
+  if (stationIdx < 0 || stationIdx >= totalStations) return false;
+  const stationId = line.stationIds[stationIdx];
+  const nodeIdx = nodes.findIndex(n => n.type === 'station' && n.id === stationId);
+  if (nodeIdx < 0) return false;
+  train.direction = direction;
+  train.nextStationIdx = stationIdx;
+  train.speed = 0;
+  train.state = 'dwelling';
+  train.dwellRemaining = Math.max(2, getDwellBase(line) * (dwellScale == null ? 0.28 : dwellScale));
+  train.depTime = 0;
+  train._holdingShort = false;
+  train._holdTimer = 0;
+  train._stuckTimer = 0;
+  if (direction === 0) {
+    train.segIndex = Math.max(0, Math.min(nodes.length - 2, nodeIdx));
+    train.segProgress = stationIdx >= totalStations - 1 ? 1 : 0;
+  } else {
+    train.segIndex = Math.max(0, Math.min(nodes.length - 2, nodeIdx - 1));
+    train.segProgress = stationIdx <= 0 ? 0 : 1;
+  }
+  return true;
+}
+try {
+  window.chooseBalancedSpawnStation = chooseBalancedSpawnStation;
+  window.placeTrainAtStationBalanced = placeTrainAtStationBalanced;
+} catch(e) {}
+
 // Initialize all trains
 function initAllTrains() {
   // Clean up
@@ -8467,36 +9170,36 @@ function dispatchLoop() {
     if (!line._lastBwdDispatch) line._lastBwdDispatch = nowSec;
     if (nowSec - line._lastFwdDispatch >= headwaySec) {
       line._lastFwdDispatch += headwaySec;
-      const sIdx = 0;
-      const sid = line.stationIds[sIdx];
-      const nIdx = nodes.findIndex(n => n.type === 'station' && n.id === sid);
-      if (nIdx !== -1) {
+      const sIdx = chooseBalancedSpawnStation(line, 0);
+      if (sIdx >= 0) {
         const t = {
           id: genId(), lineId: line.id, direction: 0, depTime: 0,
-          segIndex: nIdx, segProgress: 0, speed: 0, state: 'dwelling',
+          segIndex: 0, segProgress: 0, speed: 0, state: 'dwelling',
           dwellRemaining: dwellBase * 0.3, _holdingShort: false, _holdTimer: 0, _stuckTimer: 0,
           load: 0, maxLoad: capacity,
           _passengerIds: [], nextStationIdx: sIdx, _passengersAlreadyReturned: false,
         };
-        handleTrainArrival(t, line);
-        state.trains.push(t);
+        if (placeTrainAtStationBalanced(t, line, nodes, sIdx, 0, 0.3)) {
+          handleTrainArrival(t, line);
+          state.trains.push(t);
+        }
       }
     }
     if (nowSec - line._lastBwdDispatch >= headwaySec) {
       line._lastBwdDispatch += headwaySec;
-      const sIdx = totalStations - 1;
-      const sid = line.stationIds[sIdx];
-      const nIdx = nodes.findIndex(n => n.type === 'station' && n.id === sid);
-      if (nIdx !== -1) {
+      const sIdx = chooseBalancedSpawnStation(line, 1);
+      if (sIdx >= 0) {
         const t = {
           id: genId(), lineId: line.id, direction: 1, depTime: 0,
-          segIndex: Math.max(0, nIdx - 1), segProgress: 1, speed: 0, state: 'dwelling',
+          segIndex: 0, segProgress: 1, speed: 0, state: 'dwelling',
           dwellRemaining: dwellBase * 0.3, _holdingShort: false, _holdTimer: 0, _stuckTimer: 0,
           load: 0, maxLoad: capacity,
           _passengerIds: [], nextStationIdx: sIdx, _passengersAlreadyReturned: false,
         };
-        handleTrainArrival(t, line);
-        state.trains.push(t);
+        if (placeTrainAtStationBalanced(t, line, nodes, sIdx, 1, 0.3)) {
+          handleTrainArrival(t, line);
+          state.trains.push(t);
+        }
       }
     }
   }
@@ -8699,7 +9402,14 @@ function spawnReplacementTrain(stuckTrain) {
 
   if (candidateStations.length === 0) return; // 无空闲站可补
 
-  // 选最近的空闲站（或用第一个）
+  // 选当前负载最低的空闲站，避免补车集中在起点或第一个候选站。
+  const stationLoad = Array(totalStations).fill(0);
+  state.trains.forEach(t => {
+    if (!t || t.lineId !== line.id || t.state === 'done' || t.state === 'waiting') return;
+    const idx = Math.max(0, Math.min(totalStations - 1, Math.round(Number(t.nextStationIdx) || 0)));
+    stationLoad[idx]++;
+  });
+  candidateStations.sort((a, b) => (stationLoad[a] - stationLoad[b]) || Math.abs(a - stuckTrain.nextStationIdx) - Math.abs(b - stuckTrain.nextStationIdx));
   const targetStationIdx = candidateStations[0];
   const stationId = line.stationIds[targetStationIdx];
   const station = state.stations.find(s => s.id === stationId);
@@ -8733,14 +9443,8 @@ function spawnReplacementTrain(stuckTrain) {
     nextStationIdx: direction === 0 ? targetStationIdx + 1 : targetStationIdx - 1,
   };
 
-  // 设置位置：在车站节点上
-  if (direction === 0) {
-    train.segIndex = stationNodeIdx;
-    train.segProgress = 1; // 在车站节点 B 侧
-  } else {
-    train.segIndex = Math.max(0, stationNodeIdx - 1);
-    train.segProgress = 1; // 在车站节点位置
-  }
+  // 设置位置：在选中的空闲车站上
+  placeTrainAtStationBalanced(train, line, nodes, targetStationIdx, direction, 0.2);
   train.speed = 0;
 
   state.trains.push(train);
@@ -8757,7 +9461,7 @@ function isStationOccupied(lineId, direction, stationIdx, excludeTrainId) {
     if (t.id === excludeTrainId) return false;
     if (t.lineId !== lineId || t.direction !== direction) return false;
     // 前方有列车正在停站
-    if (t.nextStationIdx === stationIdx && (t.state === 'dwelling' || t.state === 'turning_back' || t.state === 'holding_short')) return true;
+    if (t.nextStationIdx === stationIdx && (t.state === 'dwelling' || t.state === 'turning_back' || t.state === 'dispatch_turning_back' || t.state === 'holding_short')) return true;
     // 前方有列车正在减速进站（已接近车站平台）
     if (t.state === 'decelerating' && t.nextStationIdx === stationIdx) return true;
     // 前方有列车正在驶离该站（刚离开站台，距离车站极近）
@@ -8847,6 +9551,60 @@ function completeTerminalTurnback(train, line, nodes, reason) {
   if (window.CITYRAIL_DEBUG_TRAIN === true) {
     try { console.warn('[CityRail v57]', '折返完成，反向发车', { trainId: train.id, line: line.name || line.id, fromTerminalIdx: terminalIdx, newDirection: train.direction, nextStationIdx: train.nextStationIdx, segIndex: train.segIndex, segProgress: train.segProgress, reason: reason || 'timer' }); } catch(e) {}
   }
+  return true;
+}
+
+function getDispatchTurnbackPlan(train, line, nodes) {
+  if (!train || !line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return null;
+  const total = line.stationIds.length;
+  const stationIdx = Math.max(0, Math.min(total - 1, Math.round(Number(train.nextStationIdx) || 0)));
+  if (stationIdx <= 0 || stationIdx >= total - 1) return getTerminalOutboundPlan(line, stationIdx, nodes);
+  const nodeIdx = getStationNodeIndexForLine(line, stationIdx, nodes);
+  if (nodeIdx < 0) return null;
+  if (train.direction === 0) {
+    return { direction: 1, nextStationIdx: stationIdx - 1, segIndex: Math.max(0, nodeIdx - 1), segProgress: 1 };
+  }
+  return { direction: 0, nextStationIdx: stationIdx + 1, segIndex: nodeIdx, segProgress: 0 };
+}
+
+function beginDispatchTurnback(train, line, nodes, reason) {
+  if (!train || !line) return false;
+  const plan = getDispatchTurnbackPlan(train, line, nodes);
+  if (!plan) return false;
+  train.state = 'dispatch_turning_back';
+  train.speed = 0;
+  train.dwellRemaining = Math.max(6, Math.min(30, getDwellBase(line) * 0.55));
+  train._turnbackDuration = train.dwellRemaining;
+  train._turnbackElapsed = 0;
+  train._dispatchTurnbackPlan = plan;
+  train._dispatchCommand = 'turnback';
+  train._dispatchTurnbackReason = reason || 'dispatch-command';
+  train._dispatchHold = false;
+  delete train._manualHoldUntil;
+  train._holdingShort = false;
+  train._holdTimer = 0;
+  train._stuckTimer = 0;
+  return true;
+}
+
+function completeDispatchTurnback(train, line, nodes, reason) {
+  const plan = train && train._dispatchTurnbackPlan;
+  if (!train || !plan) return false;
+  train.direction = plan.direction;
+  train.nextStationIdx = plan.nextStationIdx;
+  train.segIndex = plan.segIndex;
+  train.segProgress = plan.segProgress;
+  train.state = 'accelerating';
+  train.speed = 0;
+  train.dwellRemaining = 0;
+  train._turnbackElapsed = 0;
+  train._turnbackDuration = 0;
+  train._holdingShort = false;
+  train._holdTimer = 0;
+  train._stuckTimer = 0;
+  delete train._dispatchTurnbackNext;
+  delete train._dispatchTurnbackPlan;
+  delete train._dispatchCommand;
   return true;
 }
 
@@ -8950,6 +9708,22 @@ function updateSingleTrain(train, dtSec, toRemove) {
   const nodeB = nodes[segIdx + 1];
   let segDist = nodeA.segDist || 0.001; // km（预计算值）
 
+  if (train.state === 'dispatch_turning_back') {
+    train.speed = 0;
+    train._stuckTimer = 0;
+    train._turnbackElapsed = (train._turnbackElapsed || 0) + dtSec;
+    const planned = Math.max(6, Math.min(30, Number(train._turnbackDuration) || getDwellBase(line) * 0.55));
+    train.dwellRemaining = Math.max(0, planned - train._turnbackElapsed);
+    try { boardPassengersDuringDwell(train, line); } catch(e) {}
+    if (train._turnbackElapsed >= planned || train.dwellRemaining <= 0) {
+      completeDispatchTurnback(train, line, nodes, 'dispatch turnback timer reached');
+      if (typeof window.cityrailRecordActualDiagramDeparture === 'function') {
+        try { window.cityrailRecordActualDiagramDeparture(line, train.direction, train); } catch(e) {}
+      }
+    }
+    return;
+  }
+
   if (train.state === 'turning_back') {
     train.speed = 0;
     train._stuckTimer = 0;
@@ -8991,7 +9765,9 @@ function updateSingleTrain(train, dtSec, toRemove) {
         return;
       }
       // 普通站发车；如果旧存档/旧模块把终点车放进 dwelling，则转交给 v57 终点折返状态机。
-      if (isTerminal) {
+      if (train._dispatchTurnbackNext) {
+        beginDispatchTurnback(train, line, nodes, 'dwelling dispatch turnback');
+      } else if (isTerminal) {
         beginTerminalTurnback(train, line, nodes, 'legacy dwelling terminal handoff');
       } else {
         advanceNextStation(train, line, totalStations);
@@ -9083,7 +9859,9 @@ function updateSingleTrain(train, dtSec, toRemove) {
         // Set dwell time
         // Station is at node B for forward, node A for backward
         train.segProgress = (train.direction === 0) ? 1 : 0;
-        if (isTerminalStationIndex(line, train.nextStationIdx)) {
+        if (train._dispatchTurnbackNext) {
+          beginDispatchTurnback(train, line, nodes, 'arrival dispatch turnback');
+        } else if (isTerminalStationIndex(line, train.nextStationIdx)) {
           beginTerminalTurnback(train, line, nodes, 'arrival decelerating');
         } else {
           train.state = 'dwelling';
@@ -9130,11 +9908,15 @@ function updateSingleTrain(train, dtSec, toRemove) {
         handleTrainArrival(train, line);
         train._holdTimer = 0;
         train._holdingShort = false;
-        train.state = 'dwelling';
-        const stn = state.stations.find(s => s.id === arrivedNode.id);
-        const fl = stn ? (state.stationFlowMap?.[stn.id] || 0) : 0;
-        const fr = state._maxStationFlow > 0 ? fl / state._maxStationFlow : 0;
-        train.dwellRemaining = getDwellBase(line) + fr * 8;
+        if (train._dispatchTurnbackNext) {
+          beginDispatchTurnback(train, line, nodes, 'forward node dispatch turnback');
+        } else {
+          train.state = 'dwelling';
+          const stn = state.stations.find(s => s.id === arrivedNode.id);
+          const fl = stn ? (state.stationFlowMap?.[stn.id] || 0) : 0;
+          const fr = state._maxStationFlow > 0 ? fl / state._maxStationFlow : 0;
+          train.dwellRemaining = getDwellBase(line) + fr * 8;
+        }
         return; // 本帧结束
       }
 
@@ -9183,11 +9965,15 @@ function updateSingleTrain(train, dtSec, toRemove) {
         handleTrainArrival(train, line);
         train._holdTimer = 0;
         train._holdingShort = false;
-        train.state = 'dwelling';
-        const stn = state.stations.find(s => s.id === arrivedNode.id);
-        const fl = stn ? (state.stationFlowMap?.[stn.id] || 0) : 0;
-        const fr = state._maxStationFlow > 0 ? fl / state._maxStationFlow : 0;
-        train.dwellRemaining = getDwellBase(line) + fr * 8;
+        if (train._dispatchTurnbackNext) {
+          beginDispatchTurnback(train, line, nodes, 'backward node dispatch turnback');
+        } else {
+          train.state = 'dwelling';
+          const stn = state.stations.find(s => s.id === arrivedNode.id);
+          const fl = stn ? (state.stationFlowMap?.[stn.id] || 0) : 0;
+          const fr = state._maxStationFlow > 0 ? fl / state._maxStationFlow : 0;
+          train.dwellRemaining = getDwellBase(line) + fr * 8;
+        }
         return; // 本帧结束
       }
 
@@ -9238,7 +10024,9 @@ function updateSingleTrain(train, dtSec, toRemove) {
       handleTrainArrival(train, line);
       train._holdTimer = 0;
       train._holdingShort = false;
-      if (isTerminalStationIndex(line, train.nextStationIdx)) {
+      if (train._dispatchTurnbackNext) {
+        beginDispatchTurnback(train, line, nodes, 'passed-station dispatch turnback');
+      } else if (isTerminalStationIndex(line, train.nextStationIdx)) {
         beginTerminalTurnback(train, line, nodes, 'passed-station terminal safety');
       } else {
         train.state = 'dwelling';
@@ -9378,36 +10166,18 @@ function adjustTrainCountForLine(line) {
     const nodes = getLineTrainNodes(line);
     if (nodes.length < 2) return;
 
-    const totalStations = line.stationIds.length;
-    const dwellBase = getDwellBase(line);
     const nowSec = state.simulationHour * 3600;
     const firstH = line.firstTrain ?? 6;
     const lastH = line.lastTrain ?? 22;
 
-    // ── 在 dense nodes 中预建 车站→节点索引 映射 ──
-    const stnNodeMap = {};
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].type === 'station' && nodes[i].id) stnNodeMap[nodes[i].id] = i;
-    }
-
-    // 在起点站或终点站生成新列车（交替方向）
+    // 缺车补充也按全线车站均匀铺开，不再固定从起点/终点一窝蜂上线。
     for (let i = 0; i < -diff; i++) {
       const dir = i % 2 === 0 ? 0 : 1;
       const train = createTrainObj(line, dir, nowSec, nodes);
 
       if (nowSec >= firstH * 3600 && nowSec < lastH * 3600) {
-        // 将列车正确定位到起点/终点站，nextStationIdx 指向当前所在车站
-        const startStnIdx = dir === 0 ? 0 : totalStations - 1;
-        const nodeIdx = stnNodeMap[line.stationIds[startStnIdx]];
-        if (nodeIdx !== undefined) {
-          train.direction = dir;
-          train.nextStationIdx = startStnIdx; // 当前停靠的车站
-          train.speed = 0;
-          train.state = 'dwelling';
-          train.dwellRemaining = dwellBase * (0.3 + 0.4 * Math.random());
-          train.depTime = 0;
-          if (dir === 0) { train.segIndex = nodeIdx; train.segProgress = 0; }
-          else { train.segIndex = Math.max(0, nodeIdx - 1); train.segProgress = 1; }
+        const startStnIdx = chooseBalancedSpawnStation(line, dir);
+        if (placeTrainAtStationBalanced(train, line, nodes, startStnIdx, dir, 0.3 + 0.4 * Math.random())) {
           handleTrainArrival(train, line);
         } else {
           train.state = 'waiting';
@@ -9746,6 +10516,25 @@ function computeLineLengths() {
     state.lineLengthCache[line.id] = total;
   });
 }
+
+function recomputeLineLengthsNow() {
+  if (!state || !Array.isArray(state.lines)) return 0;
+  state.lineLengthCache = state.lineLengthCache || {};
+  let networkTotal = 0;
+  state.lines.forEach(line => {
+    const nodes = getLineNodes(line);
+    let total = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+      total += haversine(nodes[i].lat, nodes[i].lng, nodes[i + 1].lat, nodes[i + 1].lng);
+    }
+    state.lineLengthCache[line.id] = total;
+    line.lengthKm = total;
+    networkTotal += total;
+  });
+  state._networkLengthKmLive = networkTotal;
+  return networkTotal;
+}
+try { window.recomputeLineLengthsNow = recomputeLineLengthsNow; } catch(e) {}
 
 function toggleLineStats() {
   state.showLineStats = !state.showLineStats;
@@ -22140,14 +22929,17 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function computeNetworkLengthKm(){
     var st = window.state;
     if(!st || !Array.isArray(st.lines)) return 0;
-    try { if(typeof window.computeLineLengths === 'function') window.computeLineLengths(); } catch(e) {}
     var total = 0;
+    st.lineLengthCache = st.lineLengthCache || {};
     for(var i=0;i<st.lines.length;i++){
       var line = st.lines[i];
       if(!line) continue;
-      var len = st.lineLengthCache && st.lineLengthCache[line.id];
+      var len = liveLineLength(st,line);
+      st.lineLengthCache[line.id] = len;
+      line.lengthKm = len;
       total += n(len);
     }
+    st._networkLengthKmLive = total;
     return total;
   }
 
@@ -26364,7 +27156,6 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       #sd-waiting-section .v101-line-title{display:flex;align-items:center;gap:7px;font-weight:650;color:rgba(255,255,255,.9);}
       #sd-waiting-section .v101-line-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
       #sd-waiting-section .v101-dir-line{font-size:12px;color:rgba(255,255,255,.72);padding-left:17px;line-height:1.45;}
-      #sd-transfer-section{display:block!important;}
       #sd-transfer-toggles .v101-transfer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
       #sd-transfer-toggles .v101-transfer-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
       #sd-transfer-toggles .v101-transfer-btn.on{background:rgba(48,209,88,.18);border-color:rgba(48,209,88,.48);color:#b7ffca;}
@@ -26685,7 +27476,6 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       #sd-waiting-section .v102-line-title{display:flex;align-items:center;gap:7px;font-weight:650;color:rgba(255,255,255,.9);}
       #sd-waiting-section .v102-line-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
       #sd-waiting-section .v102-dir-line{font-size:12px;color:rgba(255,255,255,.72);padding-left:17px;line-height:1.45;}
-      #sd-transfer-section{display:block!important;}
       #sd-transfer-toggles .v102-transfer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);}
       #sd-transfer-toggles .v102-transfer-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;}
       #sd-transfer-toggles .v102-transfer-btn.on{background:rgba(48,209,88,.18);border-color:rgba(48,209,88,.50);color:#b7ffca;}
@@ -26790,8 +27580,8 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function renderStationTransferSettings(stationId){
     stationId=stationId||inferCurrentStationId(); const sec=$('sd-transfer-section'), box=$('sd-transfer-toggles'); if(!sec||!box) return;
     const rows=stationId?getPhysicalTransferCandidates(stationId):[];
+    if(!rows.length){ sec.style.display='none'; box.innerHTML=''; return; }
     sec.style.display='block';
-    if(!rows.length){ box.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,.45);padding:8px 2px;">暂无可设置的物理换乘关系</div>'; return; }
     const html=rows.map((r,i)=>{ const on=relationEnabled(r); return `<div class="v102-transfer-row" data-v102-transfer-idx="${i}"><div><b>${esc(r.lineA.name||r.lineA.id)}</b> ⇄ <b>${esc(r.lineB.name||r.lineB.id)}</b><div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;">${r.sameStation?'同站台换乘':'物理通道 '+Math.round(r.distance)+'m'}</div></div><button class="v102-transfer-btn ${on?'on':'off'}" data-v102-transfer-toggle="${i}">${on?'已开启':'已关闭'}</button></div>`; }).join('');
     box.innerHTML=html; box.__v102Rows=rows;
   }
@@ -27826,37 +28616,58 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cityrail-v102-transfer-pane,.transfer-corridor-v100,.transfer-corridor-v101{pointer-events:none!important;}
       #cityrail-v114-perf,.perf-hud{left:14px!important;right:auto!important;bottom:14px!important;pointer-events:none!important;z-index:5400!important;}
       #cityrail-v114-perf.v135-hidden,.perf-hud.v135-hidden{display:none!important;}
-      #line-config-v137-overlay,#line-config-v135-overlay{position:fixed;inset:72px 24px 24px 24px;z-index:9300;background:rgba(4,8,14,.97);border:1px solid rgba(255,255,255,.18);border-radius:18px;box-shadow:0 30px 110px rgba(0,0,0,.62);display:grid;grid-template-columns:260px minmax(0,1fr);overflow:hidden;color:#eff8ff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;}
+      #line-config-v137-overlay,#line-config-v135-overlay{position:fixed;inset:72px 24px 24px 24px;z-index:9300;background:rgba(4,8,14,.97);border:1px solid rgba(255,255,255,.18);border-radius:18px;box-shadow:0 30px 110px rgba(0,0,0,.62);display:grid;grid-template-columns:260px minmax(0,1fr);grid-template-rows:minmax(0,1fr);overflow:hidden;color:#eff8ff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;}
       #line-config-v137-overlay.hidden,#line-config-v135-overlay.hidden{display:none!important;}
       /* v138.4: 原始线路控制面板只保留线路配置，隐藏线路运营/\u65e7ATS区域 */
       #line-config-overlay #line-ops-section{display:none!important;pointer-events:none!important;}
       #line-config-overlay #cfg-subtitle{color:rgba(255,255,255,.62)!important;}
-      .cr135-lines{border-right:1px solid rgba(255,255,255,.12);padding:14px;overflow:auto;background:rgba(255,255,255,.035);}
+      .cr135-lines{min-height:0;border-right:1px solid rgba(255,255,255,.12);padding:14px;overflow:auto;background:rgba(255,255,255,.035);}
       .cr135-title{font-size:17px;font-weight:950;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
       .cr135-close{border:1px solid rgba(255,255,255,.20);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:4px 10px;font-weight:950;cursor:pointer;}
       .cr135-line{width:100%;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);color:#fff;border-radius:12px;padding:10px 9px;margin:6px 0;cursor:pointer;text-align:left;font-weight:850;}
       .cr135-line.active{background:rgba(10,132,255,.24);border-color:rgba(10,132,255,.55);}
       .cr135-dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;}
-      .cr135-main{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);}
+      .cr135-main{min-width:0;min-height:0;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;}
       .cr135-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);}
       .cr135-hname{font-size:18px;font-weight:950;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .cr135-tabs{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-      .cr135-tab,.cr135-cmd,.cr135-small{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.075);color:#fff;border-radius:10px;padding:7px 10px;font-weight:850;cursor:pointer;}
+      .cr135-tab,.cr135-cmd,.cr135-small,.cr135-line-cmd{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.075);color:#fff;border-radius:10px;padding:7px 10px;font-weight:850;cursor:pointer;}
+      .cr135-cmd:hover,.cr135-small:hover,.cr135-line-cmd:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.30);}
+      .cr135-cmd:disabled,.cr135-line-cmd:disabled,.cr135-small:disabled{opacity:.42;cursor:not-allowed;}
+      .cr135-cmd.warn{background:rgba(255,214,10,.14);border-color:rgba(255,214,10,.45);}
+      .cr135-cmd.ok,.cr135-line-cmd.ok{background:rgba(48,209,88,.13);border-color:rgba(48,209,88,.42);}
+      .cr135-cmd.danger{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.42);}
       .cr135-tab.active{background:rgba(10,132,255,.30);border-color:rgba(10,132,255,.62);}
-      .cr135-body{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;padding:10px;}
+      .cr135-body{min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;}
       .cr135-ats{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;background:#02060b;border:1px solid rgba(255,255,255,.10);border-radius:14px;overflow:hidden;}
       .cr135-scroll{overflow:auto;min-height:0;overscroll-behavior:contain;}
       .cr135-board{height:620px;position:relative;}
       .cr135-svg{display:block;background:#02060b;}
       .cr135-range{width:100%;height:22px;accent-color:#55c7ff;background:rgba(255,255,255,.06);}
-      .cr135-side{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;overflow:auto;}
+      .cr135-side{align-self:stretch;min-height:0;height:100%;max-height:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;overflow-y:scroll;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+      .cr135-side::-webkit-scrollbar,.cr135-overtake-list::-webkit-scrollbar{width:8px;}
+      .cr135-side::-webkit-scrollbar-thumb,.cr135-overtake-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.24);border-radius:999px;}
       .cr135-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px;}
       .cr135-kpi div{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px;}
       .cr135-kpi span{display:block;color:rgba(255,255,255,.58);font-size:11px}.cr135-kpi b{font-size:16px;}
       .cr135-stctl{display:flex;align-items:center;justify-content:space-between;gap:7px;border-bottom:1px solid rgba(255,255,255,.08);padding:7px 0;font-size:12px;}
       .cr135-stctl b{max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       .cr135-note{color:rgba(255,255,255,.60);font-size:12px;line-height:1.55;margin-top:10px;}
-      .cr135-command-panel{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;margin:10px 0 12px;}
+      .cr135-command-panel,.cr135-selected-panel{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;margin:10px 0 12px;}
+      .cr135-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+      .cr135-panel-head h3,.cr135-command-panel h3,.cr135-selected-panel h3{margin:0;font-size:14px;font-weight:950;}
+      .cr135-pill{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;color:rgba(255,255,255,.72);background:rgba(255,255,255,.06);}
+      .cr135-selected-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+      .cr135-selected-grid div,.cr135-advice-item{border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.045);padding:7px;}
+      .cr135-selected-grid span,.cr135-advice-item span{display:block;color:rgba(255,255,255,.55);font-size:10px;font-weight:800;}
+      .cr135-selected-grid b,.cr135-advice-item b{display:block;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .cr135-line-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+      .cr135-line-cmd{width:100%;font-size:12px;}
+      .cr135-notice{border-left:3px solid #0a84ff;background:rgba(10,132,255,.12);border-radius:10px;padding:8px 9px;color:rgba(255,255,255,.82);font-size:12px;line-height:1.45;margin:8px 0;}
+      .cr135-risk-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px;}
+      .cr135-risk-row div{border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.045);padding:8px;}
+      .cr135-risk-row span{display:block;color:rgba(255,255,255,.56);font-size:11px;font-weight:850;}
+      .cr135-risk-row b{display:block;font-size:16px;margin-top:2px;}
       .cr135-overtake-panel{margin-top:8px;}
       .cr135-overtake-list{max-height:300px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.13);}
       .cr135-overtake-list .cr135-stctl{padding:8px 8px;}
@@ -27864,7 +28675,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cr135-train{cursor:pointer}.cr135-train.selected rect{stroke-width:5!important;filter:drop-shadow(0 0 10px rgba(255,255,255,.42));}
       .ats-v82,.ats-v116,.ats-v118,.lc-v130-ats,.lc-v132-ats,.line-config-v128-overlay,.line-config-v130-overlay,.line-config-v132-overlay,.line-config-v133-overlay,#line-ops-section,#ats-expand-header-btn,#ex-select-stops{display:none!important;pointer-events:none!important;}
       #sd-zone-row{display:flex!important;flex-wrap:wrap!important;gap:7px!important;align-items:center!important;}
-      @media(max-width:900px){#line-config-v137-overlay,#line-config-v137-overlay,#line-config-v135-overlay{grid-template-columns:1fr;inset:58px 8px 8px}.cr135-lines{max-height:160px;border-right:0;border-bottom:1px solid rgba(255,255,255,.12)}.cr135-body{grid-template-columns:1fr}.cr135-side{max-height:240px}}
+      @media(max-width:900px){#line-config-v137-overlay,#line-config-v137-overlay,#line-config-v135-overlay{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);inset:58px 8px 8px}.cr135-lines{max-height:160px;border-right:0;border-bottom:1px solid rgba(255,255,255,.12)}.cr135-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(220px,38vh)}.cr135-side{max-height:none}}
     `; D.head.appendChild(st);
   }
 
@@ -27907,6 +28718,8 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       if(train&&ov.contains(train)){ e.preventDefault(); e.stopPropagation(); owner.selectedTrain=train.dataset.train; owner.lastSig=''; renderAts(true); return; }
       const cmd=e.target.closest&&e.target.closest('[data-cmd]');
       if(cmd&&ov.contains(cmd)){ e.preventDefault(); e.stopPropagation(); applyCommand(cmd.dataset.cmd); return; }
+      const lineCmd=e.target.closest&&e.target.closest('[data-line-cmd]');
+      if(lineCmd&&ov.contains(lineCmd)){ e.preventDefault(); e.stopPropagation(); applyLineCommand(lineCmd.dataset.lineCmd,lineCmd.dataset.station); return; }
       const ovBtn=e.target.closest&&e.target.closest('[data-ov]');
       if(ovBtn&&ov.contains(ovBtn)){ e.preventDefault(); e.stopPropagation(); const line=lineById(owner.lineId)||getLines()[0]; setOvertake(line,ovBtn.dataset.ov,!overtakeIds(line).has(sid(ovBtn.dataset.ov))); return; }
     });
@@ -27929,13 +28742,15 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       if(!ov) return;
       const train=target.closest('.cr135-train[data-train]');
       const cmd=target.closest('[data-cmd]');
+      const lineCmd=target.closest('[data-line-cmd]');
       const ovBtn=target.closest('[data-ov]');
-      if(!train&&!cmd&&!ovBtn) return;
+      if(!train&&!cmd&&!lineCmd&&!ovBtn) return;
       e.__cityrailV146Handled=true;
       e.preventDefault();
       e.stopPropagation();
       if(train){ owner.selectedTrain=train.dataset.train; owner.lastSig=''; renderAts(true); return; }
       if(cmd){ applyCommand(cmd.dataset.cmd); return; }
+      if(lineCmd){ applyLineCommand(lineCmd.dataset.lineCmd,lineCmd.dataset.station); return; }
       const line=lineById(owner.lineId)||getLines()[0];
       if(line) setOvertake(line,ovBtn.dataset.ov,!overtakeIds(line).has(sid(ovBtn.dataset.ov)));
     },true);
@@ -27975,7 +28790,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     const sel=modal.querySelector('#cc-ex-overtake'); if(sel) sel.value=set.size?'planned':'none';
     modal.querySelectorAll('#cc-ex-overtake-list [data-station-id]').forEach(ch=>{ const id=sid(ch.dataset.stationId); const idx=ids.indexOf(id), fixed=idx<=0||idx>=ids.length-1; ch.classList.toggle('overtake-on',!fixed&&set.has(id)); ch.classList.toggle('overtake-off',!fixed&&!set.has(id)); const tag=ch.querySelector('.tag'); if(tag) tag.textContent=fixed?'不可选':(set.has(id)?'越行':'普通'); });
   }
-  function setOvertake(line,stationId,on){ if(!line) return false; const cfg=expressConfig(line); const ids=lineStations(line), id=sid(stationId), idx=ids.indexOf(id); if(idx<=0||idx>=ids.length-1) return false; const set=overtakeIds(line); if(on) set.add(id); else set.delete(id); line.overtakeStationIds=ids.filter((x,i)=>i>0&&i<ids.length-1&&set.has(sid(x))); cfg.overtakeStations=line.overtakeStationIds.slice(); cfg.overtakeMode=cfg.overtakeStations.length?'planned':'none'; if(cfg.overtakeStations.length){ cfg.enabled=true; line.expressEnabled=true; const os=new Set(cfg.overtakeStations.map(sid)); const current=(cfg.expressStops&&cfg.expressStops.length?cfg.expressStops:ids.filter((x,i)=>i===0||i===ids.length-1||i%3===0)); cfg.expressStops=ids.filter((x,i)=>i===0||i===ids.length-1||(current.includes(x)&&!os.has(sid(x)))); } else { cfg.overtakeMode='none'; } line._topologyVersion=(num(line._topologyVersion)+1)||1; D.documentElement.dataset.cityrailLastOvertake=[sid(line.id),id,on?'on':'off'].join(':'); syncExpressModalDom(line); maintainSeparateExpressFleet(); try{ if(W.CityRailExpressRouteChoiceV32&&typeof W.CityRailExpressRouteChoiceV32.invalidate==='function') W.CityRailExpressRouteChoiceV32.invalidate(); }catch(e){} try{W.refreshAll&&W.refreshAll();}catch(e){} try{ if(typeof W.updateControlCenter==='function') W.updateControlCenter(); }catch(e){} renderAts(true); return true; }
+  function setOvertake(line,stationId,on){ if(!line) return false; const cfg=expressConfig(line); const ids=lineStations(line), id=sid(stationId), idx=ids.indexOf(id); if(idx<=0||idx>=ids.length-1) return false; const set=overtakeIds(line); if(on) set.add(id); else set.delete(id); line.overtakeStationIds=ids.filter((x,i)=>i>0&&i<ids.length-1&&set.has(sid(x))); cfg.overtakeStations=line.overtakeStationIds.slice(); cfg.overtakeMode=cfg.overtakeStations.length?'planned':'none'; if(cfg.overtakeStations.length){ cfg.enabled=true; line.expressEnabled=true; const os=new Set(cfg.overtakeStations.map(sid)); const current=(cfg.expressStops&&cfg.expressStops.length?cfg.expressStops:ids.filter((x,i)=>i===0||i===ids.length-1||i%3===0)); cfg.expressStops=ids.filter((x,i)=>i===0||i===ids.length-1||(current.includes(x)&&!os.has(sid(x)))); } else { cfg.overtakeMode='none'; } line._topologyVersion=(num(line._topologyVersion)+1)||1; const st=stationById(id); D.documentElement.dataset.cityrailLastOvertake=[sid(line.id),id,on?'on':'off'].join(':'); D.documentElement.dataset.cityrailDispatchNotice=`${lineName(line)} ${(st&&st.name)||id} ${on?'已设为越行站':'已取消越行站'}`; syncExpressModalDom(line); maintainSeparateExpressFleet(); try{ if(W.CityRailExpressRouteChoiceV32&&typeof W.CityRailExpressRouteChoiceV32.invalidate==='function') W.CityRailExpressRouteChoiceV32.invalidate(); }catch(e){} try{W.refreshAll&&W.refreshAll();}catch(e){} try{ if(typeof W.updateControlCenter==='function') W.updateControlCenter(); }catch(e){} renderAts(true); return true; }
   function liveWaitingBatches(){ return Array.isArray(S().batches)?S().batches:(Array.isArray(S().passengerBatches)?S().passengerBatches:[]); }
   function waitingCountOfBatch(b){ return Math.max(0,num(b&&(b.count!=null?b.count:(b.passengers!=null?b.passengers:b.size)),0)); }
   function waitingLegOfBatch(b){ return b&&Array.isArray(b.legs)?b.legs[num(b.currentLeg,0)]||null:null; }
@@ -28078,12 +28893,19 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function renderAll(force){ renderLineList(); renderAts(force); updatePerfHud(); setMapTrainRenderingSuspended(); }
   function renderLineList(){ const list=D.querySelector('#line-config-v137-overlay .cr135-list,#line-config-v135-overlay .cr135-list'); if(!list) return; const ls=getLines().slice().sort((a,b)=>num(a.no||a.id,999)-num(b.no||b.id,999)||lineName(a).localeCompare(lineName(b),'zh-CN')); list.innerHTML=ls.length?ls.map(l=>`<button class="cr135-line ${sid(l.id)===sid(owner.lineId)?'active':''}" data-line="${esc(l.id)}"><span class="cr135-dot" style="background:${esc(lineColor(l))}"></span><span>${esc(lineName(l))}</span></button>`).join(''):'<div class="cr135-empty">暂无线路</div>'; }
   function bindScroll(lineId,mode){ const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov) return; const sc=ov.querySelector('.cr135-scroll'), rg=ov.querySelector('.cr135-range'); if(!sc||!rg) return; const key=sid(lineId)+'|'+sid(mode); const max=Math.max(0,sc.scrollWidth-sc.clientWidth); rg.max=String(Math.max(1,max)); rg.value=String(Math.min(max,num(owner.scroll[key],sc.scrollLeft))); sc.scrollLeft=Math.min(max,num(owner.scroll[key],sc.scrollLeft)); sc.onscroll=()=>{owner.scroll[key]=sc.scrollLeft; rg.value=String(sc.scrollLeft);}; rg.oninput=()=>{sc.scrollLeft=num(rg.value,0); owner.scroll[key]=sc.scrollLeft;}; }
+  function trainStateLabel(t){ const s=sid(t&&t.state); if(s==='holding_short'||t&&t._holdingShort||t&&t._v136HeldBehindLocal) return '机外等待'; if(t&&t._dispatchTurnbackNext) return '待就地折返'; if(s==='dispatch_turning_back') return '就地折返'; if(t&&t._dispatchHold) return '扣车中'; if(t&&t._dispatchSkipNext) return '跳停下一站'; if(t&&t._v136LocalYielding) return '待避快车'; if(/dwell|station|停/i.test(s)) return '停站作业'; if(/wait|hold|等待/i.test(s)) return '等待进路'; if(/acceler/i.test(s)) return '启动加速'; if(/cruis|run|move/i.test(s)) return '区间运行'; if(/turn|terminal|折返/i.test(s)) return '终端折返'; return s||'运行中'; }
+  function trainStationName(line,t,key){ const ids=lineStations(line); let id=sid(t&&t[key]); if(id){ const st=stationById(id); if(st&&st.name) return st.name; } const idx=Math.max(0,Math.min(ids.length-1,Math.round(num(t&&t.nextStationIdx,num(t&&t.currentStationIdx,0))))); const st=stationById(ids[idx]); return (st&&st.name)||ids[idx]||'—'; }
+  function trainServiceLabel(t){ return isExpress(t)?'快车':'普通车'; }
+  function bestInternalWaitingStation(line,ids){ let best={id:'',name:'—',w:0}; ids.forEach((id,i)=>{ if(i<=0||i>=ids.length-1) return; const w=totalWaiting(line,id), st=stationById(id); if(w>best.w) best={id,name:(st&&st.name)||id,w}; }); return best; }
+  function selectedTrainPanel(line,selected){ if(!selected) return '<section class="cr135-selected-panel"><div class="cr135-panel-head"><h3>列车选择</h3><span class="cr135-pill">待选择</span></div><div class="cr135-note">点击 ATS 图中的列车后，可以下达扣车、放行、跳停、就地折返或清除命令。</div></section>'; const cmd=selected._dispatchTurnbackNext?'折返待命':(selected._dispatchHold?'扣车':(selected._dispatchSkipNext?'跳停':'常规')); return `<section class="cr135-selected-panel"><div class="cr135-panel-head"><h3>已选列车</h3><span class="cr135-pill">${esc(cmd)}</span></div><div class="cr135-selected-grid"><div><span>种别</span><b>${esc(trainServiceLabel(selected))}</b></div><div><span>方向</span><b>${trainDir(selected)===0?'上行':'下行'}</b></div><div><span>当前位置</span><b>${esc(trainStationName(line,selected,'currentStationId'))}</b></div><div><span>下一站</span><b>${esc(trainStationName(line,selected,'nextStationId'))}</b></div><div><span>运行状态</span><b>${esc(trainStateLabel(selected))}</b></div><div><span>载客</span><b>${fmt(selected.passengers||selected.load||0)}人</b></div></div></section>`; }
+  function commandNotice(){ const raw=D.documentElement.dataset.cityrailDispatchNotice||D.documentElement.dataset.cityrailLastDispatch||''; return raw?`<div class="cr135-notice">${esc(raw)}</div>`:''; }
+  function dispatchRiskRow(all){ const held=all.filter(t=>t._dispatchHold).length, skip=all.filter(t=>t._dispatchSkipNext).length, crowded=all.filter(t=>num(t.passengers||t.load,0)>=160).length; return `<div class="cr135-risk-row"><div><span>满载风险</span><b>${fmt(crowded)}列</b></div><div><span>扣车/跳停</span><b>${fmt(held)} / ${fmt(skip)}</b></div></div>`; }
   function renderAts(force){
     const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov) return; const line=lineById(owner.lineId)||getLines()[0]; if(line&&!owner.lineId) owner.lineId=sid(line.id);
     ov.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',sid(b.dataset.mode)===sid(owner.mode)));
     const name=ov.querySelector('.cr135-hname'), board=ov.querySelector('.cr135-board'), side=ov.querySelector('.cr135-side'); if(!board||!side||!name) return;
     if(!line){ name.textContent='请选择线路'; board.innerHTML='<div class="cr135-empty">暂无线路</div>'; side.innerHTML=''; return; }
-    const ids=lineStations(line), N=ids.length; name.textContent=lineName(line)+' · 现实化ATS调度台';
+    const ids=lineStations(line), N=ids.length; name.textContent=lineName(line)+' · ATS调度台';
     const shown=trainsFor(line,owner.mode), all=trainsFor(line,'both'); const sig=[sid(line.id),owner.mode,N,sid(line._topologyVersion),shown.map(t=>trainId(t)+':'+trainDir(t)+':'+sid(t.state)+':'+Math.round(num(t.passengers||t.load,0))+':'+Math.round(trainSeq(line,t)*10)).join(','),ids.map(id=>Math.round(totalWaiting(line,id))).join(',')].join('|'); if(!force&&sig===owner.lastSig) return; owner.lastSig=sig; owner.renderCount++;
     const gap=320,left=160,right=160,width=Math.max(1320,left+right+Math.max(0,N-1)*gap),yUp=160,yDn=400,yMid=280; const oset=overtakeIds(line);
     let svg=`<svg class="cr135-svg" width="${width}" height="620" viewBox="0 0 ${width} 620" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="620" fill="#02060b"/><g stroke="rgba(255,255,255,.045)" stroke-width="1">`;
@@ -28093,13 +28915,15 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       if(isOv){ const platW=78, half=platW/2, platTopY=yUp+22,platBotY=yDn-50,sideUp=yMid-30,sideDn=yMid+30, sideHalf=78, swLeft=x-gap*0.42, swRight=x+gap*0.42; svg+=`<g class="cr135-overtake-station"><path d="M${x-sideHalf} ${sideUp} H${x+sideHalf} M${x-sideHalf} ${sideDn} H${x+sideHalf}" stroke="rgba(255,255,255,.72)" stroke-width="2.5" fill="none"/><path d="M${x-sideHalf} ${sideUp} L${swLeft} ${yUp} M${x+sideHalf} ${sideUp} L${swRight} ${yUp} M${x-sideHalf} ${sideDn} L${swLeft} ${yDn} M${x+sideHalf} ${sideDn} L${swRight} ${yDn}" stroke="rgba(255,255,255,.40)" stroke-width="2" fill="none"/><rect x="${x-half}" y="${platTopY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76bfff" stroke-width="2"/><rect x="${x-half}" y="${platBotY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76ffb2" stroke-width="2"/><line x1="${x-half}" y1="${platTopY+14}" x2="${x+half}" y2="${platTopY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><line x1="${x-half}" y1="${platBotY+14}" x2="${x+half}" y2="${platBotY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><text x="${x}" y="${yUp+58}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${yDn-36}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${yDn-14}" fill="#ffd66b" font-size="12" font-weight="900" text-anchor="middle">${esc(st&&st.name?st.name:'站'+(i+1))} · 越行 两岛四线</text></g>`; }
       else { svg+=`<g><rect x="${x-39}" y="${yMid-34}" width="78" height="68" rx="10" fill="rgba(255,255,255,.08)" stroke="${esc(lineColor(line))}" stroke-width="2"/><line x1="${x-43}" y1="${yMid}" x2="${x+43}" y2="${yMid}" stroke="rgba(255,255,255,.25)" stroke-width="2"/><text x="${x}" y="${yUp+36}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${yDn-28}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${yMid+54}" fill="rgba(255,255,255,.88)" font-size="12" font-weight="800" text-anchor="middle">${esc(st&&st.name?st.name:'站'+(i+1))}</text></g>`; }});
     const localStoppedAtOvertake=t=>{ const idx=Math.round(trainSeq(line,t)); const stationId=ids[Math.max(0,Math.min(N-1,idx))]; const near=Math.abs(trainSeq(line,t)-idx)<0.18; return !isExpress(t)&&near&&oset.has(sid(stationId))&&/dwell|wait|hold|station|停|等待|holding/i.test(sid(t.state)); };
-    const lanes=Object.create(null); shown.forEach(t=>{const dir=trainDir(t)===1?1:0,x=stableX(line,t,left,gap),onSide=localStoppedAtOvertake(t),base=dir===0?yUp:yDn,key=dir+'|'+Math.round(x/46),k=lanes[key]||0;lanes[key]=k+1;const y=onSide?(yMid+(dir===0?-8:8)):(base+(dir===0?-104:104)+(k%2)*(dir===0?-32:32)),held=!!(t&&t._dispatchHold)||/hold|holding|扣停/i.test(sid(t&&t.state)),c=held?'#ffd60a':(isExpress(t)?'#0a84ff':(isRed(t)?'#ff453a':'#30d158')),sel=sid(owner.selectedTrain)===trainId(t); svg+=`<g class="cr135-train ${sel?'selected':''}" data-train="${esc(trainId(t))}"><rect x="${x-32}" y="${y-15}" width="64" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">${fmt(t.passengers||t.load||0)}</text><path d="M${dir===0?x+37:x-37},${y} l${dir===0?10:-10},-6 v12 z" fill="${c}"/></g>`;});
+    const lanes=Object.create(null); shown.forEach(t=>{const dir=trainDir(t)===1?1:0,x=stableX(line,t,left,gap),onSide=localStoppedAtOvertake(t),base=dir===0?yUp:yDn,key=dir+'|'+Math.round(x/46),k=lanes[key]||0;lanes[key]=k+1;const y=onSide?(yMid+(dir===0?-8:8)):(base+(dir===0?-46:46)+(k%2)*(dir===0?-18:18)),held=!!(t&&t._dispatchHold)||/hold|holding|扣停/i.test(sid(t&&t.state)),c=held?'#ffd60a':(isExpress(t)?'#0a84ff':(isRed(t)?'#ff453a':'#30d158')),sel=sid(owner.selectedTrain)===trainId(t),load=fmt(t.passengers||t.load||0); svg+=`<g class="cr135-train ${sel?'selected':''}" data-train="${esc(trainId(t))}"><rect x="${x-32}" y="${y-15}" width="64" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">${esc(load)}</text><path d="M${dir===0?x+37:x-37},${y} l${dir===0?10:-10},-6 v12 z" fill="${c}"/></g>`;});
     svg+='</svg>'; board.style.width=width+'px'; board.innerHTML=svg;
-    const allWait=ids.reduce((a,id)=>a+totalWaiting(line,id),0), onboard=all.reduce((a,t)=>a+num(t.passengers||t.load,0),0); let max={name:'—',w:0}; ids.forEach(id=>{const w=totalWaiting(line,id),st=stationById(id); if(w>max.w) max={name:(st&&st.name)||id,w};}); const selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain));
-    side.innerHTML=`<h3>调度状态</h3><div class="cr135-kpi"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div><section class="cr135-command-panel"><h3>列车调度命令</h3><div class="cr135-note">${selected?`已选列车：${esc(trainId(selected))}<br>方向：${trainDir(selected)===0?'上行':'下行'}<br>状态：${esc(sid(selected.state))}<br>载客：${fmt(selected.passengers||selected.load||0)}人`:'点击图中列车后可执行调度命令'}</div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd" data-cmd="hold">扣车/延长停站</button><button type="button" class="cr135-cmd" data-cmd="release">放行</button><button type="button" class="cr135-cmd" data-cmd="skip">跳停下一站</button><button type="button" class="cr135-cmd" data-cmd="clear">清除命令</button></div><div class="cr135-note">调度命令已接入列车状态机：扣车保持停站/机外等待，放行恢复运行，跳停会改写下一目标站。</div></section><section class="cr135-overtake-panel"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map(id=>{const st=stationById(id),on=overtakeIds(line).has(sid(id));return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}">${on?'取消越行站':'升级为越行站'}</button></div>`;}).join('')}</div></section><div class="cr135-note">越行站与快慢车系统共用同一 expressService.overtakeStations 数据；慢车在越行站进侧线待避，快车走正线通过。</div>`;
+    const allWait=ids.reduce((a,id)=>a+totalWaiting(line,id),0), onboard=all.reduce((a,t)=>a+num(t.passengers||t.load,0),0); let max={name:'—',w:0}; ids.forEach(id=>{const w=totalWaiting(line,id),st=stationById(id); if(w>max.w) max={name:(st&&st.name)||id,w};}); const selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain)); const bestOv=bestInternalWaitingStation(line,ids); const noSelected=selected?'':' disabled';
+    side.innerHTML=`<h3>运行调度</h3>${dispatchRiskRow(all)}<div class="cr135-kpi"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div>${commandNotice()}${selectedTrainPanel(line,selected)}<section class="cr135-command-panel"><div class="cr135-panel-head"><h3>列车命令</h3><span class="cr135-pill">单车</span></div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd warn" data-cmd="hold"${noSelected}>扣车/延长停站</button><button type="button" class="cr135-cmd ok" data-cmd="release"${noSelected}>放行</button><button type="button" class="cr135-cmd danger" data-cmd="skip"${noSelected}>跳停下一站</button><button type="button" class="cr135-cmd warn" data-cmd="turnback"${noSelected}>就地折返</button><button type="button" class="cr135-cmd" data-cmd="clear"${noSelected}>清除命令</button></div><div class="cr135-note">单车命令接入列车状态机：扣车保持停站/机外等待，放行恢复运行，跳停会改写下一目标站；就地折返会在最近车站停车后换向发车。</div></section><section class="cr135-command-panel"><div class="cr135-panel-head"><h3>全线调整</h3><span class="cr135-pill">线路级</span></div><div class="cr135-line-actions"><button type="button" class="cr135-line-cmd ok" data-line-cmd="release-all">全线放行</button><button type="button" class="cr135-line-cmd" data-line-cmd="clear-skip">清除跳停</button><button type="button" class="cr135-line-cmd" data-line-cmd="clear-hold">解除扣车</button><button type="button" class="cr135-line-cmd" data-line-cmd="suggest-overtake" data-station="${esc(bestOv.id)}"${bestOv.id?'':' disabled'}>推荐越行站</button></div><div class="cr135-note">全线调整用于恢复运行秩序；推荐越行站会把客流最高的非终端站加入越行配置。</div></section><section class="cr135-overtake-panel"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map((id,i)=>{const st=stationById(id),on=overtakeIds(line).has(sid(id)),locked=i<=0||i>=ids.length-1;return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}"${locked?' disabled':''}>${locked?'终端站':(on?'取消越行站':'升级为越行站')}</button></div>`;}).join('')}</div></section><div class="cr135-note">越行站与快慢车系统共用同一 expressService.overtakeStations 数据；慢车在越行站进侧线待避，快车走正线通过。</div>`;
     bindScroll(line.id,owner.mode);
   }
-  function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;t._holdingShort=false;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;if(['holding_short','dwelling'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._manualHoldUntil;t._holdingShort=false;if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); renderAts(true); return true; }
+  function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){delete t._dispatchTurnbackNext; delete t._dispatchTurnbackPlan; t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;t._holdingShort=false;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;if(['holding_short','dwelling','dispatch_turning_back'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;t._holdingShort=false;if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='turnback'){t._dispatchTurnbackNext=true;t._dispatchCommand='turnback';delete t._dispatchHold;delete t._dispatchSkipNext;delete t._manualHoldUntil;if(sid(t.state)==='dwelling'){t.speed=0;t.dwellRemaining=Math.min(Math.max(num(t.dwellRemaining,6),6),12);}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;if(sid(t.state)==='dispatch_turning_back'){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); renderAts(true); return true; }
+  function releaseTrain(t,includeSkip){ if(!t) return; delete t._dispatchHold; delete t._dispatchCommand; delete t._dispatchTurnbackNext; delete t._dispatchTurnbackPlan; delete t._manualHoldUntil; t._holdingShort=false; t._v136HeldBehindLocal=false; t._v136LocalYielding=false; if(includeSkip) delete t._dispatchSkipNext; if(['holding_short','dwelling','dispatch_turning_back'].includes(sid(t.state))){ t.state='accelerating'; t.speed=0; t.dwellRemaining=0; } t._dispatchUpdatedAt=Date.now(); }
+  function applyLineCommand(cmd,stationId){ const line=lineById(owner.lineId)||getLines()[0]; if(!line) return false; const all=trainsFor(line,'both'); let changed=0, label=''; if(cmd==='release-all'){ all.forEach(t=>{ releaseTrain(t,true); changed++; }); label=`${lineName(line)} 全线放行 ${fmt(changed)} 列`; } else if(cmd==='clear-hold'){ all.forEach(t=>{ if(t._dispatchHold||t._manualHoldUntil===Infinity){ releaseTrain(t,false); changed++; } }); label=`${lineName(line)} 已解除扣车 ${fmt(changed)} 列`; } else if(cmd==='clear-skip'){ all.forEach(t=>{ if(t._dispatchSkipNext){ delete t._dispatchSkipNext; if(t._dispatchCommand==='skip-next') delete t._dispatchCommand; t._dispatchUpdatedAt=Date.now(); changed++; } }); label=`${lineName(line)} 已清除跳停 ${fmt(changed)} 列`; } else if(cmd==='suggest-overtake'){ const ids=lineStations(line), id=sid(stationId); if(!id||ids.indexOf(id)<=0||ids.indexOf(id)>=ids.length-1) return false; const st=stationById(id); setOvertake(line,id,true); label=`${lineName(line)} 已将 ${(st&&st.name)||id} 设置为越行站`; changed=1; } else return false; owner.lastSig=''; D.documentElement.dataset.cityrailDispatchNotice=label; D.documentElement.dataset.cityrailLastDispatch=[sid(line.id),sid(cmd),String(changed)].join(':'); renderAts(true); return true; }
   function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','#line-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
   function fixClicks(){
     D.querySelectorAll('#cityrail-train-canvas-v114,#cityrail-train-canvas-v50,#cityrail-train-canvas-v31,.cityrail-train-canvas,canvas[id*="train-canvas"],canvas[class*="train-canvas"],#cityrail-v114-perf,.perf-hud').forEach(el=>{el.style.pointerEvents='none';});
@@ -28189,10 +29013,40 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function localAheadOfExpress(line, express){
     const lid=sid(line.id), dir=trainDir(express), exSeq=trainSeq(line,express); let best=null,bg=99; for(const t of getTrains()){ if(!activeTrain(t)||sid(t.lineId)!==lid||trainDir(t)!==dir||isExpress(t)) continue; const s=trainSeq(line,t); const gap=dir===0?s-exSeq:exSeq-s; if(gap>0&&gap<0.95&&gap<bg){best=t;bg=gap;} } return best;
   }
+  function isExpressStopIndex(line,idx,train){
+    const ids=lineStations(line), id=sid(ids[idx]); if(!id) return true;
+    const stops=Array.isArray(train&&train.expressStops)&&train.expressStops.length?train.expressStops:(expressConfig(line).expressStops||[]);
+    if(idx<=0||idx>=ids.length-1) return true;
+    return stops.map(sid).includes(id);
+  }
+  function nextExpressStopIndexForTrain(line,train,fromIdx){
+    const ids=lineStations(line), dir=trainDir(train), stops=new Set((Array.isArray(train&&train.expressStops)&&train.expressStops.length?train.expressStops:(expressConfig(line).expressStops||[])).map(sid));
+    if(!ids.length) return fromIdx;
+    let i=fromIdx;
+    while(i>0&&i<ids.length-1&&!stops.has(sid(ids[i]))) i+=dir===0?1:-1;
+    return Math.max(0,Math.min(ids.length-1,i));
+  }
+  function forceExpressNonStopPass(train,line){
+    if(!train||!line||!isExpress(train)) return false;
+    const ids=lineStations(line), cur=Math.max(0,Math.min(ids.length-1,Math.round(num(train.nextStationIdx,0))));
+    if(isExpressStopIndex(line,cur,train)) return false;
+    const next=nextExpressStopIndexForTrain(line,train,cur);
+    train.nextStationIdx=next;
+    train._expressSkipping=true;
+    train._holdingShort=false;
+    delete train._dispatchHold;
+    if(/dwelling|station|停/i.test(sid(train.state))){
+      train.state='accelerating';
+      train.dwellRemaining=0;
+      train.speed=Math.max(0,num(train.speed,0));
+      return true;
+    }
+    return false;
+  }
   function enforceExpressOvertakeRules(train){
-    if(!train) return false; const line=lineById(train.lineId); if(!line) return false; const cfg=expressConfig(line); if(!cfg.enabled||cfg.overtakeMode!=='planned') return false; const nextIdx=Math.max(0,Math.min(lineStations(line).length-1,Math.round(num(train.nextStationIdx,0)))); const atOv=overtakeIds(line).has(sid(lineStations(line)[nextIdx]));
-    if(isExpress(train)){ const slow=localAheadOfExpress(line,train); if(slow&&!atOv){ train._v136HeldBehindLocal=true; train._dispatchHold=true; train._dispatchCommand='wait-for-local-until-overtake'; train.state='holding_short'; train.dwellRemaining=Math.max(num(train.dwellRemaining,0),2); return true; } }
-    else { if(atOv && /dwell|wait|hold|decelerating|停|等待/i.test(sid(train.state)) && expressBehindLocal(line,train)){ train._v136LocalYielding=true; train._dispatchHold=true; train._dispatchCommand='yield-express-at-overtake'; train.state='dwelling'; train.dwellRemaining=Math.max(num(train.dwellRemaining,0),28); return true; } }
+    if(!train) return false; const line=lineById(train.lineId); if(!line) return false; if(forceExpressNonStopPass(train,line)) return true; const cfg=expressConfig(line); if(!cfg.enabled||cfg.overtakeMode!=='planned') return false; const nextIdx=Math.max(0,Math.min(lineStations(line).length-1,Math.round(num(train.nextStationIdx,0)))); const atOv=overtakeIds(line).has(sid(lineStations(line)[nextIdx]));
+    if(isExpress(train)){ const slow=localAheadOfExpress(line,train); if(slow&&!atOv){ train._v136HeldBehindLocal=true; train._dispatchCommand='wait-for-local-until-overtake'; delete train._dispatchHold; train.state='holding_short'; train.dwellRemaining=Math.max(num(train.dwellRemaining,0),2); return true; } }
+    else { if(atOv && /dwell|wait|hold|decelerating|停|等待/i.test(sid(train.state)) && expressBehindLocal(line,train)){ train._v136LocalYielding=true; train._dispatchCommand='yield-express-at-overtake'; delete train._dispatchHold; train.state='dwelling'; train.dwellRemaining=Math.max(num(train.dwellRemaining,0),28); return true; } }
     return false;
   }
   function setMapTrainRenderingSuspended(){
@@ -28286,6 +29140,9 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   function applyDispatchStateMachine(train,dtSec){
     if(!train) return false;
     const line=lineById(train.lineId);
+    if(train._v136HeldBehindLocal || sid(train.state)==='holding_short'){
+      if(train._dispatchCommand==='wait-for-local-until-overtake') delete train._dispatchHold;
+    }
     if(train._dispatchHold){ train.speed=0; train._stuckTimer=0; train._holdingShort=false; train.state='dwelling'; train.dwellRemaining=Math.max(num(train.dwellRemaining,0),Math.max(1,num(dtSec,1))); return true; }
     if(train._dispatchSkipNext&&line){
       const ids=lineStations(line), n=ids.length, cur=Math.max(0,Math.min(n-1,Math.round(num(train.nextStationIdx,0))));
@@ -28305,7 +29162,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     }
   }
 
-  function installReport(){ W.CityRailLineConfigV137={open:openOverlay,close:closeOverlay,render:renderAll,state:owner}; W.CityRailDispatchConsoleV146={selectTrain(id){owner.selectedTrain=sid(id);owner.lastSig='';renderAts(true);return !!getTrains().find(t=>trainId(t)===sid(id));},command:applyCommand,setOvertake(lineId,stationId,on){return setOvertake(lineById(lineId),stationId,on);},report(){return {selectedTrain:owner.selectedTrain,lastDispatch:D.documentElement.dataset.cityrailLastDispatch||'',lastOvertake:D.documentElement.dataset.cityrailLastOvertake||'',stableDelegation:!!D.__cityrailV146DispatchBound};}}; W.cityrailV137Report=function(){ return {version:VERSION,commandPanelBeforeOvertake:true,overtakeListScrollable:true,stableDispatchDelegation:!!D.__cityrailV146DispatchBound,buttonPosition:(byId('btn-line-config')&&byId('btn-line-config').previousElementSibling&&byId('btn-line-config').previousElementSibling.id)||null,buttonBlue:byId('btn-line-config')?getComputedStyle(byId('btn-line-config')).backgroundColor:null,overlayOpen:owner.open,lineId:owner.lineId,renderer:'v138.11-ats-live-waiting-leg-index-fix',oldDomPresent:!!D.querySelector('#line-config-v134-overlay,#line-config-v132-overlay,#line-config-v130-overlay,.ats-v82,.lc-v130-ats'),trainCanvasPointerEvents:(D.querySelector('#cityrail-train-canvas-v114')&&getComputedStyle(D.querySelector('#cityrail-train-canvas-v114')).pointerEvents)||null,markerPanePointerEvents:(D.querySelector('.leaflet-marker-pane')&&getComputedStyle(D.querySelector('.leaflet-marker-pane')).pointerEvents)||null,perfHudVisible:!!(byId('cityrail-v114-perf')&&!byId('cityrail-v114-perf').classList.contains('v135-hidden')),lines:getLines().length,stations:getStations().length, atsOpenStopsMapTrainRender:!!S().__atsOpenStopsMapTrainRender, expressLinked:true, oldV136Disabled:true,strictControlRenderer:!!W.CityRailControlCenterStrictV1388,liveWaitingOnly:!!S().__v1389LiveWaitingOnly,multiZoneStations:getStations().filter(st=>Array.isArray(st.zoneTypes)&&st.zoneTypes.length>1).length};}; ['cityrailV136Report','cityrailV135Report','cityrailV134Report','cityrailV133Report','cityrailV132Report','cityrailV131Report','cityrailV130Report'].forEach(k=>{W[k]=W.cityrailV137Report;}); }
+  function installReport(){ W.CityRailLineConfigV137={open:openOverlay,close:closeOverlay,render:renderAll,state:owner}; W.CityRailDispatchConsoleV146={selectTrain(id){owner.selectedTrain=sid(id);owner.lastSig='';renderAts(true);return !!getTrains().find(t=>trainId(t)===sid(id));},command:applyCommand,lineCommand:applyLineCommand,setOvertake(lineId,stationId,on){return setOvertake(lineById(lineId),stationId,on);},report(){return {selectedTrain:owner.selectedTrain,lastDispatch:D.documentElement.dataset.cityrailLastDispatch||'',lastOvertake:D.documentElement.dataset.cityrailLastOvertake||'',notice:D.documentElement.dataset.cityrailDispatchNotice||'',stableDelegation:!!D.__cityrailV146DispatchBound};}}; W.cityrailV137Report=function(){ return {version:VERSION,commandPanelBeforeOvertake:true,overtakeListScrollable:true,stableDispatchDelegation:!!D.__cityrailV146DispatchBound,stableDelegation:!!D.__cityrailV146DispatchBound,buttonPosition:(byId('btn-line-config')&&byId('btn-line-config').previousElementSibling&&byId('btn-line-config').previousElementSibling.id)||null,buttonBlue:byId('btn-line-config')?getComputedStyle(byId('btn-line-config')).backgroundColor:null,overlayOpen:owner.open,lineId:owner.lineId,renderer:'v138.12-ats-scroll-turnback-dispatch',oldDomPresent:!!D.querySelector('#line-config-v134-overlay,#line-config-v132-overlay,#line-config-v130-overlay,.ats-v82,.lc-v130-ats'),trainCanvasPointerEvents:(D.querySelector('#cityrail-train-canvas-v114')&&getComputedStyle(D.querySelector('#cityrail-train-canvas-v114')).pointerEvents)||null,markerPanePointerEvents:(D.querySelector('.leaflet-marker-pane')&&getComputedStyle(D.querySelector('.leaflet-marker-pane')).pointerEvents)||null,perfHudVisible:!!(byId('cityrail-v114-perf')&&!byId('cityrail-v114-perf').classList.contains('v135-hidden')),lines:getLines().length,stations:getStations().length, atsOpenStopsMapTrainRender:!!S().__atsOpenStopsMapTrainRender, expressLinked:true, oldV136Disabled:true,strictControlRenderer:!!W.CityRailControlCenterStrictV1388,liveWaitingOnly:!!S().__v1389LiveWaitingOnly,multiZoneStations:getStations().filter(st=>Array.isArray(st.zoneTypes)&&st.zoneTypes.length>1).length};}; ['cityrailV136Report','cityrailV135Report','cityrailV134Report','cityrailV133Report','cityrailV132Report','cityrailV131Report','cityrailV130Report'].forEach(k=>{W[k]=W.cityrailV137Report;}); }
   function boot(){ installStyle(); bridgeLegacyGlobals(); debugLog('v138.3 点击根修复已安装', {hasMap:!!mapObj(), hasMapDom:!!byId('map'), lines:getLines().length, stations:getStations().length}); stopOld(); cleanLegacy(); purgeOldLineOpsATS(); installStrictControlCenter(); cleanOldWaitingRender(); wrapOriginalLineConfigPanel(); forcePureLineConfigPanel(); ensureToolbarButton(); ensureOverlay(); bindStableDispatchEvents(); fixClicks(); wrapOpenFunctionsForDebug(); bindLayerClickRepair(); installMapClickDiagnostics(); patchRuntime(); maintainSeparateExpressFleet(); updatePerfHud(); setMapTrainRenderingSuspended(); installReport(); W.__cityrailV138UiTimer=setInterval(()=>{bridgeLegacyGlobals();purgeOldLineOpsATS();installStrictControlCenter();cleanOldWaitingRender();wrapOriginalLineConfigPanel();forcePureLineConfigPanel();ensureToolbarButton();bindStableDispatchEvents();fixClicks();wrapOpenFunctionsForDebug();bindLayerClickRepair();updatePerfHud();setMapTrainRenderingSuspended();},700); W.__cityrailV138FleetTimer=setInterval(()=>{maintainSeparateExpressFleet(); if(owner.open)renderAll(false);},900); const mo=new MutationObserver(()=>{const now=Date.now(); if(now-owner.lastUiClean<300) return; owner.lastUiClean=now; ensureToolbarButton(); purgeOldLineOpsATS(); cleanOldWaitingRender(); fixClicks(); updatePerfHud();}); mo.observe(D.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']}); W.__cityrailV135Observer=mo; }
   if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',boot); else boot();
 })();
@@ -28469,6 +29326,9 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   }
   function applyDispatchBeforeCore(train,dtSec){
     if(!train) return false; const line=lineById(train.lineId);
+    if(train._v136HeldBehindLocal || sid(train.state)==='holding_short'){
+      if(train._dispatchCommand==='wait-for-local-until-overtake') delete train._dispatchHold;
+    }
     if(train._dispatchHold||train._manualHoldUntil===Infinity){ dispatchHold(train,dtSec); return true; }
     if(train._dispatchSkipNext&&line&&Array.isArray(line.stationIds)){
       const ids=line.stationIds, n=ids.length, cur=Math.max(0,Math.min(n-1,currentIdx(train))); const dir=num(train.direction,0);
@@ -28895,12 +29755,53 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   }
   function activeTrain(t){ return t&&!['done','removed','archived','inactive'].includes(sid(t.state)); }
   function cachedStats(st){ return st.__v114StatsCache||st.__v113StatsCache||st.__v112StatsCache||{}; }
+  function havKm(a,b){
+    if(!a||!b) return 0;
+    const R=6371,lat1=num(a.lat)*Math.PI/180,lat2=num(b.lat)*Math.PI/180,dlat=(num(b.lat)-num(a.lat))*Math.PI/180,dlng=(num(b.lng)-num(a.lng))*Math.PI/180;
+    const x=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)**2;
+    return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));
+  }
+  function stationPosition(station,lineId){
+    return station&&station.linePositions&&station.linePositions[lineId]?station.linePositions[lineId]:station;
+  }
+  function liveLineLength(st,line){
+    if(!line||!Array.isArray(line.stationIds)) return 0;
+    const sm=new Map((Array.isArray(st.stations)?st.stations:[]).map(sta=>[sid(sta.id),sta]));
+    const wps=Array.isArray(line.waypoints)?line.waypoints:[];
+    const nodes=[];
+    line.stationIds.forEach((stationId,i)=>{
+      const sta=sm.get(sid(stationId));
+      if(!sta) return;
+      const pos=stationPosition(sta,line.id);
+      nodes.push({lat:num(pos&&pos.lat),lng:num(pos&&pos.lng)});
+      if(i<line.stationIds.length-1){
+        wps.filter(w=>num(w.segIdx,-1)===i).sort((a,b)=>num(a.order)-num(b.order)).forEach(w=>nodes.push({lat:num(w.lat),lng:num(w.lng)}));
+      }
+    });
+    let total=0;
+    for(let i=1;i<nodes.length;i++) total+=havKm(nodes[i-1],nodes[i]);
+    return total;
+  }
   function lineLength(st,line){
     const cache=st.lineLengthCache||{};
     return num(cache[line.id],num(line.lengthKm,num(line.length)));
   }
+  function refreshLiveLineLengths(st){
+    if(!st||!Array.isArray(st.lines)) return 0;
+    st.lineLengthCache=st.lineLengthCache||{};
+    let total=0;
+    for(const line of st.lines){
+      const len=liveLineLength(st,line);
+      st.lineLengthCache[line.id]=len;
+      line.lengthKm=len;
+      total+=len;
+    }
+    st._networkLengthKmLive=total;
+    return total;
+  }
   function makeSnapshot(){
     const started=performance.now(),st=state();
+    refreshLiveLineLengths(st);
     const lines=Array.isArray(st.lines)?st.lines:[];
     const stations=Array.isArray(st.stations)?st.stations:[];
     const trains=Array.isArray(st.trains)?st.trains:[];
@@ -28978,6 +29879,16 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     return '¥'+n.toLocaleString('zh-CN');
   }
   function ensureControlCenterCleanStructure(){
+    const topbar=byId('ctrl-topbar');
+    if(topbar&&!byId('cct-network-length-stat')){
+      const lineCountStat=byId('cct-line-count')&&byId('cct-line-count').closest('.ctrl-top-stat');
+      const stat=D.createElement('div');
+      stat.id='cct-network-length-stat';
+      stat.className='ctrl-top-stat';
+      stat.innerHTML='<span class="ts-label">线网总长度</span><span class="ts-val" id="cct-network-length">0.0 km</span>';
+      if(lineCountStat&&lineCountStat.nextSibling) topbar.insertBefore(stat,lineCountStat.nextSibling);
+      else topbar.insertBefore(stat,byId('ctrl-close-btn')||null);
+    }
     const flowTitle=[...D.querySelectorAll('.ctrl-card-title')].find(el=>sid(el.textContent).trim()==='全网客流概览');
     if(flowTitle){
       const card=flowTitle.closest('.ctrl-card');
@@ -29055,6 +29966,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     setText('cct-time',formatTime(hour)); setText('cct-period',({peak:'高峰',normal:'平峰',offpeak:'低峰'}[period]||'--'));
     setText('cct-speed',snap.speed+'x'); setText('cct-online-trains',snap.online); setText('cct-total-flow',fmtWan(snap.totalFlow));
     setText('cct-intensity',(snap.length>0?fmt(snap.delivered/snap.length):'0')+'/km'); setText('cct-line-count',snap.lineCount);
+    setText('cct-network-length',snap.length.toFixed(1)+' km');
     setText('cct-big-flow',fmtWan(snap.totalFlow)); setText('cct-big-waiting',fmt(snap.waiting)); setText('cct-big-fare',formatMoney(snap.fare)); const oldIn=byId('cct-big-inbound'); if(oldIn) oldIn.textContent=fmt(snap.waiting); const oldOut=byId('cct-big-outbound'); if(oldOut) oldOut.textContent=formatMoney(snap.fare); const oldMax=byId('cct-big-max-seg'); if(oldMax) oldMax.closest('div')?.remove();
     const lineHTML=snap.lineRows.length?snap.lineRows.map(row=>`<tr data-line-id="${esc(row.id)}"><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${esc(row.color)}"></span></td><td>${esc(row.name)}</td><td class="cc-express-cell"><button class="cc-express-open ${row.express?'on':'off'}" data-line-id="${esc(row.id)}">${row.express?'已开启':'未开启'}</button></td><td>${esc(row.trainType)}</td><td>${fmt(row.cars)}节</td><td>${fmt(row.speed)}km/h</td><td>${row.length.toFixed(1)}km</td><td>${fmt(row.active)}</td><td>${fmt(row.flow)}</td><td>${fmt(row.crowd)}%</td></tr>`).join(''):'<tr><td colspan="10" class="ctrl-empty-row">暂无数据</td></tr>';
     setHTML('cct-line-stats-body',lineHTML);
@@ -29143,173 +30055,5 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
 })();
 
 </script>
-
-
-<!-- CityRail v147 New User Tutorial: Apple-style non-invasive onboarding -->
-<style id="cityrail-v147-tutorial-style">
-  :root{
-    --cr-tutorial-bg: rgba(18,22,30,.78);
-    --cr-tutorial-card: rgba(28,32,40,.88);
-    --cr-tutorial-stroke: rgba(255,255,255,.14);
-    --cr-tutorial-text: rgba(255,255,255,.92);
-    --cr-tutorial-muted: rgba(235,240,255,.62);
-    --cr-tutorial-accent: #0A84FF;
-    --cr-tutorial-green: #30D158;
-  }
-  #cityrail-tutorial-layer{position:fixed;inset:0;z-index:999999;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;color:var(--cr-tutorial-text);}
-  #cityrail-tutorial-layer.hidden{display:none!important;}
-  .cr-tutorial-scrim{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgba(10,132,255,.10),transparent 34%),rgba(0,0,0,.18);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .18s ease;}
-  #cityrail-tutorial-layer.cr-visible .cr-tutorial-scrim{opacity:1;}
-  .cr-tutorial-card{position:absolute;right:28px;bottom:28px;width:min(440px,calc(100vw - 32px));max-height:min(650px,calc(100vh - 48px));display:flex;flex-direction:column;border:1px solid var(--cr-tutorial-stroke);border-radius:26px;background:linear-gradient(180deg,rgba(38,42,52,.92),rgba(20,24,32,.90));box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);pointer-events:auto;overflow:hidden;transform:translateY(10px) scale(.985);opacity:0;transition:transform .2s cubic-bezier(.2,.8,.2,1),opacity .2s ease;}
-  #cityrail-tutorial-layer.cr-visible .cr-tutorial-card{transform:translateY(0) scale(1);opacity:1;}
-  .cr-tutorial-top{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:flex-start;gap:12px;}
-  .cr-tutorial-icon{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(10,132,255,.95),rgba(94,92,230,.95));box-shadow:0 12px 26px rgba(10,132,255,.30);font-size:19px;flex:0 0 auto;}
-  .cr-tutorial-head{min-width:0;flex:1;}
-  .cr-tutorial-kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(235,240,255,.50);font-weight:700;margin-bottom:4px;}
-  .cr-tutorial-title{font-size:20px;line-height:1.18;font-weight:800;color:rgba(255,255,255,.96);letter-spacing:.01em;}
-  .cr-tutorial-close{border:0;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:30px;transition:background .16s ease,color .16s ease,transform .16s ease;}
-  .cr-tutorial-close:hover{background:rgba(255,255,255,.15);color:#fff;transform:scale(1.04);}
-  .cr-tutorial-body{padding:18px 20px 12px;overflow:auto;overscroll-behavior:contain;}
-  .cr-tutorial-body::-webkit-scrollbar{width:8px}.cr-tutorial-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:999px}.cr-tutorial-body::-webkit-scrollbar-track{background:transparent}
-  .cr-tutorial-text{font-size:15px;line-height:1.66;color:rgba(245,247,255,.84);margin:0 0 12px;}
-  .cr-tutorial-list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px;}
-  .cr-tutorial-list li{display:flex;gap:9px;align-items:flex-start;color:rgba(245,247,255,.78);font-size:14px;line-height:1.48;}
-  .cr-tutorial-list li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cr-tutorial-accent);box-shadow:0 0 12px rgba(10,132,255,.65);margin-top:.58em;flex:0 0 auto;}
-  .cr-tutorial-target{margin:12px 0 0;padding:11px 12px;border-radius:15px;border:1px solid rgba(10,132,255,.28);background:rgba(10,132,255,.10);color:rgba(210,230,255,.94);font-size:13px;line-height:1.45;}
-  .cr-tutorial-progress{padding:0 20px 12px;display:flex;gap:6px;align-items:center;}
-  .cr-tutorial-dot{height:4px;flex:1;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;}
-  .cr-tutorial-dot.on{background:linear-gradient(90deg,#0A84FF,#64D2FF);box-shadow:0 0 12px rgba(10,132,255,.38);}
-  .cr-tutorial-footer{padding:12px 20px 18px;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:12px;}
-  .cr-tutorial-actions{display:flex;align-items:center;gap:10px;justify-content:space-between;}
-  .cr-tutorial-left-actions{display:flex;align-items:center;gap:8px;min-width:0;}
-  .cr-tutorial-btn{height:36px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:rgba(255,255,255,.86);font-weight:700;padding:0 14px;cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease;white-space:nowrap;}
-  .cr-tutorial-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.13);}
-  .cr-tutorial-btn.primary{background:linear-gradient(135deg,#0A84FF,#0066CC);border-color:rgba(10,132,255,.55);box-shadow:0 10px 24px rgba(10,132,255,.28);color:white;}
-  .cr-tutorial-btn.ghost{background:transparent;border-color:transparent;color:rgba(235,240,255,.58);font-weight:650;padding:0 6px;}
-  .cr-tutorial-check{display:flex;align-items:center;gap:8px;color:rgba(235,240,255,.62);font-size:13px;line-height:1.25;user-select:none;}
-  .cr-tutorial-check input{accent-color:var(--cr-tutorial-accent);width:15px;height:15px;}
-  .cr-tutorial-spotlight{position:fixed;z-index:999998;border:2px solid rgba(10,132,255,.90);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.18),0 0 34px rgba(10,132,255,.45);pointer-events:none;opacity:0;transform:scale(.98);transition:opacity .18s ease,transform .18s ease,left .18s ease,top .18s ease,width .18s ease,height .18s ease;}
-  .cr-tutorial-spotlight.visible{opacity:1;transform:scale(1);}
-  .cr-tutorial-mini{position:fixed;right:22px;bottom:22px;z-index:999997;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(28,32,40,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 18px 50px rgba(0,0,0,.35);color:white;padding:10px 14px;font-weight:800;display:none;align-items:center;gap:9px;cursor:pointer;}
-  .cr-tutorial-mini.visible{display:flex;}
-  .cr-tutorial-settings-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;}
-  .cr-tutorial-settings-btn{height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(10,132,255,.45);background:rgba(10,132,255,.14);color:#cfe6ff;font-weight:750;cursor:pointer;}
-  @media(max-width:720px){.cr-tutorial-card{right:12px;left:12px;bottom:12px;width:auto;border-radius:22px}.cr-tutorial-actions{align-items:stretch;gap:8px}.cr-tutorial-left-actions{flex-wrap:wrap}.cr-tutorial-btn{padding:0 12px}}
-  @media(prefers-reduced-motion:reduce){.cr-tutorial-card,.cr-tutorial-scrim,.cr-tutorial-spotlight,.cr-tutorial-btn{transition:none!important}}
-</style>
-<script id="cityrail-v147-tutorial-script">
-(function(){
-  'use strict';
-  var W=window,D=document,VERSION='v147-new-user-tutorial';
-  var STORAGE_PREFIX='cityrailTutorialV147:';
-  var state={active:false,minimized:false,step:0,user:'guest',openedThisSession:false,spotlight:null,mutationCount:0,autoTriggered:false};
-  var steps=[
-    {icon:'🚇',title:'欢迎来到 CityRail 都市城轨',target:'#city-select-screen,.city-card,#map',text:'这个教程会一次性讲完整个游戏：从注册登录、选择城市、建线建站，到客流、快慢车、ATS、调度、控制中心、存档与设置。教程只读状态，不会改动你的线路或存档。',bullets:['新注册用户会自动弹出最多 3 次。','你可以勾选“以后不再自动弹出”。','之后也可以在设置里重新开启教程。'],tip:'建议先快速看完一遍，再开始正式建设。'},
-    {icon:'🔐',title:'账号、支付与进入游戏',target:'#auth-screen,#register-screen,#login-screen,#payment-screen',text:'首页包含注册、登录和邀请码入口。注册后进入支付页，支付成功后账号才会开通；已经有账号的玩家直接登录。',bullets:['用户名和密码是登录凭证，请妥善保存。','支付按钮会创建订单，支付成功后后端回调才会开通。','遇到支付错误时，优先检查 /api/pay/create 的响应。'],tip:'支付只是解锁入口，不参与模拟逻辑。'},
-    {icon:'🌆',title:'选择城市与进入地图',target:'#city-select-screen,.city-card,#map',text:'选择城市后进入地图。地图是整个模拟的底盘：线路、车站、换乘、列车、OD 路径都围绕地图展开。',bullets:['灰色城市表示数据未完成。','城市切换会影响底图和默认客流参数。','建议先从上海或已开放城市开始。'],tip:'城市选择完成后，你就可以开始建设线网。'},
-    {icon:'➕',title:'新建线路与画线',target:'#btn-new-line,#new-line-dialog-overlay',text:'点击“新建线路”后，为线路命名并选择代表色，然后在地图上依次放置车站和节点。车站是客流和列车停靠点，节点只改变线路走向。',bullets:['左键放置车站。','右键或节点模式用于调整线路形状。','线路编号会影响左侧列表和运营数据排序。'],tip:'尽量让站距均衡，避免车站过密导致显示拥挤。'},
-    {icon:'📍',title:'车站面板与站点功能区',target:'#station-detail-overlay,#station-detail-panel,.leaflet-marker-icon',text:'点击车站可以打开车站面板。车站可以设置多个功能区，系统会把这些功能区组合起来计算客流，而不是只看单一标签。',bullets:['住宅、办公、学校、商场、机场、火车站等会改变 OD 方向。','多功能区会混合影响早高峰、晚高峰和平峰客流。','非换乘站不会显示换乘设置，避免无效入口。'],tip:'比如“住宅 + 学校”和“办公 + 商场”会产生不同客流特征。'},
-    {icon:'🔁',title:'换乘与虚拟换乘',target:'#vt-overlay,#station-detail-overlay',text:'当一个车站有多条线路经过时，才会显示换乘设置。你也可以配置虚拟换乘，让距离较近但不共站的站点形成换乘关系。',bullets:['换乘会影响乘客选路。','换乘通道只在必要时显示。','距离过近的站点不会额外显示通道文字，减少地图干扰。'],tip:'换乘不是装饰，它会改变 OD 路径和候车压力。'},
-    {icon:'🚆',title:'线路配置、车型与发车间隔',target:'#line-config-overlay,.line-config-v137-overlay,#btn-line-config',text:'点击线路可以打开线路配置。这里设置车型、编组、速度、发车间隔、首末班车和线路基础参数。',bullets:['发车间隔越短，候车越少，但需要更多列车。','速度和编组会影响运能、旅行时间和拥挤度。','左侧线路列表应按线路编号排序。'],tip:'线路配置只负责参数，不应该混入旧线路运营或旧 ATS。'},
-    {icon:'▶️',title:'模拟运行与时间控制',target:'#sim-controls,#btn-start,#btn-pause,#simulation-speed',text:'开始模拟后，系统会生成乘客、发车、到站、上下客、折返和运行统计。时间倍率越高，对性能要求越高。',bullets:['暂停时应停止客流和列车推进。','高倍率适合观察趋势，低倍率适合调度。','列车图标和地图移动不应依赖拖动地图才刷新。'],tip:'如果出现卡顿，优先检查客流批次和面板重绘。'},
-    {icon:'🧭',title:'模拟导航与 OD 选路',target:'#btn-navigate,#nav-overlay',text:'模拟导航用于查看乘客从起点到终点可能如何换乘、乘坐快慢车，并计算旅行时间。',bullets:['选路会考虑候车、运行、停站和换乘时间。','快慢车造成的时间差异会影响路线选择。','OD 数据受站点功能区和时间段影响。'],tip:'这能帮助你理解为什么某些站突然拥挤。'},
-    {icon:'📊',title:'控制中心与核心指标',target:'#btn-ctrl-center,#ctrl-center-overlay,#cityrailControlCenterPlus',text:'控制中心是运营总览。当前版本应重点显示全网总客流、全网候车、客票收入，以及 0 点到 24 点的小时客流趋势图。',bullets:['全网总客流以“万”为单位，保留一位小数。','快慢车列只显示“已开启”或“未开启”。','控制中心必须由单一渲染系统接管，避免闪烁。'],tip:'控制中心用于观察，不应该反复整块重绘导致 UI 跳动。'},
-    {icon:'⚡',title:'快慢车系统',target:'#ctrl-center-overlay,#line-config-overlay',text:'快慢车用于区分快速车和普通车。快车跳过部分车站，普通车服务更多站点，两者共同影响旅行时间和乘客选路。',bullets:['大站和越行站不能逻辑冲突。','控制中心只显示快慢车开关状态。','旧的“到地图选择停站”入口不应再出现。'],tip:'快慢车的意义是提升长距离效率，不是单纯改变显示。'},
-    {icon:'🛤️',title:'越行站与两岛四线 ATS 显示',target:'#ctrl-center-overlay,#line-config-overlay,.ats-panel',text:'越行站在 ATS 中应显示两岛四线：上下行正线、中间两条侧线、两个岛式站台。普通车停侧线，快车走正线通过。',bullets:['侧线连接线应斜向接入正线。','候车人数和站名应在上下行之间清晰显示。','被扣停的列车显示黄色。'],tip:'越行站是快慢车系统的一部分，不应只是图形装饰。'},
-    {icon:'🎛️',title:'ATS 调度与人工命令',target:'#ctrl-center-overlay,.ats-panel,[data-command]',text:'ATS 用来观察列车位置和执行调度。扣车、放行、跳停、清除命令必须进入列车状态机，而不是只改 UI 字段。',bullets:['扣车应阻止列车继续发车。','放行应恢复自动运行。','跳停应改变下一站停靠计划。'],tip:'人工命令优先级必须高于自动运行逻辑。'},
-    {icon:'💾',title:'存档、读取和诊断',target:'#settings-overlay,#settings-panel,#cityrail-save-panel',text:'设置中包含存档、读取、导入导出和诊断相关入口。存档要保存线路、车站、功能区、快慢车、越行站和运行配置。',bullets:['旧存档需要迁移到新数据结构。','读取后应重建候车 ledger 和图层。','诊断日志用于定位点击、拖动、支付和渲染问题。'],tip:'遇到问题时，先保存当前存档，再打开诊断。'},
-    {icon:'⚙️',title:'设置、图层与显示开关',target:'#btn-settings,#settings-overlay,#settings-panel',text:'设置面板包含列车显示、站名显示、铁路图层、覆盖范围、换乘通道、新手教程等开关。',bullets:['设置面板应可滚动，不能溢出屏幕。','开关要即时生效，但不能破坏地图点击。','这里可以随时重新打开新手教程。'],tip:'教程入口已经加入设置面板。'},
-    {icon:'🖱️',title:'交互稳定与拖动车站',target:'#map,#station-detail-overlay',text:'拖动车站时，系统应优先保证用户操作稳定：暂停无关整块重绘，实时更新线路几何，避免误触发打开面板。',bullets:['拖动期间不要重建 marker。','玩家不操作时，UI 不应自己跳动。','面板数字更新应尽量只改 textContent。'],tip:'如果看到闪烁，可以打开 cityrailV143Report() 查看交互诊断。'},
-    {icon:'✅',title:'教程结束：你可以开始建设',target:'#map,#btn-new-line,#btn-ctrl-center',text:'你已经了解了 CityRail 的主要功能。接下来建议先建一条 5 到 8 站的线路，设置住宅和办公功能区，启动模拟，再观察控制中心。',bullets:['先小规模测试，再扩展线网。','用控制中心判断拥挤和候车。','用快慢车和越行站优化长距离旅行时间。'],tip:'需要再次查看时，到“设置 → 开启新手教程”。'}
-  ];
-  function $(id){return D.getElementById(id)}
-  function visible(el){return !!(el&&el.offsetParent!==null&&!el.classList.contains('hidden')&&!el.classList.contains('fade-out'))}
-  function username(){
-    try{var s=localStorage.getItem('cityrail_current_user'); if(s) return s;}catch(e){}
-    try{var p=JSON.parse(localStorage.getItem('cityrail_pending_account')||'null'); if(p&&p.username) return p.username;}catch(e){}
-    var lu=$('login-username'),ru=$('reg-username'),su=$('pay-success-username');
-    return (lu&&lu.value&&lu.value.trim())||(ru&&ru.value&&ru.value.trim())||(su&&su.textContent&&su.textContent.trim())||'guest';
-  }
-  function key(name){return STORAGE_PREFIX+state.user+':'+name}
-  function getNum(k,d){try{var v=localStorage.getItem(k);return v==null?d:+v||0}catch(e){return d}}
-  function setVal(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
-  function getBool(k){try{return localStorage.getItem(k)==='1'}catch(e){return false}}
-  function syncUser(){state.user=username()||'guest'}
-  function ensureLayer(){
-    var layer=$('cityrail-tutorial-layer');
-    if(layer) return layer;
-    layer=D.createElement('div');layer.id='cityrail-tutorial-layer';layer.className='hidden';
-    layer.innerHTML='<div class="cr-tutorial-scrim"></div><div class="cr-tutorial-spotlight" id="cityrail-tutorial-spotlight"></div><div class="cr-tutorial-card" role="dialog" aria-modal="false" aria-labelledby="cr-tutorial-title"><div class="cr-tutorial-top"><div class="cr-tutorial-icon" id="cr-tutorial-icon">🚇</div><div class="cr-tutorial-head"><div class="cr-tutorial-kicker" id="cr-tutorial-kicker">CityRail Guide</div><div class="cr-tutorial-title" id="cr-tutorial-title">新手教程</div></div><button class="cr-tutorial-close" data-tutorial="close" aria-label="关闭">×</button></div><div class="cr-tutorial-body"><p class="cr-tutorial-text" id="cr-tutorial-text"></p><ul class="cr-tutorial-list" id="cr-tutorial-list"></ul><div class="cr-tutorial-target" id="cr-tutorial-target"></div></div><div class="cr-tutorial-progress" id="cr-tutorial-progress"></div><div class="cr-tutorial-footer"><label class="cr-tutorial-check"><input type="checkbox" id="cr-tutorial-never">以后不再自动弹出</label><div class="cr-tutorial-actions"><div class="cr-tutorial-left-actions"><button class="cr-tutorial-btn ghost" data-tutorial="skip">跳过</button><button class="cr-tutorial-btn" data-tutorial="prev">上一步</button></div><button class="cr-tutorial-btn primary" data-tutorial="next">下一步</button></div></div></div><button class="cr-tutorial-mini" id="cityrail-tutorial-mini" data-tutorial="restore">📘 继续教程</button>';
-    D.body.appendChild(layer);
-    layer.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-tutorial]'); if(!b)return; var act=b.getAttribute('data-tutorial'); if(act==='next') next(); else if(act==='prev') prev(); else if(act==='skip') stop(false); else if(act==='close') minimize(); else if(act==='restore') restore();});
-    var never=layer.querySelector('#cr-tutorial-never'); if(never) never.addEventListener('change',function(){syncUser();setVal(key('never'),this.checked?'1':'0');});
-    state.spotlight=layer.querySelector('#cityrail-tutorial-spotlight');
-    return layer;
-  }
-  function render(){
-    var layer=ensureLayer(),step=steps[state.step]||steps[0];
-    layer.classList.remove('hidden'); requestAnimationFrame(function(){layer.classList.add('cr-visible')});
-    var set=function(id,val){var el=$(id); if(el)el.textContent=val};
-    set('cr-tutorial-icon',step.icon||'📘'); set('cr-tutorial-title',step.title); set('cr-tutorial-kicker','CityRail Guide  '+(state.step+1)+' / '+steps.length); set('cr-tutorial-text',step.text);
-    var list=$('cr-tutorial-list'); if(list) list.innerHTML=(step.bullets||[]).map(function(x){return '<li>'+escapeHtml(x)+'</li>'}).join('');
-    var tip=$('cr-tutorial-target'); if(tip) tip.textContent=step.tip||'';
-    var prog=$('cr-tutorial-progress'); if(prog) prog.innerHTML=steps.map(function(_,i){return '<div class="cr-tutorial-dot '+(i<=state.step?'on':'')+'"></div>'}).join('');
-    var prevBtn=layer.querySelector('[data-tutorial="prev"]'); if(prevBtn) prevBtn.style.visibility=state.step===0?'hidden':'visible';
-    var nextBtn=layer.querySelector('[data-tutorial="next"]'); if(nextBtn) nextBtn.textContent=state.step>=steps.length-1?'完成':'下一步';
-    var never=$('cr-tutorial-never'); if(never){syncUser();never.checked=getBool(key('never'));}
-    updateSpotlight();
-  }
-  function escapeHtml(x){return String(x||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-  function firstVisibleTarget(selector){
-    if(!selector)return null;
-    var nodes=[]; try{nodes=Array.prototype.slice.call(D.querySelectorAll(selector));}catch(e){return null}
-    return nodes.find(function(el){var r=el.getBoundingClientRect();return r.width>4&&r.height>4&&r.bottom>0&&r.right>0&&r.top<W.innerHeight&&r.left<W.innerWidth;})||null;
-  }
-  function updateSpotlight(){
-    var sp=state.spotlight||$('cityrail-tutorial-spotlight'); if(!sp)return;
-    var target=firstVisibleTarget((steps[state.step]||{}).target);
-    if(!target){sp.classList.remove('visible');return;}
-    var r=target.getBoundingClientRect(),pad=8;
-    sp.style.left=Math.max(8,r.left-pad)+'px'; sp.style.top=Math.max(8,r.top-pad)+'px';
-    sp.style.width=Math.min(W.innerWidth-16,r.width+pad*2)+'px'; sp.style.height=Math.min(W.innerHeight-16,r.height+pad*2)+'px';
-    sp.classList.add('visible');
-  }
-  function start(source,opts){syncUser();opts=opts||{};state.active=true;state.minimized=false;state.step=Math.max(0,Math.min(steps.length-1,opts.step||0));state.openedThisSession=true; if(source==='auto'){setVal(key('shown'),getNum(key('shown'),0)+1);state.autoTriggered=true;} render(); log('start',{source:source||'manual',user:state.user,step:state.step});}
-  function stop(completed){var layer=ensureLayer();layer.classList.remove('cr-visible');setTimeout(function(){layer.classList.add('hidden')},180);state.active=false;state.minimized=false;if(completed)setVal(key('completed'),'1');log('stop',{completed:!!completed});}
-  function minimize(){var layer=ensureLayer();layer.classList.remove('cr-visible');state.minimized=true;setTimeout(function(){layer.classList.add('hidden');var mini=$('cityrail-tutorial-mini');if(mini)mini.classList.add('visible')},160);log('minimize',{});}
-  function restore(){var mini=$('cityrail-tutorial-mini');if(mini)mini.classList.remove('visible');state.minimized=false;render();}
-  function next(){if(state.step>=steps.length-1){stop(true);return;}state.step++;render();}
-  function prev(){state.step=Math.max(0,state.step-1);render();}
-  function shouldAuto(){syncUser(); if(state.openedThisSession) return false; if(getBool(key('never'))) return false; return getNum(key('shown'),0)<3;}
-  function markNewUser(name){state.user=name||username()||'guest';setVal(key('shown'),0);setVal(key('never'),0);setVal(key('newUser'),1);}
-  function maybeAuto(){if(!shouldAuto())return; var blockers=['payment-screen','register-screen','login-screen','auth-screen','payment-success-screen']; var blocked=blockers.some(function(id){return visible($(id));}); if(blocked)return; start('auto',{step:0});}
-  function installSettingsEntry(){
-    var panel=$('settings-panel'); if(!panel||panel.querySelector('[data-setting="tutorial-v147"]'))return;
-    var row=D.createElement('div'); row.className='settings-row cr-tutorial-settings-row'; row.setAttribute('data-setting','tutorial-v147'); row.innerHTML='<span class="sr-label">新手教程</span><button class="cr-tutorial-settings-btn" data-action="open-tutorial" type="button">开启新手教程</button>';
-    var divider=panel.querySelector('.settings-divider'); panel.insertBefore(row,divider||panel.firstElementChild&&panel.firstElementChild.nextSibling||null);
-    row.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();start('settings',{step:0});},true);
-  }
-  function hookAuth(){
-    D.addEventListener('click',function(e){
-      var success=e.target.closest&&e.target.closest('#pay-success-login-btn');
-      if(success){setTimeout(function(){var u=username(); if(u){markNewUser(u);try{localStorage.setItem('cityrail_current_user',u)}catch(e){}} setTimeout(maybeAuto,1400);},300);}
-      var login=e.target.closest&&e.target.closest('#login-submit-btn');
-      if(login){setTimeout(function(){var u=username(); if(u)try{localStorage.setItem('cityrail_current_user',u)}catch(e){} setTimeout(maybeAuto,1500);},900);}
-      var settings=e.target.closest&&e.target.closest('#btn-settings'); if(settings)setTimeout(installSettingsEntry,60);
-    },true);
-    var oldShow=W.cityrailShowPaymentSuccess; if(typeof oldShow==='function'&&!oldShow.__tutorialHook){var wrap=function(order){var r=oldShow.apply(this,arguments);setTimeout(function(){var u=username(); if(u)markNewUser(u);},120);return r};wrap.__tutorialHook=true;try{W.cityrailShowPaymentSuccess=wrap}catch(e){}}
-  }
-  function observe(){
-    var mo=new MutationObserver(function(){state.mutationCount++;installSettingsEntry();if(state.active&&!state.minimized)updateSpotlight();});
-    mo.observe(D.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']}); W.__cityrailTutorialV147Observer=mo;
-    W.addEventListener('resize',function(){if(state.active)updateSpotlight()},{passive:true}); W.addEventListener('scroll',function(){if(state.active)updateSpotlight()},{passive:true,capture:true});
-  }
-  function log(msg,data){if(W.__CITYRAIL_TUTORIAL_DEBUG__)console.log('[CityRail教程 '+VERSION+'] '+msg,data||'')}
-  function report(){syncUser();return{version:VERSION,active:state.active,minimized:state.minimized,user:state.user,step:state.step,steps:steps.length,autoShown:getNum(key('shown'),0),neverAuto:getBool(key('never')),settingsEntry:!!D.querySelector('[data-setting="tutorial-v147"]'),mutationCount:state.mutationCount,autoTriggered:state.autoTriggered};}
-  function boot(){ensureLayer();installSettingsEntry();hookAuth();observe();W.CityRailTutorial={version:VERSION,start:function(){start('api',{step:0})},stop:stop,next:next,prev:prev,report:report,markNewUser:markNewUser};W.cityrailTutorialReport=report;D.documentElement.classList.add('cityrail-v147-tutorial-ready');setTimeout(installSettingsEntry,600);setTimeout(maybeAuto,1800);setInterval(function(){if(!state.active)maybeAuto();},12000);}
-  if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
-
 </body>
 </html>

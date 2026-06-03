@@ -14,6 +14,6 @@ export async function onRequestGet(context) {
     const order = JSON.parse(text);
     return json({ success: true, order: maskOrder(order), paid: order.status === 'paid' });
   } catch (err) {
-    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, String(err && err.message || '').includes('CITYRAIL_KV') ? 503 : 500);
+    return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500);
   }
 }
