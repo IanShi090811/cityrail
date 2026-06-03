@@ -29143,5 +29143,173 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
 })();
 
 </script>
+
+
+<!-- CityRail v147 New User Tutorial: Apple-style non-invasive onboarding -->
+<style id="cityrail-v147-tutorial-style">
+  :root{
+    --cr-tutorial-bg: rgba(18,22,30,.78);
+    --cr-tutorial-card: rgba(28,32,40,.88);
+    --cr-tutorial-stroke: rgba(255,255,255,.14);
+    --cr-tutorial-text: rgba(255,255,255,.92);
+    --cr-tutorial-muted: rgba(235,240,255,.62);
+    --cr-tutorial-accent: #0A84FF;
+    --cr-tutorial-green: #30D158;
+  }
+  #cityrail-tutorial-layer{position:fixed;inset:0;z-index:999999;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;color:var(--cr-tutorial-text);}
+  #cityrail-tutorial-layer.hidden{display:none!important;}
+  .cr-tutorial-scrim{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgba(10,132,255,.10),transparent 34%),rgba(0,0,0,.18);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .18s ease;}
+  #cityrail-tutorial-layer.cr-visible .cr-tutorial-scrim{opacity:1;}
+  .cr-tutorial-card{position:absolute;right:28px;bottom:28px;width:min(440px,calc(100vw - 32px));max-height:min(650px,calc(100vh - 48px));display:flex;flex-direction:column;border:1px solid var(--cr-tutorial-stroke);border-radius:26px;background:linear-gradient(180deg,rgba(38,42,52,.92),rgba(20,24,32,.90));box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);pointer-events:auto;overflow:hidden;transform:translateY(10px) scale(.985);opacity:0;transition:transform .2s cubic-bezier(.2,.8,.2,1),opacity .2s ease;}
+  #cityrail-tutorial-layer.cr-visible .cr-tutorial-card{transform:translateY(0) scale(1);opacity:1;}
+  .cr-tutorial-top{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:flex-start;gap:12px;}
+  .cr-tutorial-icon{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(10,132,255,.95),rgba(94,92,230,.95));box-shadow:0 12px 26px rgba(10,132,255,.30);font-size:19px;flex:0 0 auto;}
+  .cr-tutorial-head{min-width:0;flex:1;}
+  .cr-tutorial-kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(235,240,255,.50);font-weight:700;margin-bottom:4px;}
+  .cr-tutorial-title{font-size:20px;line-height:1.18;font-weight:800;color:rgba(255,255,255,.96);letter-spacing:.01em;}
+  .cr-tutorial-close{border:0;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:30px;transition:background .16s ease,color .16s ease,transform .16s ease;}
+  .cr-tutorial-close:hover{background:rgba(255,255,255,.15);color:#fff;transform:scale(1.04);}
+  .cr-tutorial-body{padding:18px 20px 12px;overflow:auto;overscroll-behavior:contain;}
+  .cr-tutorial-body::-webkit-scrollbar{width:8px}.cr-tutorial-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:999px}.cr-tutorial-body::-webkit-scrollbar-track{background:transparent}
+  .cr-tutorial-text{font-size:15px;line-height:1.66;color:rgba(245,247,255,.84);margin:0 0 12px;}
+  .cr-tutorial-list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px;}
+  .cr-tutorial-list li{display:flex;gap:9px;align-items:flex-start;color:rgba(245,247,255,.78);font-size:14px;line-height:1.48;}
+  .cr-tutorial-list li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cr-tutorial-accent);box-shadow:0 0 12px rgba(10,132,255,.65);margin-top:.58em;flex:0 0 auto;}
+  .cr-tutorial-target{margin:12px 0 0;padding:11px 12px;border-radius:15px;border:1px solid rgba(10,132,255,.28);background:rgba(10,132,255,.10);color:rgba(210,230,255,.94);font-size:13px;line-height:1.45;}
+  .cr-tutorial-progress{padding:0 20px 12px;display:flex;gap:6px;align-items:center;}
+  .cr-tutorial-dot{height:4px;flex:1;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;}
+  .cr-tutorial-dot.on{background:linear-gradient(90deg,#0A84FF,#64D2FF);box-shadow:0 0 12px rgba(10,132,255,.38);}
+  .cr-tutorial-footer{padding:12px 20px 18px;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:12px;}
+  .cr-tutorial-actions{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+  .cr-tutorial-left-actions{display:flex;align-items:center;gap:8px;min-width:0;}
+  .cr-tutorial-btn{height:36px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:rgba(255,255,255,.86);font-weight:700;padding:0 14px;cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease;white-space:nowrap;}
+  .cr-tutorial-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.13);}
+  .cr-tutorial-btn.primary{background:linear-gradient(135deg,#0A84FF,#0066CC);border-color:rgba(10,132,255,.55);box-shadow:0 10px 24px rgba(10,132,255,.28);color:white;}
+  .cr-tutorial-btn.ghost{background:transparent;border-color:transparent;color:rgba(235,240,255,.58);font-weight:650;padding:0 6px;}
+  .cr-tutorial-check{display:flex;align-items:center;gap:8px;color:rgba(235,240,255,.62);font-size:13px;line-height:1.25;user-select:none;}
+  .cr-tutorial-check input{accent-color:var(--cr-tutorial-accent);width:15px;height:15px;}
+  .cr-tutorial-spotlight{position:fixed;z-index:999998;border:2px solid rgba(10,132,255,.90);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.18),0 0 34px rgba(10,132,255,.45);pointer-events:none;opacity:0;transform:scale(.98);transition:opacity .18s ease,transform .18s ease,left .18s ease,top .18s ease,width .18s ease,height .18s ease;}
+  .cr-tutorial-spotlight.visible{opacity:1;transform:scale(1);}
+  .cr-tutorial-mini{position:fixed;right:22px;bottom:22px;z-index:999997;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(28,32,40,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 18px 50px rgba(0,0,0,.35);color:white;padding:10px 14px;font-weight:800;display:none;align-items:center;gap:9px;cursor:pointer;}
+  .cr-tutorial-mini.visible{display:flex;}
+  .cr-tutorial-settings-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;}
+  .cr-tutorial-settings-btn{height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(10,132,255,.45);background:rgba(10,132,255,.14);color:#cfe6ff;font-weight:750;cursor:pointer;}
+  @media(max-width:720px){.cr-tutorial-card{right:12px;left:12px;bottom:12px;width:auto;border-radius:22px}.cr-tutorial-actions{align-items:stretch;gap:8px}.cr-tutorial-left-actions{flex-wrap:wrap}.cr-tutorial-btn{padding:0 12px}}
+  @media(prefers-reduced-motion:reduce){.cr-tutorial-card,.cr-tutorial-scrim,.cr-tutorial-spotlight,.cr-tutorial-btn{transition:none!important}}
+</style>
+<script id="cityrail-v147-tutorial-script">
+(function(){
+  'use strict';
+  var W=window,D=document,VERSION='v147-new-user-tutorial';
+  var STORAGE_PREFIX='cityrailTutorialV147:';
+  var state={active:false,minimized:false,step:0,user:'guest',openedThisSession:false,spotlight:null,mutationCount:0,autoTriggered:false};
+  var steps=[
+    {icon:'🚇',title:'欢迎来到 CityRail 都市城轨',target:'#city-select-screen,.city-card,#map',text:'这个教程会一次性讲完整个游戏：从注册登录、选择城市、建线建站，到客流、快慢车、ATS、调度、控制中心、存档与设置。教程只读状态，不会改动你的线路或存档。',bullets:['新注册用户会自动弹出最多 3 次。','你可以勾选“以后不再自动弹出”。','之后也可以在设置里重新开启教程。'],tip:'建议先快速看完一遍，再开始正式建设。'},
+    {icon:'🔐',title:'账号、支付与进入游戏',target:'#auth-screen,#register-screen,#login-screen,#payment-screen',text:'首页包含注册、登录和邀请码入口。注册后进入支付页，支付成功后账号才会开通；已经有账号的玩家直接登录。',bullets:['用户名和密码是登录凭证，请妥善保存。','支付按钮会创建订单，支付成功后后端回调才会开通。','遇到支付错误时，优先检查 /api/pay/create 的响应。'],tip:'支付只是解锁入口，不参与模拟逻辑。'},
+    {icon:'🌆',title:'选择城市与进入地图',target:'#city-select-screen,.city-card,#map',text:'选择城市后进入地图。地图是整个模拟的底盘：线路、车站、换乘、列车、OD 路径都围绕地图展开。',bullets:['灰色城市表示数据未完成。','城市切换会影响底图和默认客流参数。','建议先从上海或已开放城市开始。'],tip:'城市选择完成后，你就可以开始建设线网。'},
+    {icon:'➕',title:'新建线路与画线',target:'#btn-new-line,#new-line-dialog-overlay',text:'点击“新建线路”后，为线路命名并选择代表色，然后在地图上依次放置车站和节点。车站是客流和列车停靠点，节点只改变线路走向。',bullets:['左键放置车站。','右键或节点模式用于调整线路形状。','线路编号会影响左侧列表和运营数据排序。'],tip:'尽量让站距均衡，避免车站过密导致显示拥挤。'},
+    {icon:'📍',title:'车站面板与站点功能区',target:'#station-detail-overlay,#station-detail-panel,.leaflet-marker-icon',text:'点击车站可以打开车站面板。车站可以设置多个功能区，系统会把这些功能区组合起来计算客流，而不是只看单一标签。',bullets:['住宅、办公、学校、商场、机场、火车站等会改变 OD 方向。','多功能区会混合影响早高峰、晚高峰和平峰客流。','非换乘站不会显示换乘设置，避免无效入口。'],tip:'比如“住宅 + 学校”和“办公 + 商场”会产生不同客流特征。'},
+    {icon:'🔁',title:'换乘与虚拟换乘',target:'#vt-overlay,#station-detail-overlay',text:'当一个车站有多条线路经过时，才会显示换乘设置。你也可以配置虚拟换乘，让距离较近但不共站的站点形成换乘关系。',bullets:['换乘会影响乘客选路。','换乘通道只在必要时显示。','距离过近的站点不会额外显示通道文字，减少地图干扰。'],tip:'换乘不是装饰，它会改变 OD 路径和候车压力。'},
+    {icon:'🚆',title:'线路配置、车型与发车间隔',target:'#line-config-overlay,.line-config-v137-overlay,#btn-line-config',text:'点击线路可以打开线路配置。这里设置车型、编组、速度、发车间隔、首末班车和线路基础参数。',bullets:['发车间隔越短，候车越少，但需要更多列车。','速度和编组会影响运能、旅行时间和拥挤度。','左侧线路列表应按线路编号排序。'],tip:'线路配置只负责参数，不应该混入旧线路运营或旧 ATS。'},
+    {icon:'▶️',title:'模拟运行与时间控制',target:'#sim-controls,#btn-start,#btn-pause,#simulation-speed',text:'开始模拟后，系统会生成乘客、发车、到站、上下客、折返和运行统计。时间倍率越高，对性能要求越高。',bullets:['暂停时应停止客流和列车推进。','高倍率适合观察趋势，低倍率适合调度。','列车图标和地图移动不应依赖拖动地图才刷新。'],tip:'如果出现卡顿，优先检查客流批次和面板重绘。'},
+    {icon:'🧭',title:'模拟导航与 OD 选路',target:'#btn-navigate,#nav-overlay',text:'模拟导航用于查看乘客从起点到终点可能如何换乘、乘坐快慢车，并计算旅行时间。',bullets:['选路会考虑候车、运行、停站和换乘时间。','快慢车造成的时间差异会影响路线选择。','OD 数据受站点功能区和时间段影响。'],tip:'这能帮助你理解为什么某些站突然拥挤。'},
+    {icon:'📊',title:'控制中心与核心指标',target:'#btn-ctrl-center,#ctrl-center-overlay,#cityrailControlCenterPlus',text:'控制中心是运营总览。当前版本应重点显示全网总客流、全网候车、客票收入，以及 0 点到 24 点的小时客流趋势图。',bullets:['全网总客流以“万”为单位，保留一位小数。','快慢车列只显示“已开启”或“未开启”。','控制中心必须由单一渲染系统接管，避免闪烁。'],tip:'控制中心用于观察，不应该反复整块重绘导致 UI 跳动。'},
+    {icon:'⚡',title:'快慢车系统',target:'#ctrl-center-overlay,#line-config-overlay',text:'快慢车用于区分快速车和普通车。快车跳过部分车站，普通车服务更多站点，两者共同影响旅行时间和乘客选路。',bullets:['大站和越行站不能逻辑冲突。','控制中心只显示快慢车开关状态。','旧的“到地图选择停站”入口不应再出现。'],tip:'快慢车的意义是提升长距离效率，不是单纯改变显示。'},
+    {icon:'🛤️',title:'越行站与两岛四线 ATS 显示',target:'#ctrl-center-overlay,#line-config-overlay,.ats-panel',text:'越行站在 ATS 中应显示两岛四线：上下行正线、中间两条侧线、两个岛式站台。普通车停侧线，快车走正线通过。',bullets:['侧线连接线应斜向接入正线。','候车人数和站名应在上下行之间清晰显示。','被扣停的列车显示黄色。'],tip:'越行站是快慢车系统的一部分，不应只是图形装饰。'},
+    {icon:'🎛️',title:'ATS 调度与人工命令',target:'#ctrl-center-overlay,.ats-panel,[data-command]',text:'ATS 用来观察列车位置和执行调度。扣车、放行、跳停、清除命令必须进入列车状态机，而不是只改 UI 字段。',bullets:['扣车应阻止列车继续发车。','放行应恢复自动运行。','跳停应改变下一站停靠计划。'],tip:'人工命令优先级必须高于自动运行逻辑。'},
+    {icon:'💾',title:'存档、读取和诊断',target:'#settings-overlay,#settings-panel,#cityrail-save-panel',text:'设置中包含存档、读取、导入导出和诊断相关入口。存档要保存线路、车站、功能区、快慢车、越行站和运行配置。',bullets:['旧存档需要迁移到新数据结构。','读取后应重建候车 ledger 和图层。','诊断日志用于定位点击、拖动、支付和渲染问题。'],tip:'遇到问题时，先保存当前存档，再打开诊断。'},
+    {icon:'⚙️',title:'设置、图层与显示开关',target:'#btn-settings,#settings-overlay,#settings-panel',text:'设置面板包含列车显示、站名显示、铁路图层、覆盖范围、换乘通道、新手教程等开关。',bullets:['设置面板应可滚动，不能溢出屏幕。','开关要即时生效，但不能破坏地图点击。','这里可以随时重新打开新手教程。'],tip:'教程入口已经加入设置面板。'},
+    {icon:'🖱️',title:'交互稳定与拖动车站',target:'#map,#station-detail-overlay',text:'拖动车站时，系统应优先保证用户操作稳定：暂停无关整块重绘，实时更新线路几何，避免误触发打开面板。',bullets:['拖动期间不要重建 marker。','玩家不操作时，UI 不应自己跳动。','面板数字更新应尽量只改 textContent。'],tip:'如果看到闪烁，可以打开 cityrailV143Report() 查看交互诊断。'},
+    {icon:'✅',title:'教程结束：你可以开始建设',target:'#map,#btn-new-line,#btn-ctrl-center',text:'你已经了解了 CityRail 的主要功能。接下来建议先建一条 5 到 8 站的线路，设置住宅和办公功能区，启动模拟，再观察控制中心。',bullets:['先小规模测试，再扩展线网。','用控制中心判断拥挤和候车。','用快慢车和越行站优化长距离旅行时间。'],tip:'需要再次查看时，到“设置 → 开启新手教程”。'}
+  ];
+  function $(id){return D.getElementById(id)}
+  function visible(el){return !!(el&&el.offsetParent!==null&&!el.classList.contains('hidden')&&!el.classList.contains('fade-out'))}
+  function username(){
+    try{var s=localStorage.getItem('cityrail_current_user'); if(s) return s;}catch(e){}
+    try{var p=JSON.parse(localStorage.getItem('cityrail_pending_account')||'null'); if(p&&p.username) return p.username;}catch(e){}
+    var lu=$('login-username'),ru=$('reg-username'),su=$('pay-success-username');
+    return (lu&&lu.value&&lu.value.trim())||(ru&&ru.value&&ru.value.trim())||(su&&su.textContent&&su.textContent.trim())||'guest';
+  }
+  function key(name){return STORAGE_PREFIX+state.user+':'+name}
+  function getNum(k,d){try{var v=localStorage.getItem(k);return v==null?d:+v||0}catch(e){return d}}
+  function setVal(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
+  function getBool(k){try{return localStorage.getItem(k)==='1'}catch(e){return false}}
+  function syncUser(){state.user=username()||'guest'}
+  function ensureLayer(){
+    var layer=$('cityrail-tutorial-layer');
+    if(layer) return layer;
+    layer=D.createElement('div');layer.id='cityrail-tutorial-layer';layer.className='hidden';
+    layer.innerHTML='<div class="cr-tutorial-scrim"></div><div class="cr-tutorial-spotlight" id="cityrail-tutorial-spotlight"></div><div class="cr-tutorial-card" role="dialog" aria-modal="false" aria-labelledby="cr-tutorial-title"><div class="cr-tutorial-top"><div class="cr-tutorial-icon" id="cr-tutorial-icon">🚇</div><div class="cr-tutorial-head"><div class="cr-tutorial-kicker" id="cr-tutorial-kicker">CityRail Guide</div><div class="cr-tutorial-title" id="cr-tutorial-title">新手教程</div></div><button class="cr-tutorial-close" data-tutorial="close" aria-label="关闭">×</button></div><div class="cr-tutorial-body"><p class="cr-tutorial-text" id="cr-tutorial-text"></p><ul class="cr-tutorial-list" id="cr-tutorial-list"></ul><div class="cr-tutorial-target" id="cr-tutorial-target"></div></div><div class="cr-tutorial-progress" id="cr-tutorial-progress"></div><div class="cr-tutorial-footer"><label class="cr-tutorial-check"><input type="checkbox" id="cr-tutorial-never">以后不再自动弹出</label><div class="cr-tutorial-actions"><div class="cr-tutorial-left-actions"><button class="cr-tutorial-btn ghost" data-tutorial="skip">跳过</button><button class="cr-tutorial-btn" data-tutorial="prev">上一步</button></div><button class="cr-tutorial-btn primary" data-tutorial="next">下一步</button></div></div></div><button class="cr-tutorial-mini" id="cityrail-tutorial-mini" data-tutorial="restore">📘 继续教程</button>';
+    D.body.appendChild(layer);
+    layer.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-tutorial]'); if(!b)return; var act=b.getAttribute('data-tutorial'); if(act==='next') next(); else if(act==='prev') prev(); else if(act==='skip') stop(false); else if(act==='close') minimize(); else if(act==='restore') restore();});
+    var never=layer.querySelector('#cr-tutorial-never'); if(never) never.addEventListener('change',function(){syncUser();setVal(key('never'),this.checked?'1':'0');});
+    state.spotlight=layer.querySelector('#cityrail-tutorial-spotlight');
+    return layer;
+  }
+  function render(){
+    var layer=ensureLayer(),step=steps[state.step]||steps[0];
+    layer.classList.remove('hidden'); requestAnimationFrame(function(){layer.classList.add('cr-visible')});
+    var set=function(id,val){var el=$(id); if(el)el.textContent=val};
+    set('cr-tutorial-icon',step.icon||'📘'); set('cr-tutorial-title',step.title); set('cr-tutorial-kicker','CityRail Guide  '+(state.step+1)+' / '+steps.length); set('cr-tutorial-text',step.text);
+    var list=$('cr-tutorial-list'); if(list) list.innerHTML=(step.bullets||[]).map(function(x){return '<li>'+escapeHtml(x)+'</li>'}).join('');
+    var tip=$('cr-tutorial-target'); if(tip) tip.textContent=step.tip||'';
+    var prog=$('cr-tutorial-progress'); if(prog) prog.innerHTML=steps.map(function(_,i){return '<div class="cr-tutorial-dot '+(i<=state.step?'on':'')+'"></div>'}).join('');
+    var prevBtn=layer.querySelector('[data-tutorial="prev"]'); if(prevBtn) prevBtn.style.visibility=state.step===0?'hidden':'visible';
+    var nextBtn=layer.querySelector('[data-tutorial="next"]'); if(nextBtn) nextBtn.textContent=state.step>=steps.length-1?'完成':'下一步';
+    var never=$('cr-tutorial-never'); if(never){syncUser();never.checked=getBool(key('never'));}
+    updateSpotlight();
+  }
+  function escapeHtml(x){return String(x||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function firstVisibleTarget(selector){
+    if(!selector)return null;
+    var nodes=[]; try{nodes=Array.prototype.slice.call(D.querySelectorAll(selector));}catch(e){return null}
+    return nodes.find(function(el){var r=el.getBoundingClientRect();return r.width>4&&r.height>4&&r.bottom>0&&r.right>0&&r.top<W.innerHeight&&r.left<W.innerWidth;})||null;
+  }
+  function updateSpotlight(){
+    var sp=state.spotlight||$('cityrail-tutorial-spotlight'); if(!sp)return;
+    var target=firstVisibleTarget((steps[state.step]||{}).target);
+    if(!target){sp.classList.remove('visible');return;}
+    var r=target.getBoundingClientRect(),pad=8;
+    sp.style.left=Math.max(8,r.left-pad)+'px'; sp.style.top=Math.max(8,r.top-pad)+'px';
+    sp.style.width=Math.min(W.innerWidth-16,r.width+pad*2)+'px'; sp.style.height=Math.min(W.innerHeight-16,r.height+pad*2)+'px';
+    sp.classList.add('visible');
+  }
+  function start(source,opts){syncUser();opts=opts||{};state.active=true;state.minimized=false;state.step=Math.max(0,Math.min(steps.length-1,opts.step||0));state.openedThisSession=true; if(source==='auto'){setVal(key('shown'),getNum(key('shown'),0)+1);state.autoTriggered=true;} render(); log('start',{source:source||'manual',user:state.user,step:state.step});}
+  function stop(completed){var layer=ensureLayer();layer.classList.remove('cr-visible');setTimeout(function(){layer.classList.add('hidden')},180);state.active=false;state.minimized=false;if(completed)setVal(key('completed'),'1');log('stop',{completed:!!completed});}
+  function minimize(){var layer=ensureLayer();layer.classList.remove('cr-visible');state.minimized=true;setTimeout(function(){layer.classList.add('hidden');var mini=$('cityrail-tutorial-mini');if(mini)mini.classList.add('visible')},160);log('minimize',{});}
+  function restore(){var mini=$('cityrail-tutorial-mini');if(mini)mini.classList.remove('visible');state.minimized=false;render();}
+  function next(){if(state.step>=steps.length-1){stop(true);return;}state.step++;render();}
+  function prev(){state.step=Math.max(0,state.step-1);render();}
+  function shouldAuto(){syncUser(); if(state.openedThisSession) return false; if(getBool(key('never'))) return false; return getNum(key('shown'),0)<3;}
+  function markNewUser(name){state.user=name||username()||'guest';setVal(key('shown'),0);setVal(key('never'),0);setVal(key('newUser'),1);}
+  function maybeAuto(){if(!shouldAuto())return; var blockers=['payment-screen','register-screen','login-screen','auth-screen','payment-success-screen']; var blocked=blockers.some(function(id){return visible($(id));}); if(blocked)return; start('auto',{step:0});}
+  function installSettingsEntry(){
+    var panel=$('settings-panel'); if(!panel||panel.querySelector('[data-setting="tutorial-v147"]'))return;
+    var row=D.createElement('div'); row.className='settings-row cr-tutorial-settings-row'; row.setAttribute('data-setting','tutorial-v147'); row.innerHTML='<span class="sr-label">新手教程</span><button class="cr-tutorial-settings-btn" data-action="open-tutorial" type="button">开启新手教程</button>';
+    var divider=panel.querySelector('.settings-divider'); panel.insertBefore(row,divider||panel.firstElementChild&&panel.firstElementChild.nextSibling||null);
+    row.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();start('settings',{step:0});},true);
+  }
+  function hookAuth(){
+    D.addEventListener('click',function(e){
+      var success=e.target.closest&&e.target.closest('#pay-success-login-btn');
+      if(success){setTimeout(function(){var u=username(); if(u){markNewUser(u);try{localStorage.setItem('cityrail_current_user',u)}catch(e){}} setTimeout(maybeAuto,1400);},300);}
+      var login=e.target.closest&&e.target.closest('#login-submit-btn');
+      if(login){setTimeout(function(){var u=username(); if(u)try{localStorage.setItem('cityrail_current_user',u)}catch(e){} setTimeout(maybeAuto,1500);},900);}
+      var settings=e.target.closest&&e.target.closest('#btn-settings'); if(settings)setTimeout(installSettingsEntry,60);
+    },true);
+    var oldShow=W.cityrailShowPaymentSuccess; if(typeof oldShow==='function'&&!oldShow.__tutorialHook){var wrap=function(order){var r=oldShow.apply(this,arguments);setTimeout(function(){var u=username(); if(u)markNewUser(u);},120);return r};wrap.__tutorialHook=true;try{W.cityrailShowPaymentSuccess=wrap}catch(e){}}
+  }
+  function observe(){
+    var mo=new MutationObserver(function(){state.mutationCount++;installSettingsEntry();if(state.active&&!state.minimized)updateSpotlight();});
+    mo.observe(D.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']}); W.__cityrailTutorialV147Observer=mo;
+    W.addEventListener('resize',function(){if(state.active)updateSpotlight()},{passive:true}); W.addEventListener('scroll',function(){if(state.active)updateSpotlight()},{passive:true,capture:true});
+  }
+  function log(msg,data){if(W.__CITYRAIL_TUTORIAL_DEBUG__)console.log('[CityRail教程 '+VERSION+'] '+msg,data||'')}
+  function report(){syncUser();return{version:VERSION,active:state.active,minimized:state.minimized,user:state.user,step:state.step,steps:steps.length,autoShown:getNum(key('shown'),0),neverAuto:getBool(key('never')),settingsEntry:!!D.querySelector('[data-setting="tutorial-v147"]'),mutationCount:state.mutationCount,autoTriggered:state.autoTriggered};}
+  function boot(){ensureLayer();installSettingsEntry();hookAuth();observe();W.CityRailTutorial={version:VERSION,start:function(){start('api',{step:0})},stop:stop,next:next,prev:prev,report:report,markNewUser:markNewUser};W.cityrailTutorialReport=report;D.documentElement.classList.add('cityrail-v147-tutorial-ready');setTimeout(installSettingsEntry,600);setTimeout(maybeAuto,1800);setInterval(function(){if(!state.active)maybeAuto();},12000);}
+  if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
 </body>
 </html>
