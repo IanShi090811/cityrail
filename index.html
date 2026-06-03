@@ -4833,6 +4833,28 @@ html.cityrail-v145-ready .v145-line-status{
 /* Extracted from original index.html during low-risk modular refactor. Execution order is preserved. */
 (function(){
   function byId(id){ return document.getElementById(id); }
+  function havKm(a,b){
+    if(!a||!b) return 0;
+    var R=6371,lat1=n(a.lat)*Math.PI/180,lat2=n(b.lat)*Math.PI/180,dlat=(n(b.lat)-n(a.lat))*Math.PI/180,dlng=(n(b.lng)-n(a.lng))*Math.PI/180;
+    var x=Math.sin(dlat/2)*Math.sin(dlat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)*Math.sin(dlng/2);
+    return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));
+  }
+  function liveLineLength(st,line){
+    if(!line||!Array.isArray(line.stationIds)) return 0;
+    var sm={}; (st.stations||[]).forEach(function(sta){ if(sta&&sta.id) sm[sta.id]=sta; });
+    var wps=Array.isArray(line.waypoints)?line.waypoints:[],nodes=[];
+    line.stationIds.forEach(function(stationId,i){
+      var sta=sm[stationId]; if(!sta) return;
+      var pos=sta.linePositions&&sta.linePositions[line.id]?sta.linePositions[line.id]:sta;
+      nodes.push({lat:n(pos.lat),lng:n(pos.lng)});
+      if(i<line.stationIds.length-1){
+        wps.filter(function(w){ return n(w.segIdx)===i; }).sort(function(a,b){ return n(a.order)-n(b.order); }).forEach(function(w){ nodes.push({lat:n(w.lat),lng:n(w.lng)}); });
+      }
+    });
+    var total=0;
+    for(var i=1;i<nodes.length;i++) total+=havKm(nodes[i-1],nodes[i]);
+    return total;
+  }
 
   function showScreen(screenId){
     var s = byId(screenId);
@@ -9027,6 +9049,60 @@ function createTrainObj(line, direction, depTime, nodes) {
   return train;
 }
 
+function chooseBalancedSpawnStation(line, direction) {
+  if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return -1;
+  const totalStations = line.stationIds.length;
+  const loadByStation = Array(totalStations).fill(0);
+  state.trains.forEach(t => {
+    if (!t || t.lineId !== line.id || t.state === 'done' || t.state === 'waiting') return;
+    const idx = Math.max(0, Math.min(totalStations - 1, Math.round(Number(t.nextStationIdx) || 0)));
+    loadByStation[idx]++;
+  });
+  const minIdx = direction === 0 ? 0 : 1;
+  const maxIdx = direction === 0 ? totalStations - 2 : totalStations - 1;
+  let best = -1, bestScore = Infinity;
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const terminalPenalty = (i === 0 || i === totalStations - 1) ? 1.6 : 0;
+    const edgeBalance = Math.abs((i / Math.max(1, totalStations - 1)) - 0.5) * 0.15;
+    const score = loadByStation[i] * 10 + terminalPenalty + edgeBalance;
+    if (score < bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  }
+  return best;
+}
+
+function placeTrainAtStationBalanced(train, line, nodes, stationIdx, direction, dwellScale) {
+  if (!train || !line || !Array.isArray(nodes)) return false;
+  const totalStations = line.stationIds.length;
+  if (stationIdx < 0 || stationIdx >= totalStations) return false;
+  const stationId = line.stationIds[stationIdx];
+  const nodeIdx = nodes.findIndex(n => n.type === 'station' && n.id === stationId);
+  if (nodeIdx < 0) return false;
+  train.direction = direction;
+  train.nextStationIdx = stationIdx;
+  train.speed = 0;
+  train.state = 'dwelling';
+  train.dwellRemaining = Math.max(2, getDwellBase(line) * (dwellScale == null ? 0.28 : dwellScale));
+  train.depTime = 0;
+  train._holdingShort = false;
+  train._holdTimer = 0;
+  train._stuckTimer = 0;
+  if (direction === 0) {
+    train.segIndex = Math.max(0, Math.min(nodes.length - 2, nodeIdx));
+    train.segProgress = stationIdx >= totalStations - 1 ? 1 : 0;
+  } else {
+    train.segIndex = Math.max(0, Math.min(nodes.length - 2, nodeIdx - 1));
+    train.segProgress = stationIdx <= 0 ? 0 : 1;
+  }
+  return true;
+}
+try {
+  window.chooseBalancedSpawnStation = chooseBalancedSpawnStation;
+  window.placeTrainAtStationBalanced = placeTrainAtStationBalanced;
+} catch(e) {}
+
 // Initialize all trains
 function initAllTrains() {
   // Clean up
@@ -9094,36 +9170,36 @@ function dispatchLoop() {
     if (!line._lastBwdDispatch) line._lastBwdDispatch = nowSec;
     if (nowSec - line._lastFwdDispatch >= headwaySec) {
       line._lastFwdDispatch += headwaySec;
-      const sIdx = 0;
-      const sid = line.stationIds[sIdx];
-      const nIdx = nodes.findIndex(n => n.type === 'station' && n.id === sid);
-      if (nIdx !== -1) {
+      const sIdx = chooseBalancedSpawnStation(line, 0);
+      if (sIdx >= 0) {
         const t = {
           id: genId(), lineId: line.id, direction: 0, depTime: 0,
-          segIndex: nIdx, segProgress: 0, speed: 0, state: 'dwelling',
+          segIndex: 0, segProgress: 0, speed: 0, state: 'dwelling',
           dwellRemaining: dwellBase * 0.3, _holdingShort: false, _holdTimer: 0, _stuckTimer: 0,
           load: 0, maxLoad: capacity,
           _passengerIds: [], nextStationIdx: sIdx, _passengersAlreadyReturned: false,
         };
-        handleTrainArrival(t, line);
-        state.trains.push(t);
+        if (placeTrainAtStationBalanced(t, line, nodes, sIdx, 0, 0.3)) {
+          handleTrainArrival(t, line);
+          state.trains.push(t);
+        }
       }
     }
     if (nowSec - line._lastBwdDispatch >= headwaySec) {
       line._lastBwdDispatch += headwaySec;
-      const sIdx = totalStations - 1;
-      const sid = line.stationIds[sIdx];
-      const nIdx = nodes.findIndex(n => n.type === 'station' && n.id === sid);
-      if (nIdx !== -1) {
+      const sIdx = chooseBalancedSpawnStation(line, 1);
+      if (sIdx >= 0) {
         const t = {
           id: genId(), lineId: line.id, direction: 1, depTime: 0,
-          segIndex: Math.max(0, nIdx - 1), segProgress: 1, speed: 0, state: 'dwelling',
+          segIndex: 0, segProgress: 1, speed: 0, state: 'dwelling',
           dwellRemaining: dwellBase * 0.3, _holdingShort: false, _holdTimer: 0, _stuckTimer: 0,
           load: 0, maxLoad: capacity,
           _passengerIds: [], nextStationIdx: sIdx, _passengersAlreadyReturned: false,
         };
-        handleTrainArrival(t, line);
-        state.trains.push(t);
+        if (placeTrainAtStationBalanced(t, line, nodes, sIdx, 1, 0.3)) {
+          handleTrainArrival(t, line);
+          state.trains.push(t);
+        }
       }
     }
   }
@@ -9326,7 +9402,14 @@ function spawnReplacementTrain(stuckTrain) {
 
   if (candidateStations.length === 0) return; // 无空闲站可补
 
-  // 选最近的空闲站（或用第一个）
+  // 选当前负载最低的空闲站，避免补车集中在起点或第一个候选站。
+  const stationLoad = Array(totalStations).fill(0);
+  state.trains.forEach(t => {
+    if (!t || t.lineId !== line.id || t.state === 'done' || t.state === 'waiting') return;
+    const idx = Math.max(0, Math.min(totalStations - 1, Math.round(Number(t.nextStationIdx) || 0)));
+    stationLoad[idx]++;
+  });
+  candidateStations.sort((a, b) => (stationLoad[a] - stationLoad[b]) || Math.abs(a - stuckTrain.nextStationIdx) - Math.abs(b - stuckTrain.nextStationIdx));
   const targetStationIdx = candidateStations[0];
   const stationId = line.stationIds[targetStationIdx];
   const station = state.stations.find(s => s.id === stationId);
@@ -9360,14 +9443,8 @@ function spawnReplacementTrain(stuckTrain) {
     nextStationIdx: direction === 0 ? targetStationIdx + 1 : targetStationIdx - 1,
   };
 
-  // 设置位置：在车站节点上
-  if (direction === 0) {
-    train.segIndex = stationNodeIdx;
-    train.segProgress = 1; // 在车站节点 B 侧
-  } else {
-    train.segIndex = Math.max(0, stationNodeIdx - 1);
-    train.segProgress = 1; // 在车站节点位置
-  }
+  // 设置位置：在选中的空闲车站上
+  placeTrainAtStationBalanced(train, line, nodes, targetStationIdx, direction, 0.2);
   train.speed = 0;
 
   state.trains.push(train);
@@ -10089,36 +10166,18 @@ function adjustTrainCountForLine(line) {
     const nodes = getLineTrainNodes(line);
     if (nodes.length < 2) return;
 
-    const totalStations = line.stationIds.length;
-    const dwellBase = getDwellBase(line);
     const nowSec = state.simulationHour * 3600;
     const firstH = line.firstTrain ?? 6;
     const lastH = line.lastTrain ?? 22;
 
-    // ── 在 dense nodes 中预建 车站→节点索引 映射 ──
-    const stnNodeMap = {};
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].type === 'station' && nodes[i].id) stnNodeMap[nodes[i].id] = i;
-    }
-
-    // 在起点站或终点站生成新列车（交替方向）
+    // 缺车补充也按全线车站均匀铺开，不再固定从起点/终点一窝蜂上线。
     for (let i = 0; i < -diff; i++) {
       const dir = i % 2 === 0 ? 0 : 1;
       const train = createTrainObj(line, dir, nowSec, nodes);
 
       if (nowSec >= firstH * 3600 && nowSec < lastH * 3600) {
-        // 将列车正确定位到起点/终点站，nextStationIdx 指向当前所在车站
-        const startStnIdx = dir === 0 ? 0 : totalStations - 1;
-        const nodeIdx = stnNodeMap[line.stationIds[startStnIdx]];
-        if (nodeIdx !== undefined) {
-          train.direction = dir;
-          train.nextStationIdx = startStnIdx; // 当前停靠的车站
-          train.speed = 0;
-          train.state = 'dwelling';
-          train.dwellRemaining = dwellBase * (0.3 + 0.4 * Math.random());
-          train.depTime = 0;
-          if (dir === 0) { train.segIndex = nodeIdx; train.segProgress = 0; }
-          else { train.segIndex = Math.max(0, nodeIdx - 1); train.segProgress = 1; }
+        const startStnIdx = chooseBalancedSpawnStation(line, dir);
+        if (placeTrainAtStationBalanced(train, line, nodes, startStnIdx, dir, 0.3 + 0.4 * Math.random())) {
           handleTrainArrival(train, line);
         } else {
           train.state = 'waiting';
@@ -10457,6 +10516,25 @@ function computeLineLengths() {
     state.lineLengthCache[line.id] = total;
   });
 }
+
+function recomputeLineLengthsNow() {
+  if (!state || !Array.isArray(state.lines)) return 0;
+  state.lineLengthCache = state.lineLengthCache || {};
+  let networkTotal = 0;
+  state.lines.forEach(line => {
+    const nodes = getLineNodes(line);
+    let total = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+      total += haversine(nodes[i].lat, nodes[i].lng, nodes[i + 1].lat, nodes[i + 1].lng);
+    }
+    state.lineLengthCache[line.id] = total;
+    line.lengthKm = total;
+    networkTotal += total;
+  });
+  state._networkLengthKmLive = networkTotal;
+  return networkTotal;
+}
+try { window.recomputeLineLengthsNow = recomputeLineLengthsNow; } catch(e) {}
 
 function toggleLineStats() {
   state.showLineStats = !state.showLineStats;
@@ -22851,14 +22929,17 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function computeNetworkLengthKm(){
     var st = window.state;
     if(!st || !Array.isArray(st.lines)) return 0;
-    try { if(typeof window.computeLineLengths === 'function') window.computeLineLengths(); } catch(e) {}
     var total = 0;
+    st.lineLengthCache = st.lineLengthCache || {};
     for(var i=0;i<st.lines.length;i++){
       var line = st.lines[i];
       if(!line) continue;
-      var len = st.lineLengthCache && st.lineLengthCache[line.id];
+      var len = liveLineLength(st,line);
+      st.lineLengthCache[line.id] = len;
+      line.lengthKm = len;
       total += n(len);
     }
+    st._networkLengthKmLive = total;
     return total;
   }
 
@@ -29674,12 +29755,53 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
   }
   function activeTrain(t){ return t&&!['done','removed','archived','inactive'].includes(sid(t.state)); }
   function cachedStats(st){ return st.__v114StatsCache||st.__v113StatsCache||st.__v112StatsCache||{}; }
+  function havKm(a,b){
+    if(!a||!b) return 0;
+    const R=6371,lat1=num(a.lat)*Math.PI/180,lat2=num(b.lat)*Math.PI/180,dlat=(num(b.lat)-num(a.lat))*Math.PI/180,dlng=(num(b.lng)-num(a.lng))*Math.PI/180;
+    const x=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)**2;
+    return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(Math.max(0,1-x)));
+  }
+  function stationPosition(station,lineId){
+    return station&&station.linePositions&&station.linePositions[lineId]?station.linePositions[lineId]:station;
+  }
+  function liveLineLength(st,line){
+    if(!line||!Array.isArray(line.stationIds)) return 0;
+    const sm=new Map((Array.isArray(st.stations)?st.stations:[]).map(sta=>[sid(sta.id),sta]));
+    const wps=Array.isArray(line.waypoints)?line.waypoints:[];
+    const nodes=[];
+    line.stationIds.forEach((stationId,i)=>{
+      const sta=sm.get(sid(stationId));
+      if(!sta) return;
+      const pos=stationPosition(sta,line.id);
+      nodes.push({lat:num(pos&&pos.lat),lng:num(pos&&pos.lng)});
+      if(i<line.stationIds.length-1){
+        wps.filter(w=>num(w.segIdx,-1)===i).sort((a,b)=>num(a.order)-num(b.order)).forEach(w=>nodes.push({lat:num(w.lat),lng:num(w.lng)}));
+      }
+    });
+    let total=0;
+    for(let i=1;i<nodes.length;i++) total+=havKm(nodes[i-1],nodes[i]);
+    return total;
+  }
   function lineLength(st,line){
     const cache=st.lineLengthCache||{};
     return num(cache[line.id],num(line.lengthKm,num(line.length)));
   }
+  function refreshLiveLineLengths(st){
+    if(!st||!Array.isArray(st.lines)) return 0;
+    st.lineLengthCache=st.lineLengthCache||{};
+    let total=0;
+    for(const line of st.lines){
+      const len=liveLineLength(st,line);
+      st.lineLengthCache[line.id]=len;
+      line.lengthKm=len;
+      total+=len;
+    }
+    st._networkLengthKmLive=total;
+    return total;
+  }
   function makeSnapshot(){
     const started=performance.now(),st=state();
+    refreshLiveLineLengths(st);
     const lines=Array.isArray(st.lines)?st.lines:[];
     const stations=Array.isArray(st.stations)?st.stations:[];
     const trains=Array.isArray(st.trains)?st.trains:[];
@@ -29757,6 +29879,16 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     return '¥'+n.toLocaleString('zh-CN');
   }
   function ensureControlCenterCleanStructure(){
+    const topbar=byId('ctrl-topbar');
+    if(topbar&&!byId('cct-network-length-stat')){
+      const lineCountStat=byId('cct-line-count')&&byId('cct-line-count').closest('.ctrl-top-stat');
+      const stat=D.createElement('div');
+      stat.id='cct-network-length-stat';
+      stat.className='ctrl-top-stat';
+      stat.innerHTML='<span class="ts-label">线网总长度</span><span class="ts-val" id="cct-network-length">0.0 km</span>';
+      if(lineCountStat&&lineCountStat.nextSibling) topbar.insertBefore(stat,lineCountStat.nextSibling);
+      else topbar.insertBefore(stat,byId('ctrl-close-btn')||null);
+    }
     const flowTitle=[...D.querySelectorAll('.ctrl-card-title')].find(el=>sid(el.textContent).trim()==='全网客流概览');
     if(flowTitle){
       const card=flowTitle.closest('.ctrl-card');
@@ -29834,6 +29966,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     setText('cct-time',formatTime(hour)); setText('cct-period',({peak:'高峰',normal:'平峰',offpeak:'低峰'}[period]||'--'));
     setText('cct-speed',snap.speed+'x'); setText('cct-online-trains',snap.online); setText('cct-total-flow',fmtWan(snap.totalFlow));
     setText('cct-intensity',(snap.length>0?fmt(snap.delivered/snap.length):'0')+'/km'); setText('cct-line-count',snap.lineCount);
+    setText('cct-network-length',snap.length.toFixed(1)+' km');
     setText('cct-big-flow',fmtWan(snap.totalFlow)); setText('cct-big-waiting',fmt(snap.waiting)); setText('cct-big-fare',formatMoney(snap.fare)); const oldIn=byId('cct-big-inbound'); if(oldIn) oldIn.textContent=fmt(snap.waiting); const oldOut=byId('cct-big-outbound'); if(oldOut) oldOut.textContent=formatMoney(snap.fare); const oldMax=byId('cct-big-max-seg'); if(oldMax) oldMax.closest('div')?.remove();
     const lineHTML=snap.lineRows.length?snap.lineRows.map(row=>`<tr data-line-id="${esc(row.id)}"><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${esc(row.color)}"></span></td><td>${esc(row.name)}</td><td class="cc-express-cell"><button class="cc-express-open ${row.express?'on':'off'}" data-line-id="${esc(row.id)}">${row.express?'已开启':'未开启'}</button></td><td>${esc(row.trainType)}</td><td>${fmt(row.cars)}节</td><td>${fmt(row.speed)}km/h</td><td>${row.length.toFixed(1)}km</td><td>${fmt(row.active)}</td><td>${fmt(row.flow)}</td><td>${fmt(row.crowd)}%</td></tr>`).join(''):'<tr><td colspan="10" class="ctrl-empty-row">暂无数据</td></tr>';
     setHTML('cct-line-stats-body',lineHTML);
