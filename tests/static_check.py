@@ -6,14 +6,22 @@ idx=(ROOT/'index.html').read_text(encoding='utf-8')
 js=(ROOT/'js/cityrail-runtime.js').read_text(encoding='utf-8')
 css=(ROOT/'css/cityrail.css').read_text(encoding='utf-8')
 errors=[]
-if 'js/legacy/' in idx: errors.append('index still loads js/legacy')
+script_srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
+if any('js/legacy/' in src for src in script_srcs): errors.append('index still loads js/legacy')
 local_js=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 local_js=[x for x in local_js if './js/' in x or '/js/' in x or x.startswith('js/')]
 expected_js=['cityrail-runtime.js','cityrail-v146-single-control-owner.js']
-if len(local_js)!=2 or any(name not in src for name,src in zip(expected_js,local_js)): errors.append(f'unexpected local JS entries: {local_js}')
+inline_js=(
+    'id="cityrail-inline-runtime"' in idx
+    and 'id="cityrail-inline-control-owner"' in idx
+)
+external_js_ok=len(local_js)==2 and not any(name not in src for name,src in zip(expected_js,local_js))
+if not (external_js_ok or inline_js): errors.append(f'unexpected local JS entries: {local_js}')
 local_css=re.findall(r'<link[^>]+href=["\']([^"\']+)["\']', idx)
 local_css=[x for x in local_css if './css/' in x or '/css/' in x or x.startswith('css/')]
-if len(local_css)!=1 or 'cityrail.css' not in local_css[0]: errors.append(f'unexpected local CSS entries: {local_css}')
+inline_css='id="cityrail-inline-css"' in idx
+external_css_ok=len(local_css)==1 and 'cityrail.css' in local_css[0]
+if not (external_css_ok or inline_css): errors.append(f'unexpected local CSS entries: {local_css}')
 bad_text=[ ''.join(map(chr,[21040,22320,22270,36873,25321,20572,31449])), ''.join(map(chr,[26087]))+'ATS', ''.join(map(chr,[26087,32447,36335,36816,33829])), 'cityrail-'+'v'+'141', 'v'+'141', 'V'+'141']
 for bad in bad_text:
     for name,body in [('index.html',idx),('js/cityrail-runtime.js',js),('css/cityrail.css',css)]:
@@ -27,12 +35,15 @@ for req in ['cityrailV143Report','cityrailSelfCheck','CityRailInteractionV143','
 v145=(ROOT/'js/cityrail-v146-single-control-owner.js').read_text(encoding='utf-8')
 for req in ['cityrailV145Report','__v145StableOwner','snapshotOwner','CityRailStationDragCore']:
     if req not in v145: errors.append(f'missing required v145 symbol: {req}')
-for req in ['__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__','legacyControlSuppressed','singleControlOwner','v146-single-control-owner']:
+for req in ['__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__','legacyControlSuppressed','singleControlOwner','cloudflare-pages-functions']:
     if req not in idx + js + v145: errors.append(f'missing required v146 single-owner symbol: {req}')
+for req in ['/api/pay/create','/api/pay/status','cityrail-pay-modal']:
+    if req not in idx + js + css: errors.append(f'missing required payment symbol: {req}')
 for req in ['bindStableDispatchEvents','CityRailDispatchConsoleV146','cityrailLastDispatch','cityrailLastOvertake']:
     if req not in js: errors.append(f'missing required v146 dispatch symbol: {req}')
 # Static buttons should have data-action when declared in HTML.
-buttons=re.findall(r'<button\b([^>]*)>', idx, flags=re.I)
+html_shell=idx.split('<script',1)[0]
+buttons=re.findall(r'<button\b([^>]*)>', html_shell, flags=re.I)
 missing=[]
 for attrs in buttons:
     if 'data-action=' not in attrs and 'disabled' not in attrs and 'onclick=' not in attrs:

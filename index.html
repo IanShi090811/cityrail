@@ -3794,6 +3794,105 @@ html.cityrail-v145-ready .v145-line-status{
 }
 .pay-option.pay-loading { opacity: .62; }
 
+/* Payment success screen */
+#payment-success-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  overflow-y: auto;
+  background: #020b18;
+}
+#payment-success-screen.visible { display: flex; }
+#payment-success-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s ease;
+}
+.pay-success-panel {
+  width: min(520px, calc(100vw - 40px));
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(22,33,48,.96), rgba(8,12,18,.96));
+  box-shadow: 0 28px 90px rgba(0,0,0,.45);
+  padding: 30px;
+  color: #fff;
+}
+.pay-success-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  background: rgba(48,209,88,.16);
+  border: 1px solid rgba(48,209,88,.36);
+  color: #30D158;
+  font-size: 30px;
+  font-weight: 900;
+}
+.pay-success-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.pay-success-subtitle {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255,255,255,.58);
+}
+.pay-success-account {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+.pay-success-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  background: rgba(255,255,255,.055);
+}
+.pay-success-label {
+  font-size: 13px;
+  color: rgba(255,255,255,.48);
+}
+.pay-success-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: #fff;
+}
+.pay-success-note {
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255,255,255,.58);
+}
+.pay-success-login {
+  margin-top: 24px;
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #30D158, #0A84FF);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 </style>
 
 </head>
@@ -3966,6 +4065,27 @@ html.cityrail-v145-ready .v145-line-status{
     </div>
   </div>
   <div class="pay-cta-hint">⏳ 限时优惠即将结束，立即抢购解锁全部功能</div>
+</div>
+
+<!-- PAYMENT SUCCESS SCREEN -->
+<div id="payment-success-screen">
+  <div class="pay-success-panel">
+    <div class="pay-success-mark">✓</div>
+    <div class="pay-success-title">支付成功</div>
+    <div class="pay-success-subtitle">你的账号已经开通，请保存下面的登录信息</div>
+    <div class="pay-success-account">
+      <div class="pay-success-row">
+        <div class="pay-success-label">用户名</div>
+        <div class="pay-success-value" id="pay-success-username">-</div>
+      </div>
+      <div class="pay-success-row">
+        <div class="pay-success-label">密码</div>
+        <div class="pay-success-value" id="pay-success-password">-</div>
+      </div>
+    </div>
+    <div class="pay-success-note">密码只会在本次注册完成后显示一次。下次进入网站时，请点击登录并输入这个用户名和密码。</div>
+    <button class="pay-success-login" id="pay-success-login-btn" data-action="pay-success-login-btn">登录</button>
+  </div>
 </div>
 
 <!-- APP LOGO -->
@@ -5242,9 +5362,9 @@ function $(id) { return document.getElementById(id); }
   logoImg.onerror = () => {};
 
   // 全局 API 地址
-  const API_BASE = window.CITYRAIL_API_BASE || (location.protocol === 'file:' ? 'http://localhost:3001' : location.origin);
-  let _usernameCheckTimer = null;
-  let _pendingReg = null;
+	  const API_BASE = window.CITYRAIL_API_BASE || (location.protocol === 'file:' ? 'http://localhost:3001' : location.origin);
+	  let _usernameCheckTimer = null;
+	  let _pendingReg = null;
 
   function isValidLength(v) { return v.length >= 3 && v.length <= 15; }
 
@@ -5337,14 +5457,38 @@ function $(id) { return document.getElementById(id); }
     });
   }
 
-  function cityrailShowPaidAccess() {
-    _pendingReg = null;
-    try { localStorage.removeItem('cityrail_pending_order'); } catch {}
-    const ps = $('payment-screen'); if (ps) ps.classList.add('fade-out');
-    setTimeout(() => { if (ps) ps.style.display = 'none'; }, 500);
-    const cs = $('city-select-screen'); if (cs) cs.classList.add('visible');
-    if (typeof initCitySelect === 'function') initCitySelect();
-  }
+	  function cityrailShowPaidAccess() {
+	    cityrailShowPaymentSuccess();
+	  }
+
+	  function readPendingAccount() {
+	    if (_pendingReg && _pendingReg.username && _pendingReg.password) return _pendingReg;
+	    try {
+	      const raw = localStorage.getItem('cityrail_pending_account');
+	      return raw ? JSON.parse(raw) : null;
+	    } catch {
+	      return null;
+	    }
+	  }
+
+	  function cityrailShowPaymentSuccess(order) {
+	    const account = readPendingAccount() || {};
+	    const username = account.username || (order && order.username) || '';
+	    const password = account.password || '';
+	    try { localStorage.removeItem('cityrail_pending_order'); } catch {}
+	    try { localStorage.removeItem('cityrail_pending_account'); } catch {}
+	    const ps = $('payment-screen'); if (ps) ps.classList.add('fade-out');
+	    setTimeout(() => { if (ps) ps.style.display = 'none'; }, 500);
+	    const modal = $('cityrail-pay-modal'); if (modal) modal.classList.remove('visible');
+	    const su = $('pay-success-username'); if (su) su.textContent = username || '请使用注册时填写的用户名';
+	    const sp = $('pay-success-password'); if (sp) sp.textContent = password || '请使用注册时填写的密码';
+	    const ss = $('payment-success-screen');
+	    if (ss) {
+	      ss.classList.remove('fade-out');
+	      ss.classList.add('visible');
+	    }
+	    _pendingReg = username && password ? { username, password } : null;
+	  }
 
   function ensurePaymentModal() {
     let modal = $('cityrail-pay-modal');
@@ -5375,12 +5519,12 @@ function $(id) { return document.getElementById(id); }
       try {
         const r = await fetch(API_BASE + '/api/pay/status?trade_order_id=' + encodeURIComponent(orderId));
         const d = await r.json();
-        if (d && d.paid) {
-          if (status) status.textContent = '支付成功，正在进入游戏…';
-          clearInterval(_payPollTimer); _payPollTimer = null;
-          setTimeout(cityrailShowPaidAccess, 500);
-          return;
-        }
+	        if (d && d.paid) {
+	          if (status) status.textContent = '支付成功，正在生成账号信息…';
+	          clearInterval(_payPollTimer); _payPollTimer = null;
+	          setTimeout(() => cityrailShowPaymentSuccess(d.order), 500);
+	          return;
+	        }
         if (status) status.textContent = '正在等待支付结果…';
       } catch {
         if (status) status.textContent = '暂时无法连接服务器，仍在重试…';
@@ -5423,7 +5567,14 @@ function $(id) { return document.getElementById(id); }
         alert('创建支付订单失败: ' + (d.error || '未知错误'));
         return;
       }
-      try { localStorage.setItem('cityrail_pending_order', d.trade_order_id); } catch {}
+	      try { localStorage.setItem('cityrail_pending_order', d.trade_order_id); } catch {}
+	      try {
+	        localStorage.setItem('cityrail_pending_account', JSON.stringify({
+	          username: _pendingReg.username,
+	          password: _pendingReg.password,
+	          trade_order_id: d.trade_order_id
+	        }));
+	      } catch {}
       const modal = ensurePaymentModal();
       const qr = $('cityrail-pay-qr');
       const status = $('cityrail-pay-status');
@@ -5467,10 +5618,29 @@ function $(id) { return document.getElementById(id); }
   const lb = $('login-back-btn'); if (lb) lb.addEventListener('click', () => { location.reload(); });
   const pb = $('pay-back-btn'); if (pb) pb.addEventListener('click', () => { location.reload(); });
 
-  const pw = $('pay-wechat'); if (pw) pw.addEventListener('click', handlePayment);
-  const pa = $('pay-alipay'); if (pa) pa.addEventListener('click', handlePayment);
+	  const pw = $('pay-wechat'); if (pw) pw.addEventListener('click', handlePayment);
+	  const pa = $('pay-alipay'); if (pa) pa.addEventListener('click', handlePayment);
+	  const successLogin = $('pay-success-login-btn');
+	  if (successLogin) {
+	    successLogin.addEventListener('click', () => {
+	      const account = readPendingAccount() || _pendingReg || {};
+	      const ss = $('payment-success-screen'); if (ss) ss.classList.add('fade-out');
+	      setTimeout(() => { if (ss) ss.style.display = 'none'; }, 450);
+	      const lu = $('login-username'); if (lu && account.username) lu.value = account.username;
+	      const lp = $('login-password'); if (lp && account.password) lp.value = account.password;
+	      const le = $('login-error'); if (le) le.classList.remove('visible');
+	      setTimeout(() => {
+	        const ls = $('login-screen');
+	        if (ls) {
+	          ls.style.display = '';
+	          ls.classList.remove('fade-out');
+	          ls.classList.add('visible');
+	        }
+	      }, 500);
+	    });
+	  }
 
-  })();
+	  })();
 
 // ==================== INVITE CODE ====================
 const INVITE_CODE = '260327';
@@ -27933,7 +28103,7 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
     bindScroll(line.id,owner.mode);
   }
   function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;t._holdingShort=false;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;if(['holding_short','dwelling'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._manualHoldUntil;t._holdingShort=false;if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._manualHoldUntil;t._holdingShort=false;t._v136HeldBehindLocal=false;t._v136LocalYielding=false;} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); renderAts(true); return true; }
-  function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','#line-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
+  function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','#line-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
   function fixClicks(){
     D.querySelectorAll('#cityrail-train-canvas-v114,#cityrail-train-canvas-v50,#cityrail-train-canvas-v31,.cityrail-train-canvas,canvas[id*="train-canvas"],canvas[class*="train-canvas"],#cityrail-v114-perf,.perf-hud').forEach(el=>{el.style.pointerEvents='none';});
     D.querySelectorAll('.leaflet-pane,.leaflet-overlay-pane,.leaflet-overlay-pane svg,.leaflet-marker-pane,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tooltip-pane,.leaflet-popup-pane').forEach(el=>{el.style.pointerEvents='auto';});
