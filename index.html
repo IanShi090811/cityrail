@@ -3893,6 +3893,189 @@ html.cityrail-v145-ready .v145-line-status{
   cursor: pointer;
 }
 
+/* CityRail beginner tutorial */
+.cityrail-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+.cityrail-tutorial-overlay.visible { display: flex; }
+.cityrail-tutorial-panel {
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(760px, calc(100vh - 36px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(30,34,42,.96), rgba(9,12,18,.96));
+  color: #fff;
+  box-shadow: 0 32px 100px rgba(0,0,0,.52);
+}
+.cityrail-tutorial-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,.42);
+  letter-spacing: .12em;
+}
+.cityrail-tutorial-title {
+  margin-top: 5px;
+  font-size: 25px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+.cityrail-tutorial-close {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.82);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cityrail-tutorial-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 24px 18px;
+}
+.cityrail-tutorial-body::-webkit-scrollbar { width: 8px; }
+.cityrail-tutorial-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.20); border-radius: 999px; }
+.cityrail-tutorial-lede {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.68);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.cityrail-tutorial-list {
+  display: grid;
+  gap: 10px;
+}
+.cityrail-tutorial-point {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 36px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.cityrail-tutorial-point:last-child { border-bottom: 0; }
+.cityrail-tutorial-num {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(10,132,255,.16);
+  color: #8bc5ff;
+  font-size: 12px;
+  font-weight: 850;
+}
+.cityrail-tutorial-point b {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(255,255,255,.94);
+  font-size: 14px;
+}
+.cityrail-tutorial-point span {
+  display: block;
+  color: rgba(255,255,255,.58);
+  font-size: 13px;
+  line-height: 1.62;
+}
+.cityrail-tutorial-progress {
+  display: flex;
+  gap: 6px;
+  padding: 0 24px 16px;
+}
+.cityrail-tutorial-dot {
+  height: 4px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+}
+.cityrail-tutorial-dot.active { background: linear-gradient(90deg, #30D158, #0A84FF); }
+.cityrail-tutorial-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.cityrail-tutorial-optout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255,255,255,.60);
+  font-size: 13px;
+  user-select: none;
+}
+.cityrail-tutorial-optout input {
+  width: 17px;
+  height: 17px;
+  accent-color: #0A84FF;
+}
+.cityrail-tutorial-actions {
+  display: flex;
+  gap: 10px;
+}
+.cityrail-tutorial-actions button,
+.cityrail-tutorial-settings-btn {
+  height: 40px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: rgba(255,255,255,.075);
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+.cityrail-tutorial-actions .primary,
+.cityrail-tutorial-settings-btn {
+  border-color: rgba(10,132,255,.36);
+  background: linear-gradient(135deg, rgba(10,132,255,.92), rgba(0,102,204,.92));
+}
+.cityrail-tutorial-actions button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+.cityrail-tutorial-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .cityrail-tutorial-overlay { padding: 14px; }
+  .cityrail-tutorial-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); border-radius: 18px; }
+  .cityrail-tutorial-top,
+  .cityrail-tutorial-body,
+  .cityrail-tutorial-bottom { padding-left: 16px; padding-right: 16px; }
+  .cityrail-tutorial-bottom { align-items: stretch; flex-direction: column; }
+  .cityrail-tutorial-actions { width: 100%; }
+  .cityrail-tutorial-actions button { flex: 1; }
+}
+
 </style>
 
 </head>
@@ -5449,12 +5632,15 @@ function $(id) { return document.getElementById(id); }
         err.textContent = '无法连接服务器，请确保后端已启动';
         err.classList.add('visible');
         return;
-      }
-      const ls = $('login-screen'); if (ls) ls.classList.add('fade-out');
-      setTimeout(() => { if (ls) ls.style.display = 'none'; }, 500);
-      const cs = $('city-select-screen'); if (cs) cs.classList.add('visible');
-      if (typeof initCitySelect === 'function') initCitySelect();
-    });
+	      }
+	      const ls = $('login-screen'); if (ls) ls.classList.add('fade-out');
+	      setTimeout(() => { if (ls) ls.style.display = 'none'; }, 500);
+	      if (window.CityRailTutorial && typeof window.CityRailTutorial.setUser === 'function') {
+	        window.CityRailTutorial.setUser(u);
+	      }
+	      const cs = $('city-select-screen'); if (cs) cs.classList.add('visible');
+	      if (typeof initCitySelect === 'function') initCitySelect();
+	    });
   }
 
 	  function cityrailShowPaidAccess() {
@@ -5482,13 +5668,16 @@ function $(id) { return document.getElementById(id); }
 	    const modal = $('cityrail-pay-modal'); if (modal) modal.classList.remove('visible');
 	    const su = $('pay-success-username'); if (su) su.textContent = username || '请使用注册时填写的用户名';
 	    const sp = $('pay-success-password'); if (sp) sp.textContent = password || '请使用注册时填写的密码';
-	    const ss = $('payment-success-screen');
-	    if (ss) {
-	      ss.classList.remove('fade-out');
-	      ss.classList.add('visible');
-	    }
-	    _pendingReg = username && password ? { username, password } : null;
-	  }
+		    const ss = $('payment-success-screen');
+		    if (ss) {
+		      ss.classList.remove('fade-out');
+		      ss.classList.add('visible');
+		    }
+		    if (username && window.CityRailTutorial && typeof window.CityRailTutorial.markNewUser === 'function') {
+		      window.CityRailTutorial.markNewUser(username);
+		    }
+		    _pendingReg = username && password ? { username, password } : null;
+		  }
 
   function ensurePaymentModal() {
     let modal = $('cityrail-pay-modal');
@@ -5626,6 +5815,9 @@ function $(id) { return document.getElementById(id); }
 	      const lu = $('login-username'); if (lu && account.username) lu.value = account.username;
 	      const lp = $('login-password'); if (lp && account.password) lp.value = account.password;
 	      const le = $('login-error'); if (le) le.classList.remove('visible');
+	      if (account.username && window.CityRailTutorial && typeof window.CityRailTutorial.setUser === 'function') {
+	        window.CityRailTutorial.setUser(account.username);
+	      }
 	      setTimeout(() => {
 	        const ls = $('login-screen');
 	        if (ls) {
@@ -5808,16 +6000,325 @@ function initCitySelect() {
         cityScreen.classList.add('fade-out');
         setTimeout(() => { cityScreen.style.display = 'none'; }, 500);
         // v51: 点击上海只进入空白底图，不自动加载默认线网、不自动启动模拟。
-        // 玩家可以手动画线，或通过“存档与诊断 → 导入文件”恢复包含车站/线路的存档。
-        if (typeof initBlankShanghaiMap === 'function') initBlankShanghaiMap();
-      });
-    }
-    grid.appendChild(el);
-  });
-}
+	        // 玩家可以手动画线，或通过“存档与诊断 → 导入文件”恢复包含车站/线路的存档。
+	        if (typeof initBlankShanghaiMap === 'function') initBlankShanghaiMap();
+	        if (window.CityRailTutorial && typeof window.CityRailTutorial.maybeAutoStart === 'function') {
+	          setTimeout(() => window.CityRailTutorial.maybeAutoStart(), 900);
+	        }
+	      });
+	    }
+	    grid.appendChild(el);
+	  });
+	}
 
-// ==================== CONSTANTS ====================
-const LINE_COLORS = [
+// ==================== BEGINNER TUTORIAL ====================
+(function(window, document) {
+  'use strict';
+
+  const NS = 'CityRailTutorial';
+  const AUTO_LIMIT = 3;
+  const CURRENT_USER_KEY = 'cityrail_tutorial_current_user';
+  const NEW_USER_PREFIX = 'cityrail_tutorial_new_user:';
+  const STATE_PREFIX = 'cityrail_tutorial_state:';
+
+  const slides = [
+    {
+      title: '欢迎来到 CityRail',
+      lede: '你正在使用的是一个城市轨道交通仿真工具。核心目标是先画出线路和车站，再观察列车运行、客流、换乘和运营数据。',
+      points: [
+        ['进入城市', '登录后选择上海进入地图。当前版本默认是空白底图，你可以手动画线，也可以在设置中导入已有存档。'],
+        ['操作顺序', '推荐先新建线路，再配置运营参数，最后开启时间模拟并观察控制中心与统计面板。'],
+        ['数据保存', '设置面板里可以保存、读取、导出和导入存档，适合在更新版本前备份。']
+      ]
+    },
+    {
+      title: '地图与时间控制',
+      lede: '主界面由地图、顶部工具栏和底部时间栏组成。地图负责建设线网，时间栏负责驱动列车与客流。',
+      points: [
+        ['底图切换', '顶部“深色”按钮会在深色、浅色和卫星图之间切换。设置里的 OpenRailwayMap 是额外铁路覆盖图层。'],
+        ['时间模拟', '底部播放按钮控制暂停与运行，左侧时间滑条决定一天中的时间，右侧速度滑条决定仿真倍速。'],
+        ['地图缩放', '放大后站名和列车显示更清晰；缩小时系统会自动隐藏部分细节，减少大型线网卡顿。']
+      ]
+    },
+    {
+      title: '新建线路',
+      lede: '点击“新建线路”后输入线路名和代表色，开始在地图上施画线路。',
+      points: [
+        ['放置车站', '左键在地图上放置车站。车站会参与客流生成、上下车、换乘和统计。'],
+        ['放置节点', '右键放置节点。节点只改变线路走向，不生成客流，也不会成为停靠站。'],
+        ['完成施画', '完成按钮会生成正式线路；取消按钮会放弃当前正在画的线路。']
+      ]
+    },
+    {
+      title: '线路配置',
+      lede: '点击线路后可以进入线路配置，调整线路名称、颜色、车型、编组、速度、发车间隔和首末班车时间。',
+      points: [
+        ['运营参数', '车型、编组、速度和发车间隔会影响运能、拥挤度和线路表现。'],
+        ['拓扑编辑', '在线路配置中可以继续添加车站或节点，系统会重建线路路径与列车运行路径。'],
+        ['线路运营', '面板底部展示上行/下行列车位置，帮助你检查线路运行是否顺畅。']
+      ]
+    },
+    {
+      title: '车站详情与换乘',
+      lede: '点击车站可以打开车站详情面板，查看客流、候车、OD 关系，并进行站点编辑。',
+      points: [
+        ['客流信息', '车站详情会显示功能区、进出站客流、各线路候车人数和主要 OD 关系。'],
+        ['换乘设置', '多线经过同一车站或相邻车站时，可以查看和配置换乘关系，换乘距离会影响路径选择。'],
+        ['移动与删除', '移动车站会重建相关线路图层和列车路径；删除车站会影响经过它的线路。']
+      ]
+    },
+    {
+      title: '统计与导航',
+      lede: '顶部统计和导航工具帮助你从乘客视角检查线网是否合理。',
+      points: [
+        ['站点统计', '站点统计展示全网车站的进站客流和送达客流排名，适合寻找压力站点。'],
+        ['线路统计', '线路统计展示长度、客流量、车型编组、速度和运能利用率。'],
+        ['模拟导航', '选择起点和终点后，系统会模拟乘客在当前线网中的路径，用来检查换乘和走向设计。']
+      ]
+    },
+    {
+      title: '控制中心',
+      lede: '控制中心是运营总览面板，适合在线网建成后观察全天运行表现。',
+      points: [
+        ['运营总览', '顶部显示时间、时段、模拟速度、在线列车、今日客运量、全网客强和线路数。'],
+        ['客流看板', '可以查看全网总客流、候车、票务收入、小时客流趋势和重点车站排行。'],
+        ['线路状态', '线路运营数据会显示快慢车、车型、编组、速度、长度、列车数、客流量和拥挤度。']
+      ]
+    },
+    {
+      title: '快慢车与调度',
+      lede: '线路配置和控制中心里包含更细的运营功能，用来处理大线网中的拥堵和运能问题。',
+      points: [
+        ['快慢车', '开启快慢车后，可以设置快车停站、慢车停站和越行站，模拟更复杂的运营组织。'],
+        ['越行站', '越行站允许慢车待避快车，适合长线路和客流差异较大的走廊。'],
+        ['调度命令', '控制中心可对列车执行扣车、放行、跳停和清除命令，用来处理临时拥堵。']
+      ]
+    },
+    {
+      title: '设置与存档',
+      lede: '设置面板集中管理显示效果、图层、存档和辅助功能。',
+      points: [
+        ['显示开关', '显示列车、显示站名、OpenRailwayMap、OD 流向图标和换乘通道都可以按需要开关。'],
+        ['存档管理', '保存和读取使用浏览器本地存储；导出和导入适合备份、迁移或发给别人测试。'],
+        ['再次打开教程', '设置面板里的“开启新手教程”可以随时重新打开本导览。']
+      ]
+    },
+    {
+      title: '建议的第一局',
+      lede: '如果你刚开始，可以按这个顺序体验完整功能，不需要一次记住所有按钮。',
+      points: [
+        ['先画一条线', '新建 5 到 8 个车站，完成后观察地图上的线路和站名。'],
+        ['再调参数', '打开线路配置，调整编组、速度和发车间隔，然后开启时间模拟。'],
+        ['最后看数据', '打开站点统计、线路统计、模拟导航和控制中心，找到拥挤站点后再改线网。']
+      ]
+    }
+  ];
+
+  function safeUser(user) {
+    const value = String(user || '').trim();
+    return value || 'guest';
+  }
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+
+  function stateKey(user) { return STATE_PREFIX + safeUser(user); }
+  function newUserKey(user) { return NEW_USER_PREFIX + safeUser(user); }
+
+  function getCurrentUser() {
+    try { return safeUser(localStorage.getItem(CURRENT_USER_KEY)); }
+    catch { return 'guest'; }
+  }
+
+  function setUser(user) {
+    const name = safeUser(user);
+    try { localStorage.setItem(CURRENT_USER_KEY, name); } catch {}
+    return name;
+  }
+
+  function markNewUser(user) {
+    const name = setUser(user);
+    try { localStorage.setItem(newUserKey(name), '1'); } catch {}
+  }
+
+  function getState(user) {
+    const state = readJSON(stateKey(user), {});
+    return {
+      shown: Math.max(0, Number(state.shown || 0)),
+      never: !!state.never
+    };
+  }
+
+  function saveStateFor(user, state) {
+    writeJSON(stateKey(user), {
+      shown: Math.max(0, Number(state.shown || 0)),
+      never: !!state.never
+    });
+  }
+
+  function isNewUser(user) {
+    try { return localStorage.getItem(newUserKey(user)) === '1'; }
+    catch { return false; }
+  }
+
+  function ensureOverlay() {
+    let overlay = document.getElementById('cityrail-tutorial-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'cityrail-tutorial-overlay';
+    overlay.className = 'cityrail-tutorial-overlay';
+    overlay.innerHTML = [
+      '<div class="cityrail-tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="cityrail-tutorial-title">',
+        '<div class="cityrail-tutorial-top">',
+          '<div>',
+            '<div class="cityrail-tutorial-kicker" id="cityrail-tutorial-step">CITYRAIL GUIDE</div>',
+            '<div class="cityrail-tutorial-title" id="cityrail-tutorial-title"></div>',
+          '</div>',
+          '<button type="button" class="cityrail-tutorial-close" id="cityrail-tutorial-close" aria-label="关闭">×</button>',
+        '</div>',
+        '<div class="cityrail-tutorial-body">',
+          '<p class="cityrail-tutorial-lede" id="cityrail-tutorial-lede"></p>',
+          '<div class="cityrail-tutorial-list" id="cityrail-tutorial-list"></div>',
+        '</div>',
+        '<div class="cityrail-tutorial-progress" id="cityrail-tutorial-progress"></div>',
+        '<div class="cityrail-tutorial-bottom">',
+          '<label class="cityrail-tutorial-optout">',
+            '<input type="checkbox" id="cityrail-tutorial-never">',
+            '<span>以后不再自动弹出</span>',
+          '</label>',
+          '<div class="cityrail-tutorial-actions">',
+            '<button type="button" id="cityrail-tutorial-prev">上一步</button>',
+            '<button type="button" class="primary" id="cityrail-tutorial-next">下一步</button>',
+          '</div>',
+        '</div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#cityrail-tutorial-close').addEventListener('click', close);
+    overlay.querySelector('#cityrail-tutorial-prev').addEventListener('click', () => showStep(activeStep - 1));
+    overlay.querySelector('#cityrail-tutorial-next').addEventListener('click', () => {
+      if (activeStep >= slides.length - 1) close();
+      else showStep(activeStep + 1);
+    });
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) close();
+    });
+    document.addEventListener('keydown', event => {
+      if (!overlay.classList.contains('visible')) return;
+      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowLeft') showStep(activeStep - 1);
+      if (event.key === 'ArrowRight') {
+        if (activeStep >= slides.length - 1) close();
+        else showStep(activeStep + 1);
+      }
+    });
+    return overlay;
+  }
+
+  let activeStep = 0;
+  let activeUser = 'guest';
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  }
+
+  function showStep(index) {
+    const overlay = ensureOverlay();
+    activeStep = Math.max(0, Math.min(slides.length - 1, Number(index) || 0));
+    const slide = slides[activeStep];
+    overlay.querySelector('#cityrail-tutorial-step').textContent = `CITYRAIL GUIDE ${activeStep + 1} / ${slides.length}`;
+    overlay.querySelector('#cityrail-tutorial-title').textContent = slide.title;
+    overlay.querySelector('#cityrail-tutorial-lede').textContent = slide.lede;
+    overlay.querySelector('#cityrail-tutorial-list').innerHTML = slide.points.map((point, idx) => [
+      '<div class="cityrail-tutorial-point">',
+        '<div class="cityrail-tutorial-num">', idx + 1, '</div>',
+        '<div><b>', escapeHtml(point[0]), '</b><span>', escapeHtml(point[1]), '</span></div>',
+      '</div>'
+    ].join('')).join('');
+    overlay.querySelector('#cityrail-tutorial-progress').innerHTML = slides.map((_, idx) => {
+      return '<div class="cityrail-tutorial-dot' + (idx <= activeStep ? ' active' : '') + '"></div>';
+    }).join('');
+    overlay.querySelector('#cityrail-tutorial-prev').disabled = activeStep === 0;
+    overlay.querySelector('#cityrail-tutorial-next').textContent = activeStep >= slides.length - 1 ? '完成' : '下一步';
+  }
+
+  function open(options) {
+    const opts = options || {};
+    activeUser = safeUser(opts.user || getCurrentUser());
+    const overlay = ensureOverlay();
+    const state = getState(activeUser);
+    const checkbox = overlay.querySelector('#cityrail-tutorial-never');
+    if (checkbox) checkbox.checked = !!state.never;
+    showStep(0);
+    overlay.classList.add('visible');
+    if (opts.auto) {
+      state.shown += 1;
+      saveStateFor(activeUser, state);
+    }
+  }
+
+  function close() {
+    const overlay = ensureOverlay();
+    const checkbox = overlay.querySelector('#cityrail-tutorial-never');
+    if (checkbox && checkbox.checked) {
+      const state = getState(activeUser);
+      state.never = true;
+      saveStateFor(activeUser, state);
+    }
+    overlay.classList.remove('visible');
+  }
+
+  function maybeAutoStart() {
+    const user = getCurrentUser();
+    if (!isNewUser(user)) return false;
+    const state = getState(user);
+    if (state.never || state.shown >= AUTO_LIMIT) return false;
+    open({ user, auto: true });
+    return true;
+  }
+
+  function installSettingsButton() {
+    const panel = document.getElementById('settings-panel');
+    if (!panel || document.getElementById('cityrail-tutorial-settings-row')) return;
+    const row = document.createElement('div');
+    row.id = 'cityrail-tutorial-settings-row';
+    row.className = 'settings-row cityrail-tutorial-settings-row';
+    row.innerHTML = '<span class="sr-label">新手教程</span><button type="button" class="cityrail-tutorial-settings-btn" id="cityrail-tutorial-open">开启新手教程</button>';
+    row.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      open({ user: getCurrentUser(), auto: false });
+    });
+    const divider = panel.querySelector('.settings-divider');
+    if (divider && divider.parentNode) divider.parentNode.insertBefore(row, divider);
+    else panel.appendChild(row);
+  }
+
+  function boot() {
+    installSettingsButton();
+    ensureOverlay();
+  }
+
+  window[NS] = { open, close, maybeAutoStart, markNewUser, setUser, installSettingsButton };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})(window, document);
+
+	// ==================== CONSTANTS ====================
+	const LINE_COLORS = [
   // 1-18号线 来自高德地图API官方配色
   '#E3002A','#86B81C','#FCD600','#5A2B8D','#96499A',
   '#F0087D','#EE782E','#01A2E2','#69C7F4','#C6AFD4',
