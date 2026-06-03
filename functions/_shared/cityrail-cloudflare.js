@@ -173,7 +173,7 @@ export function validateCredentials(username, password) {
   return '';
 }
 
-async function derivePassword(password, saltHex, iterations = 120000) {
+async function derivePassword(password, saltHex, iterations = 100000) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
   const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(x => parseInt(x, 16)));
@@ -183,7 +183,7 @@ async function derivePassword(password, saltHex, iterations = 120000) {
 
 export async function hashPassword(password) {
   const salt = bytesToHex(randomBytes(16));
-  const iterations = 120000;
+  const iterations = 100000;
   const hash = await derivePassword(password, salt, iterations);
   return `pbkdf2-sha256:${iterations}:${salt}:${hash}`;
 }
@@ -191,7 +191,7 @@ export async function hashPassword(password) {
 export async function verifyPassword(password, stored) {
   const parts = String(stored || '').split(':');
   if (parts.length !== 4 || parts[0] !== 'pbkdf2-sha256') return false;
-  const iterations = Number(parts[1]) || 120000;
+  const iterations = Number(parts[1]) || 100000;
   const salt = parts[2];
   const expected = parts[3];
   const actual = await derivePassword(password, salt, iterations);
