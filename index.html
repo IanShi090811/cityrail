@@ -28537,18 +28537,18 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cityrail-v102-transfer-pane,.transfer-corridor-v100,.transfer-corridor-v101{pointer-events:none!important;}
       #cityrail-v114-perf,.perf-hud{left:14px!important;right:auto!important;bottom:14px!important;pointer-events:none!important;z-index:5400!important;}
       #cityrail-v114-perf.v135-hidden,.perf-hud.v135-hidden{display:none!important;}
-      #line-config-v137-overlay,#line-config-v135-overlay{position:fixed;inset:72px 24px 24px 24px;z-index:9300;background:rgba(4,8,14,.97);border:1px solid rgba(255,255,255,.18);border-radius:18px;box-shadow:0 30px 110px rgba(0,0,0,.62);display:grid;grid-template-columns:260px minmax(0,1fr);overflow:hidden;color:#eff8ff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;}
+      #line-config-v137-overlay,#line-config-v135-overlay{position:fixed;inset:72px 24px 24px 24px;z-index:9300;background:rgba(4,8,14,.97);border:1px solid rgba(255,255,255,.18);border-radius:18px;box-shadow:0 30px 110px rgba(0,0,0,.62);display:grid;grid-template-columns:260px minmax(0,1fr);grid-template-rows:minmax(0,1fr);overflow:hidden;color:#eff8ff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;}
       #line-config-v137-overlay.hidden,#line-config-v135-overlay.hidden{display:none!important;}
       /* v138.4: 原始线路控制面板只保留线路配置，隐藏线路运营/\u65e7ATS区域 */
       #line-config-overlay #line-ops-section{display:none!important;pointer-events:none!important;}
       #line-config-overlay #cfg-subtitle{color:rgba(255,255,255,.62)!important;}
-      .cr135-lines{border-right:1px solid rgba(255,255,255,.12);padding:14px;overflow:auto;background:rgba(255,255,255,.035);}
+      .cr135-lines{min-height:0;border-right:1px solid rgba(255,255,255,.12);padding:14px;overflow:auto;background:rgba(255,255,255,.035);}
       .cr135-title{font-size:17px;font-weight:950;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
       .cr135-close{border:1px solid rgba(255,255,255,.20);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:4px 10px;font-weight:950;cursor:pointer;}
       .cr135-line{width:100%;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);color:#fff;border-radius:12px;padding:10px 9px;margin:6px 0;cursor:pointer;text-align:left;font-weight:850;}
       .cr135-line.active{background:rgba(10,132,255,.24);border-color:rgba(10,132,255,.55);}
       .cr135-dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;}
-      .cr135-main{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);}
+      .cr135-main{min-width:0;min-height:0;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;}
       .cr135-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);}
       .cr135-hname{font-size:18px;font-weight:950;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .cr135-tabs{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
@@ -28559,13 +28559,13 @@ try { window.cityrailV60WriteNetworkLength = window.cityrailV62WriteNetworkLengt
       .cr135-cmd.ok,.cr135-line-cmd.ok{background:rgba(48,209,88,.13);border-color:rgba(48,209,88,.42);}
       .cr135-cmd.danger{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.42);}
       .cr135-tab.active{background:rgba(10,132,255,.30);border-color:rgba(10,132,255,.62);}
-      .cr135-body{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;}
+      .cr135-body{min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;}
       .cr135-ats{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;background:#02060b;border:1px solid rgba(255,255,255,.10);border-radius:14px;overflow:hidden;}
       .cr135-scroll{overflow:auto;min-height:0;overscroll-behavior:contain;}
       .cr135-board{height:620px;position:relative;}
       .cr135-svg{display:block;background:#02060b;}
       .cr135-range{width:100%;height:22px;accent-color:#55c7ff;background:rgba(255,255,255,.06);}
-      .cr135-side{min-height:0;max-height:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+      .cr135-side{align-self:stretch;min-height:0;height:100%;max-height:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;overflow-y:scroll;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
       .cr135-side::-webkit-scrollbar,.cr135-overtake-list::-webkit-scrollbar{width:8px;}
       .cr135-side::-webkit-scrollbar-thumb,.cr135-overtake-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.24);border-radius:999px;}
       .cr135-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px;}
