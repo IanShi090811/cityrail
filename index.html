@@ -1641,9 +1641,249 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   box-shadow: 0 4px 16px rgba(255,149,10,0.12);
 }
 .auth-btn-tertiary:active { transform: translateY(0); }
+.auth-btn-workshop {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.auth-btn-workshop:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.34);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.auth-btn-workshop:active { transform: translateY(0); }
 .auth-btn .auth-icon {
   font-size: 22px;
   flex-shrink: 0;
+}
+
+#workshop-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100002;
+  display: none;
+  flex-direction: column;
+  color: #fff;
+  background: radial-gradient(circle at 50% -10%, rgba(10,132,255,0.20), transparent 34%), rgba(7,9,14,0.94);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  padding: max(22px, env(safe-area-inset-top)) 28px 28px;
+}
+#workshop-screen.visible { display: flex; }
+.workshop-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-shrink: 0;
+}
+.workshop-back {
+  height: 42px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.88);
+  cursor: pointer;
+}
+.workshop-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.workshop-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.workshop-action {
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.94);
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.workshop-action.primary {
+  background: #0A84FF;
+  border-color: rgba(10,132,255,0.8);
+}
+.workshop-layout {
+  margin-top: 22px;
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 360px;
+  gap: 18px;
+}
+.workshop-grid {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  align-content: start;
+  gap: 14px;
+  padding-right: 4px;
+}
+.workshop-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+.workshop-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.24);
+}
+.workshop-preview {
+  height: 150px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+}
+.workshop-card-body {
+  padding: 13px 14px 15px;
+}
+.workshop-card h3 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.workshop-card p {
+  margin: 8px 0 12px;
+  color: rgba(255,255,255,0.64);
+  line-height: 1.45;
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.workshop-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: rgba(255,255,255,0.58);
+  font-size: 12px;
+}
+.workshop-side {
+  min-height: 0;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.08);
+  padding: 18px;
+}
+.workshop-side h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+.workshop-field {
+  margin-bottom: 12px;
+}
+.workshop-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(255,255,255,0.72);
+  font-size: 12px;
+  font-weight: 700;
+}
+.workshop-field input,
+.workshop-field textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.22);
+  color: #fff;
+  padding: 12px;
+  font: inherit;
+  outline: none;
+}
+.workshop-field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.workshop-file {
+  display: block;
+  width: 100%;
+  color: rgba(255,255,255,0.75);
+}
+.workshop-status {
+  min-height: 20px;
+  margin-top: 10px;
+  color: rgba(255,255,255,0.68);
+  font-size: 13px;
+}
+.workshop-manage-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.workshop-manage-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+}
+.workshop-delete {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,69,58,0.16);
+  color: #FF453A;
+  padding: 8px 11px;
+  cursor: pointer;
+}
+.workshop-empty {
+  color: rgba(255,255,255,0.55);
+  padding: 30px;
+  text-align: center;
+}
+.workshop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100003;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,0.56);
+}
+.workshop-modal.visible { display: flex; }
+.workshop-modal-card {
+  width: min(760px, 100%);
+  max-height: min(760px, 90vh);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(24,26,31,0.96);
+  color: #fff;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+}
+.workshop-modal-preview { height: 220px; }
+.workshop-modal-body { padding: 20px; }
+.workshop-modal-body h2 { margin: 0 0 10px; letter-spacing: 0; }
+.workshop-modal-body p { color: rgba(255,255,255,0.70); line-height: 1.55; }
+.workshop-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+@media (max-width: 900px) {
+  #workshop-screen { padding: 18px; }
+  .workshop-topbar { align-items: flex-start; flex-direction: column; }
+  .workshop-layout { grid-template-columns: 1fr; overflow: auto; }
+  .workshop-grid, .workshop-side { overflow: visible; }
 }
 
 /* Register Screen — 注册表单 */
@@ -4124,6 +4364,12 @@ html.cityrail-v145-ready .v145-line-status{
     <div class="auth-subtitle">WELCOME BACK</div>
   </div>
   <div class="auth-buttons">
+    <button class="auth-btn auth-btn-workshop" id="auth-workshop-btn" data-action="auth-workshop-btn">
+      <span class="auth-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M5 7l1 13h12l1-13"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+      </span>
+      创意工坊
+    </button>
     <button class="auth-btn auth-btn-primary" id="auth-register-btn" data-action="auth-register-btn">
       <span class="auth-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -4142,6 +4388,62 @@ html.cityrail-v145-ready .v145-line-status{
       </span>
       邀请码进入
     </button>
+  </div>
+</div>
+
+<div id="workshop-screen">
+  <div class="workshop-topbar">
+    <button class="workshop-back" id="workshop-back-btn" data-action="workshop-back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      返回
+    </button>
+    <div class="workshop-title">创意工坊</div>
+    <div class="workshop-actions">
+      <button class="workshop-action primary" id="workshop-upload-tab" data-action="workshop-upload-tab">上传存档</button>
+      <button class="workshop-action" id="workshop-manage-tab" data-action="workshop-manage-tab">管理我的上传</button>
+      <button class="workshop-action" id="workshop-refresh-btn" data-action="workshop-refresh-btn">刷新</button>
+    </div>
+  </div>
+  <div class="workshop-layout">
+    <div class="workshop-grid" id="workshop-grid">
+      <div class="workshop-empty">正在载入创意工坊…</div>
+    </div>
+    <aside class="workshop-side" id="workshop-side">
+      <h2>上传存档</h2>
+      <div class="workshop-field">
+        <label>作品名称</label>
+        <input id="workshop-title-input" maxlength="36" placeholder="给你的城市起个名字">
+      </div>
+      <div class="workshop-field">
+        <label>作品介绍</label>
+        <textarea id="workshop-desc-input" maxlength="360" placeholder="介绍线网特色、运营玩法或推荐游玩方式"></textarea>
+      </div>
+      <div class="workshop-field">
+        <label>存档文件</label>
+        <input class="workshop-file" id="workshop-file-input" type="file" accept=".json,application/json">
+      </div>
+      <button class="workshop-action primary" id="workshop-upload-file" data-action="workshop-upload-file">上传选择的文件</button>
+      <button class="workshop-action" id="workshop-upload-current" data-action="workshop-upload-current">上传当前游戏</button>
+      <div class="workshop-status" id="workshop-status"></div>
+      <div class="workshop-manage-list" id="workshop-manage-list"></div>
+    </aside>
+  </div>
+</div>
+
+<div class="workshop-modal" id="workshop-modal">
+  <div class="workshop-modal-card">
+    <div class="workshop-modal-preview workshop-preview" id="workshop-modal-preview"></div>
+    <div class="workshop-modal-body">
+      <h2 id="workshop-modal-title">作品详情</h2>
+      <div class="workshop-meta" id="workshop-modal-meta"></div>
+      <p id="workshop-modal-desc"></p>
+      <div class="workshop-modal-actions">
+        <button class="workshop-action primary" id="workshop-download-btn" data-action="workshop-download-btn">下载到本地</button>
+        <button class="workshop-action" id="workshop-import-btn" data-action="workshop-import-btn">导入到当前游戏</button>
+        <button class="workshop-action" id="workshop-close-modal" data-action="workshop-close-modal">关闭</button>
+      </div>
+      <div class="workshop-status" id="workshop-modal-status"></div>
+    </div>
   </div>
 </div>
 
@@ -5650,6 +5952,8 @@ function $(id) { return document.getElementById(id); }
           setTimeout(() => { lp.style.borderColor = ''; }, 500);
           return;
         }
+        try { localStorage.setItem('cityrail_auth_token', d.token || ''); } catch {}
+        try { localStorage.setItem('cityrail_auth_user', d.username || u); } catch {}
       } catch {
         err.textContent = '无法连接服务器，请确保后端已启动';
         err.classList.add('visible');
@@ -5729,8 +6033,12 @@ function $(id) { return document.getElementById(id); }
     async function pollOnce() {
       try {
         const r = await fetch(API_BASE + '/api/pay/status?trade_order_id=' + encodeURIComponent(orderId));
-        const d = await r.json();
+	        const d = await r.json();
 	        if (d && d.paid) {
+	          if (d.token) {
+	            try { localStorage.setItem('cityrail_auth_token', d.token); } catch {}
+	            try { localStorage.setItem('cityrail_auth_user', d.username || (d.order && d.order.username) || ''); } catch {}
+	          }
 	          if (status) status.textContent = '支付成功，正在生成账号信息…';
 	          clearInterval(_payPollTimer); _payPollTimer = null;
 	          setTimeout(() => cityrailShowPaymentSuccess(d.order), 500);
@@ -5852,6 +6160,233 @@ function $(id) { return document.getElementById(id); }
 	  }
 
 	  })();
+
+// ==================== CREATIVE WORKSHOP ====================
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const API = window.CITYRAIL_API_BASE || (location.protocol === 'file:' ? 'http://localhost:3001' : location.origin);
+  let currentItem = null;
+  let currentSave = null;
+
+  function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function token(){ try { return localStorage.getItem('cityrail_auth_token') || ''; } catch { return ''; } }
+  function user(){ try { return localStorage.getItem('cityrail_auth_user') || ''; } catch { return ''; } }
+  function status(text){ const el=$('workshop-status'); if(el) el.textContent=text || ''; }
+  function modalStatus(text){ const el=$('workshop-modal-status'); if(el) el.textContent=text || ''; }
+  function saveRoot(save){ return save && save.state && typeof save.state === 'object' ? save.state : (save || {}); }
+  function summaryOf(save){
+    const st = saveRoot(save);
+    return {
+      stations: Array.isArray(st.stations) ? st.stations.length : 0,
+      lines: Array.isArray(st.lines) ? st.lines.length : 0,
+      trains: Array.isArray(st.trains) ? st.trains.length : 0,
+    };
+  }
+  function toast(message){
+    try{
+      let el=$('cityrail-toast');
+      if(!el){ el=document.createElement('div'); el.id='cityrail-toast'; el.className='cityrail-floating-toast'; document.body.appendChild(el); }
+      el.textContent=message; el.classList.add('show'); clearTimeout(el.__timer); el.__timer=setTimeout(()=>el.classList.remove('show'),1800);
+    }catch{ console.info(message); }
+  }
+  function normalizePreview(save){
+    const st = saveRoot(save);
+    const stations = Array.isArray(st.stations) ? st.stations : [];
+    const sm = new Map(stations.map(s => [String(s.id), s]));
+    const lines = (Array.isArray(st.lines) ? st.lines : []).slice(0, 10).map(line => {
+      const pts = [];
+      const ids = Array.isArray(line.stationIds) ? line.stationIds : [];
+      ids.forEach((sid, idx) => {
+        const sta = sm.get(String(sid));
+        if (!sta) return;
+        const pos = sta.linePositions && sta.linePositions[line.id] ? sta.linePositions[line.id] : sta;
+        pts.push([Number(pos.lng) || 0, Number(pos.lat) || 0]);
+        (Array.isArray(line.waypoints) ? line.waypoints : [])
+          .filter(w => Number(w.segIdx) === idx)
+          .sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0))
+          .forEach(w => pts.push([Number(w.lng)||0, Number(w.lat)||0]));
+      });
+      return { color: String(line.color || '#0A84FF').slice(0, 24), pts: pts.slice(0, 80) };
+    }).filter(line => line.pts.length >= 2);
+    const all = lines.flatMap(line => line.pts);
+    if (!all.length) return { lines: [], dots: [] };
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const sx = v => 18 + ((v - minX) / Math.max(0.000001, maxX - minX)) * 244;
+    const sy = v => 132 - ((v - minY) / Math.max(0.000001, maxY - minY)) * 114;
+    return {
+      lines: lines.map(line => ({ color: line.color, pts: line.pts.map(p => [Math.round(sx(p[0])*10)/10, Math.round(sy(p[1])*10)/10]) })),
+      dots: stations.slice(0, 42).map(sta => {
+        const p = [Number(sta.lng)||0, Number(sta.lat)||0];
+        return [Math.round(sx(p[0])*10)/10, Math.round(sy(p[1])*10)/10];
+      })
+    };
+  }
+  function renderPreview(preview){
+    const p = preview && typeof preview === 'object' ? preview : { lines: [], dots: [] };
+    const lines = (Array.isArray(p.lines) ? p.lines : []).map(line => {
+      const pts = Array.isArray(line.pts) ? line.pts : [];
+      const d = pts.map((pt,i)=>(i?'L':'M') + (Number(pt[0])||0) + ' ' + (Number(pt[1])||0)).join(' ');
+      return `<path d="${esc(d)}" fill="none" stroke="${esc(line.color||'#0A84FF')}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }).join('');
+    const dots = (Array.isArray(p.dots) ? p.dots : []).map(pt => `<circle cx="${Number(pt[0])||0}" cy="${Number(pt[1])||0}" r="2.6" fill="rgba(255,255,255,.82)"/>`).join('');
+    return `<svg viewBox="0 0 280 150" width="100%" height="100%" role="img" aria-label="存档缩略图"><rect width="280" height="150" rx="0" fill="rgba(255,255,255,.035)"/><g opacity=".22"><path d="M20 35H260M20 75H260M20 115H260M65 18V136M140 18V136M215 18V136" stroke="white" stroke-width="1"/></g>${lines}${dots}</svg>`;
+  }
+  function buildSnapshot(){
+    if (window.CityRailSave && typeof window.CityRailSave.buildSnapshot === 'function') return window.CityRailSave.buildSnapshot();
+    const st = window.state || {};
+    return { schema: 'cityrail-save', version: 146, createdAt: new Date().toISOString(), state: JSON.parse(JSON.stringify(st)) };
+  }
+  function readFile(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => { try { resolve(JSON.parse(String(reader.result || '{}'))); } catch(e) { reject(new Error('存档文件不是有效 JSON')); } };
+      reader.onerror = () => reject(reader.error || new Error('读取文件失败'));
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+  async function api(path, opts){
+    const r = await fetch(API + path, opts);
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || d.error) throw new Error(d.error || '请求失败');
+    return d;
+  }
+  function renderCards(items){
+    const grid = $('workshop-grid');
+    if(!grid) return;
+    if(!items || !items.length){ grid.innerHTML = '<div class="workshop-empty">还没有玩家上传存档</div>'; return; }
+    grid.innerHTML = items.map(item => {
+      const s = item.summary || {};
+      return `<article class="workshop-card" data-id="${esc(item.id)}">
+        <div class="workshop-preview">${renderPreview(item.thumbnail)}</div>
+        <div class="workshop-card-body">
+          <h3>${esc(item.title)}</h3>
+          <p>${esc(item.description)}</p>
+          <div class="workshop-meta"><span>${esc(item.author||'玩家')}</span><span>${Number(s.stations)||0}站</span><span>${Number(s.lines)||0}线</span><span>${Number(item.downloads)||0}下载</span></div>
+        </div>
+      </article>`;
+    }).join('');
+  }
+  async function loadList(){
+    const grid = $('workshop-grid');
+    if(grid) grid.innerHTML = '<div class="workshop-empty">正在载入创意工坊…</div>';
+    try { const d = await api('/api/workshop/list'); renderCards(d.items || []); }
+    catch(e){ if(grid) grid.innerHTML = '<div class="workshop-empty">' + esc(e.message || '载入失败') + '</div>'; }
+  }
+  async function openItem(id){
+    modalStatus('正在读取作品…');
+    try{
+      const d = await api('/api/workshop/item/' + encodeURIComponent(id));
+      currentItem = d.item;
+      currentSave = currentItem.save;
+      const s = currentItem.summary || summaryOf(currentSave);
+      $('workshop-modal-preview').innerHTML = renderPreview(currentItem.thumbnail);
+      $('workshop-modal-title').textContent = currentItem.title || '未命名作品';
+      $('workshop-modal-meta').innerHTML = `<span>${esc(currentItem.author||'玩家')}</span><span>${Number(s.stations)||0}站</span><span>${Number(s.lines)||0}线</span><span>${Number(s.trains)||0}车</span>`;
+      $('workshop-modal-desc').textContent = currentItem.description || '';
+      $('workshop-modal').classList.add('visible');
+      modalStatus('');
+    }catch(e){ toast(e.message || '读取失败'); }
+  }
+  async function downloadCurrent(){
+    if(!currentSave || !currentItem) return;
+    try { await api('/api/workshop/item/' + encodeURIComponent(currentItem.id) + '?download=1'); } catch {}
+    const blob = new Blob([JSON.stringify(currentSave, null, 2)], { type: 'application/json;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cityrail-workshop-' + String(currentItem.title || currentItem.id || 'save').replace(/[\\/:*?"<>|]/g, '_') + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+  }
+  async function importCurrent(){
+    if(!currentSave) return;
+    try{
+      if(!window.CityRailSave || typeof window.CityRailSave.applySnapshot !== 'function') throw new Error('当前页面还没有准备好导入系统');
+      window.CityRailSave.applySnapshot(currentSave);
+      if(typeof window.CityRailSave.saveLocal === 'function') await window.CityRailSave.saveLocal('workshop-import');
+      modalStatus('已导入当前游戏');
+      toast('已导入存档');
+    }catch(e){ modalStatus(e.message || '导入失败'); }
+  }
+  async function uploadSave(save){
+    const title = ($('workshop-title-input') || {}).value || '';
+    const description = ($('workshop-desc-input') || {}).value || '';
+    if(!token()){ status('请先登录账号，再上传或管理作品'); return; }
+    if(!title.trim() || !description.trim()){ status('请填写作品名称和介绍'); return; }
+    status('正在上传…');
+    const d = await api('/api/workshop/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token(), title, description, thumbnail: normalizePreview(save), save })
+    });
+    status('上传成功：' + (d.item && d.item.title || title));
+    await loadList();
+  }
+  async function uploadFile(){
+    try{
+      const input = $('workshop-file-input');
+      const file = input && input.files && input.files[0];
+      if(!file){ status('请选择一个存档 JSON 文件'); return; }
+      await uploadSave(await readFile(file));
+    }catch(e){ status(e.message || '上传失败'); }
+  }
+  async function uploadCurrent(){
+    try{ await uploadSave(buildSnapshot()); }
+    catch(e){ status(e.message || '上传失败'); }
+  }
+  async function loadMine(){
+    const box = $('workshop-manage-list');
+    if(!box) return;
+    if(!token()){ box.innerHTML = '<div class="workshop-empty">请先登录账号</div>'; return; }
+    box.innerHTML = '<div class="workshop-empty">正在读取我的上传…</div>';
+    try{
+      const d = await api('/api/workshop/mine?token=' + encodeURIComponent(token()));
+      const items = d.items || [];
+      box.innerHTML = items.length ? items.map(item => `<div class="workshop-manage-row"><div><b>${esc(item.title)}</b><div class="workshop-meta">${esc(item.id)}</div></div><button class="workshop-delete" data-delete="${esc(item.id)}">删除</button></div>`).join('') : '<div class="workshop-empty">你还没有上传作品</div>';
+    }catch(e){ box.innerHTML = '<div class="workshop-empty">' + esc(e.message || '读取失败') + '</div>'; }
+  }
+  async function deleteMine(id){
+    if(!confirm('确定删除这个上传作品吗？')) return;
+    try{
+      await api('/api/workshop/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: token(), id }) });
+      toast('已删除');
+      await loadMine();
+      await loadList();
+    }catch(e){ toast(e.message || '删除失败'); }
+  }
+  function showWorkshop(){
+    const auth = $('auth-screen');
+    if(auth){ auth.classList.add('fade-out'); auth.style.display='none'; }
+    const ws = $('workshop-screen');
+    if(ws) ws.classList.add('visible');
+    status(user() ? ('已登录：' + user()) : '未登录也可以浏览和下载；上传/管理需要登录');
+    loadList();
+  }
+  function hideWorkshop(){
+    const ws = $('workshop-screen');
+    if(ws) ws.classList.remove('visible');
+    const auth = $('auth-screen');
+    if(auth){ auth.style.display='flex'; auth.classList.remove('fade-out'); auth.classList.add('visible'); auth.style.opacity='1'; auth.style.pointerEvents='auto'; }
+  }
+  function bind(){
+    const btn = $('auth-workshop-btn'); if(btn) btn.addEventListener('click', showWorkshop);
+    const back = $('workshop-back-btn'); if(back) back.addEventListener('click', hideWorkshop);
+    const refresh = $('workshop-refresh-btn'); if(refresh) refresh.addEventListener('click', loadList);
+    const uploadFileBtn = $('workshop-upload-file'); if(uploadFileBtn) uploadFileBtn.addEventListener('click', uploadFile);
+    const uploadCurrentBtn = $('workshop-upload-current'); if(uploadCurrentBtn) uploadCurrentBtn.addEventListener('click', uploadCurrent);
+    const uploadTab = $('workshop-upload-tab'); if(uploadTab) uploadTab.addEventListener('click', () => { $('workshop-manage-list').innerHTML=''; status(user() ? ('已登录：' + user()) : '请先登录后上传'); });
+    const manageTab = $('workshop-manage-tab'); if(manageTab) manageTab.addEventListener('click', loadMine);
+    const grid = $('workshop-grid'); if(grid) grid.addEventListener('click', e => { const card=e.target.closest('.workshop-card'); if(card) openItem(card.dataset.id); });
+    const list = $('workshop-manage-list'); if(list) list.addEventListener('click', e => { const del=e.target.closest('[data-delete]'); if(del) deleteMine(del.dataset.delete); });
+    const close = $('workshop-close-modal'); if(close) close.addEventListener('click', () => $('workshop-modal').classList.remove('visible'));
+    const dl = $('workshop-download-btn'); if(dl) dl.addEventListener('click', downloadCurrent);
+    const imp = $('workshop-import-btn'); if(imp) imp.addEventListener('click', importCurrent);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
+  else bind();
+  window.CityRailWorkshop = { open: showWorkshop, refresh: loadList };
+})();
 
 // ==================== PERFORMANCE MODE ====================
 (function(){

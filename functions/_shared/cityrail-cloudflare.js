@@ -159,9 +159,40 @@ export function verifyXhpHash(params, secret) {
 export function orderKey(id) { return `order:${id}`; }
 export function pendingUserKey(username) { return `pending-user:${username}`; }
 export function userKey(username) { return `user:${username}`; }
+export function sessionKey(token) { return `session:${token}`; }
+export function workshopIndexKey() { return 'workshop:index'; }
+export function workshopItemKey(id) { return `workshop:item:${id}`; }
+export function workshopUserKey(username) { return `workshop:user:${username}`; }
 
 export function normalizeUsername(username) {
   return String(username || '').trim();
+}
+
+export function makeWorkshopId() {
+  return ('CW' + Date.now().toString(36) + makeNonce(5)).slice(0, 28);
+}
+
+export async function createSession(kv, username) {
+  const token = makeNonce(24);
+  const session = { username: normalizeUsername(username), createdAt: Date.now() };
+  await kv.put(sessionKey(token), JSON.stringify(session), { expirationTtl: 60 * 60 * 24 * 30 });
+  return token;
+}
+
+export async function requireSession(kv, token) {
+  token = String(token || '').trim();
+  if (!token) throw new Error('请先登录账号');
+  const sessionText = await kv.get(sessionKey(token));
+  if (!sessionText) throw new Error('登录已过期，请重新登录');
+  const session = JSON.parse(sessionText);
+  const username = normalizeUsername(session.username);
+  if (!username) throw new Error('登录已过期，请重新登录');
+  const userText = await kv.get(userKey(username));
+  if (!userText) throw new Error('账号不存在');
+  const user = JSON.parse(userText);
+  if (!user.paid || user.status !== 'active') throw new Error('账号未支付或未激活');
+  await kv.put(sessionKey(token), JSON.stringify({ username, createdAt: session.createdAt || Date.now(), touchedAt: Date.now() }), { expirationTtl: 60 * 60 * 24 * 30 });
+  return username;
 }
 
 export function validateCredentials(username, password) {
