@@ -1,4 +1,4 @@
-import { json, handleOptions, parseBody, requireKV, userKey, normalizeUsername, verifyPassword } from '../_shared/cityrail-cloudflare.js';
+import { json, handleOptions, parseBody, requireKV, userKey, normalizeUsername, verifyPassword, createSession } from '../_shared/cityrail-cloudflare.js';
 
 export async function onRequestOptions() { return handleOptions(); }
 
@@ -16,7 +16,8 @@ export async function onRequestPost(context) {
     if (!user.paid || user.status !== 'active') return json({ error: '账号未支付或未激活' }, 403);
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) return json({ error: '用户名或密码错误' }, 401);
-    return json({ success: true });
+    const token = await createSession(kv, username);
+    return json({ success: true, username, token });
   } catch (err) {
     return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500);
   }
