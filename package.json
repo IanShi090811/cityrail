@@ -1,6 +1,6 @@
 {
-  "name": "cityrail-v147-tutorial",
-  "version": "147.0.0",
+  "name": "cityrail-v146-7-cloudflare-pages-functions",
+  "version": "146.7.0",
   "private": true,
   "scripts": {
     "check:syntax": "node --check js/cityrail-runtime.js && node --check js/cityrail-v146-single-control-owner.js",
