@@ -11,7 +11,7 @@ export async function onRequestPost(context) {
   try {
     const kv = requireKV(env);
     const cfg = paymentConfig(env);
-    if (!cfg.secret) return json({ error: '支付密钥未配置。请在 Cloudflare Pages 环境变量中设置 XHP_APPSECRET。' }, 500);
+    if (!cfg.secret) return json({ error: '支付密钥未配置。请在服务器环境变量中设置 XHP_APPSECRET。' }, 500);
 
     const body = await parseBody(request);
     const username = normalizeUsername(body.username);

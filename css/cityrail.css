@@ -39,6 +39,16 @@ body {
   letter-spacing: -0.01em;
 }
 #map { width: 100vw; height: 100vh; z-index: 1; }
+.leaflet-cityrailOpenRailwayPane-pane,
+.leaflet-cityrailOpenRailway-pane {
+  z-index: 680 !important;
+  pointer-events: none !important;
+}
+.leaflet-cityrailOpenRailwayPane-pane .leaflet-tile,
+.leaflet-cityrailOpenRailway-pane .leaflet-tile,
+.cityrail-openrailway-overlay {
+  pointer-events: none !important;
+}
 
 #map.hidden { display: none; }
 #map.hide-labels .station-label,
@@ -52,12 +62,30 @@ body {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  font-size: 9px !important;
-  font-weight: 500;
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 0 2px rgba(0,0,0,0.9);
+  font-size: 12px !important;
+  font-weight: 760;
+  color: rgba(255,255,255,0.96);
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.95),
+    0 0 5px rgba(0,0,0,0.72),
+    0 0 10px rgba(0,0,0,0.38);
   padding: 0 !important; margin: 0 !important;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+}
+html[data-cityrail-station-label-tone="light-map"] .station-label {
+  color: rgba(24,28,34,0.98);
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.96),
+    0 0 4px rgba(255,255,255,0.88),
+    0 0 9px rgba(255,255,255,0.62);
+}
+html[data-cityrail-station-label-tone="dark-map"] .station-label,
+html[data-cityrail-station-label-tone="mixed-map"] .station-label {
+  color: rgba(255,255,255,0.97);
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.96),
+    0 0 6px rgba(0,0,0,0.78),
+    0 0 12px rgba(0,0,0,0.48);
 }
 .station-label::before { display: none !important; }
 
@@ -102,20 +130,59 @@ body {
 }
 #app-logo.map-satellite .logo-zh { color: rgba(255,255,255,0.65); }
 
-/* City Name Badge */
+/* City Badge */
 #city-badge {
-  position: fixed; top: 20px; right: 28px; z-index: 999;
-  display: flex; flex-direction: column; align-items: flex-end;
+  position: fixed;
+  top: 18px;
+  right: 28px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .22s ease, transform .22s ease;
+}
+#city-badge.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 #city-badge .city-cn {
-  font-size: 20px; font-weight: 700; letter-spacing: 0.3em;
-  background: linear-gradient(180deg, #ffffff 0%, #e8f0ff 40%, #0A84FF 70%, #0055cc 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(10,132,255,0.3));
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 13px 7px;
+  border-radius: 999px;
+  background: rgba(28,28,30,.50);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 12px 36px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.10);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  color: rgba(255,255,255,.92);
+  text-shadow: 0 1px 8px rgba(0,0,0,.28);
+  font-family: 'PingFang SC', 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1.1;
-  font-family: 'PingFang SC', 'Noto Sans SC', 'Heiti SC', sans-serif;
+  letter-spacing: .18em;
+}
+#city-badge.map-light .city-cn {
+  background: rgba(255,255,255,.62);
+  border-color: rgba(0,0,0,.08);
+  box-shadow: 0 12px 34px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.65);
+  color: rgba(29,29,31,.86);
+  text-shadow: 0 1px 0 rgba(255,255,255,.48);
+}
+#city-badge.map-satellite .city-cn {
+  background: rgba(18,18,20,.46);
+  border-color: rgba(255,255,255,.20);
+  color: rgba(255,255,255,.96);
+  text-shadow: 0 1px 10px rgba(0,0,0,.72);
+}
+@media(max-width:720px){
+  #city-badge { top: 70px; right: 14px; }
+  #city-badge .city-cn { min-height: 30px; padding: 5px 10px 6px; font-size: 15px; letter-spacing: .12em; }
 }
 
 /* ===== DIALOGS & OVERLAYS ===== */
@@ -133,12 +200,42 @@ body {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   padding: 28px 32px; min-width: 360px;
+  max-width: min(920px, calc(100vw - 48px));
 }
 #new-line-dialog h2 {
   font-size: 17px; font-weight: 600;
   color: var(--text); margin-bottom: 20px;
   text-align: center;
   letter-spacing: -0.01em;
+}
+.new-build-choice {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(132px, 1fr));
+  gap: 12px;
+  width: min(880px, calc(100vw - 112px));
+  min-width: 0;
+  overflow: visible;
+}
+.new-build-card {
+  min-height: 118px; min-width: 0; display: grid; align-content: center; justify-items: center; gap: 8px;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 18px;
+  background: rgba(255,255,255,.065); color: var(--text); cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  transition: transform .16s ease, background .16s ease, border-color .16s ease;
+}
+.new-build-card:hover { transform: translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(10,132,255,.45); }
+.new-build-card strong { font-size: 16px; font-weight: 780; letter-spacing: 0; }
+.new-build-card small { max-width: 150px; text-align: center; color: var(--text-dim); font-size: 12px; line-height: 1.35; }
+.new-build-icon {
+  width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 13px; background: rgba(10,132,255,.18); color: #8cc8ff; font-size: 22px; font-weight: 800;
+}
+#new-build-choice.hidden, #new-line-form.hidden, #new-line-back.hidden, #new-line-start.hidden { display: none !important; }
+@media(max-width:760px){
+  #new-line-dialog{width:min(520px,calc(100vw - 36px));max-height:calc(100dvh - 72px);overflow:auto;padding:18px;}
+  .new-build-choice{width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .new-build-card{min-height:104px;}
+  .new-build-card small{font-size:11px;max-width:132px;}
 }
 .new-line-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .new-line-label {
@@ -236,6 +333,34 @@ body {
 }
 #drag-transfer-tooltip.hidden { display: none; }
 #draw-tooltip .tooltip-divider { color: rgba(255,255,255,0.1); }
+#cityrail-map-credit {
+  position: fixed;
+  left: 12px;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 1000;
+  pointer-events: none;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: rgba(28,28,30,.42);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.68);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+  box-shadow: 0 8px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+html.cityrail-light-ui #cityrail-map-credit {
+  background: rgba(255,255,255,.62);
+  border-color: rgba(0,0,0,.08);
+  color: rgba(29,29,31,.62);
+  box-shadow: 0 8px 22px rgba(0,0,0,.09), inset 0 1px 0 rgba(255,255,255,.68);
+}
+@media(max-width:760px){
+  #cityrail-map-credit { left: 10px; bottom: max(8px, env(safe-area-inset-bottom)); font-size: 9px; padding: 4px 7px; }
+}
 
 /* Train Markers — GPU-accelerated */
 .train-marker {
@@ -554,10 +679,21 @@ body {
   background: var(--success); border: 3px solid #000; cursor: pointer;
 }
 #speed-label {
-  font-weight: 600; font-size: 12px; min-width: 40px; text-align: center;
-  color: var(--success); flex-shrink: 0;
+  font-weight: 650; font-size: 12px; min-width: 42px; text-align: right;
+  color: var(--success); flex-shrink: 0; font-variant-numeric: tabular-nums;
 }
-.speed-hint { font-size: 10px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+.speed-scale-label { font-size: 10px; font-weight: 700; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+
+.panel-close-btn {
+  width: 30px; height: 30px; border: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08); color: var(--text-dim);
+  font-family: inherit; font-size: 18px; line-height: 1; font-weight: 500;
+  cursor: pointer; flex: 0 0 auto;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.panel-close-btn:hover { background: rgba(255,255,255,0.14); color: var(--text); }
+.panel-close-btn:active { transform: scale(0.94); }
 
 /* ===== MODAL ===== */
 .modal-overlay {
@@ -704,12 +840,12 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 }
 .nav-dash-line { animation: nav-dash-march 1.5s linear infinite; }
 #line-config-overlay {
-  position: fixed; top: 70px; left: 12px; z-index: 2000;
+  position: fixed; inset: 0; z-index: 2000;
   pointer-events: none;
 }
 #line-config-overlay.hidden { display: none; }
 #line-config-panel {
-  position: relative;
+  position: absolute; top: 70px; left: 12px;
   width: 380px; max-height: calc(100vh - 100px);
   background: var(--panel);
   backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
@@ -797,19 +933,14 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 .cfg-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .cfg-select option { background: #1c1c1e; color: var(--text); padding: 8px; }
 /* Config panel buttons */
-#cfg-btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+#cfg-btn-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
 #cfg-btn-row button {
-  padding: 10px 24px; border: none; cursor: pointer;
+  width: 100%; min-width: 0; height: 36px; padding: 0 14px; border: none; cursor: pointer;
   border-radius: var(--radius-md);
   font-size: 13px; font-weight: 500;
   font-family: inherit;
   transition: all var(--transition-fast);
 }
-#cfg-btn-cancel {
-  background: rgba(255,255,255,0.06); color: var(--text-dim);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-#cfg-btn-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
 #cfg-btn-save {
   background: var(--accent); color: #fff;
   box-shadow: 0 0 8px var(--accent-glow);
@@ -834,6 +965,11 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 #cfg-edit-hint {
   font-size: 10px; color: var(--text-dim); text-align: center;
   margin-bottom: 8px; min-height: 14px;
+}
+.cfg-x-edit-hint {
+  margin: 8px 0 10px;
+  color: var(--text-dim);
+  font-size: 13px; font-weight: 600; line-height: 1.55; text-align: center;
 }
 /* Frequency panel */
 #cfg-freq-panel {
@@ -1011,20 +1147,54 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 /* ===== NAVIGATION PANEL ===== */
 #nav-overlay {
   position: fixed; inset: 0; z-index: 2000;
+  padding: 24px;
   background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
 }
 #nav-overlay.hidden { display: none; }
 #nav-panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--panel);
   backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   padding: 24px 28px; max-width: 480px; width: 92%;
+  max-height: calc(100dvh - 48px);
   overflow: hidden;
+}
+#nav-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: linear-gradient(rgba(79,195,247,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.02) 1px,transparent 1px);
+  background-size: 24px 24px;
+}
+#nav-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to bottom,transparent 0%,transparent 60%,rgba(79,195,247,0.02) 60.5%,transparent 60.7%,transparent 100%);
+  animation: cfg-scanline 6s linear infinite;
+}
+.nav-panel-body {
+  position: relative;
+  z-index: 2;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-right: 2px;
 }
 #nav-panel h2 {
   font-size: 17px; font-weight: 600;
@@ -1071,8 +1241,11 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   margin: 14px 0; padding: 14px 16px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
   border-radius: var(--radius-md);
-  max-height: 200px; overflow-y: auto; font-size: 12px;
+  max-height: min(240px, 32dvh); overflow: auto; font-size: 12px;
   line-height: 1.8; position: relative;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 #nav-route::before {
   content: '导航路径'; position: absolute; top: -9px; left: 12px;
@@ -1104,73 +1277,30 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   border: 1px solid rgba(255,255,255,0.08);
 }
 #nav-btn-clear:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-
-/* ===== STATION FLOW RANKING PANEL ===== */
-#station-flow-overlay {
-  position: fixed; inset: 0; z-index: 2000;
-  background: rgba(0,0,0,0.5);
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+@media(max-width:640px){
+  #nav-overlay { padding: 14px; align-items: stretch; }
+  #nav-panel { width: 100%; max-height: calc(100dvh - 28px); padding: 18px; }
+  .nav-row { display: grid; grid-template-columns: 44px minmax(0,1fr) minmax(0,1.25fr) auto; align-items: center; }
+  .nav-row:nth-of-type(2) { grid-template-columns: 44px minmax(0,1fr) minmax(0,1.25fr) 32px; }
+  .nav-select-line { max-width: none; }
+  #nav-btn-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #nav-btn-row button { width: 100%; padding: 10px 12px; }
 }
-#station-flow-overlay.hidden { display: none; }
-#station-flow-panel {
-  position: relative;
-  background: var(--panel);
-  backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: 20px 24px; max-width: 520px; width: 92%;
-  max-height: 72vh; display: flex; flex-direction: column; overflow: hidden;
+@media(max-width:420px){
+  .nav-row,
+  .nav-row:nth-of-type(2) { grid-template-columns: 1fr; }
+  .nav-label { min-width: 0; }
+  #nav-btn-swap { width: 100%; }
 }
-#station-flow-panel h2 {
-  font-size: 17px; font-weight: 600;
-  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
-  color: var(--text);
-}
-#station-flow-close {
-  background: none; border: none; color: var(--text-dim);
-  font-size: 18px; cursor: pointer; padding: 4px;
-  transition: color var(--transition-fast);
-}
-#station-flow-close:hover { color: var(--danger); }
-#station-flow-table-wrap { flex: 1; overflow-y: auto; }
-#station-flow-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-#station-flow-table th {
-  position: sticky; top: 0; z-index: 1;
-  text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 500;
-  color: var(--text-dim);
-  background: rgba(28,28,30,0.96);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-#station-flow-table th:first-child { text-align: center; width: 30px; }
-#station-flow-table th:nth-child(2) { text-align: center; width: 56px; }
-#station-flow-table th:last-child { text-align: right; }
-#station-flow-table td {
-  padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); white-space: nowrap;
-}
-#station-flow-table td:first-child { text-align: center; color: var(--text-dim); font-size: 11px; }
-#station-flow-table td:nth-child(2) { text-align: center; padding: 5px 3px; }
-#station-flow-table .line-color-block {
-  display: inline-block; width: 10px; height: 10px;
-  border-radius: 3px; margin: 0 1px; vertical-align: middle;
-}
-#station-flow-table td:last-child { text-align: right; font-weight: 600; }
-#station-flow-table td:nth-child(4) { text-align: right; font-weight: 500; }
-#station-flow-table tr:nth-child(1) td:last-child,
-#station-flow-table tr:nth-child(2) td:last-child,
-#station-flow-table tr:nth-child(3) td:last-child { color: var(--danger); }
-#station-flow-table tr:nth-child(4) td:last-child,
-#station-flow-table tr:nth-child(5) td:last-child { color: var(--warning); }
 
 /* ===== STATION DETAIL PANEL ===== */
 #station-detail-overlay {
-  position: fixed; top: 70px; left: 12px; z-index: 2100;
+  position: fixed; inset: 0; z-index: 2100;
   pointer-events: none;
 }
 #station-detail-overlay.hidden { display: none; }
 #station-detail-panel {
-  position: relative;
+  position: absolute; top: 70px; left: 12px;
   width: 380px; max-height: calc(100vh - 100px);
   background: var(--panel);
   backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
@@ -1304,23 +1434,307 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   font-size: 12px; color: var(--text-dim); text-align: center;
   padding: 12px 0;
 }
-.sd-actions {
-  display: flex; gap: 10px; margin-top: 14px; padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+#sd-zone-row.sd-zone-grid,
+#sd-zone-row {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 7px !important;
+  align-items: stretch !important;
+  margin: 8px 0 14px !important;
+  min-height: 40px;
+  overflow: visible !important;
 }
-.sd-actions button {
-  flex: 1; padding: 9px 12px; font-size: 12px; font-weight: 500;
+#sd-zone-row .sd-zone-btn {
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.055);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 760;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+#sd-zone-row .sd-zone-btn.on {
+  background: rgba(10,132,255,0.92) !important;
+  border-color: rgba(10,132,255,0.95) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(10,132,255,0.16);
+}
+#sd-zone-row .sd-zone-hint {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255,255,255,.55);
+  margin-top: 1px;
+}
+html.cityrail-light-ui #sd-zone-row .sd-zone-btn {
+  background: rgba(248,250,252,.86);
+  border-color: rgba(15,23,42,.12);
+  color: #111827;
+}
+html.cityrail-light-ui #sd-zone-row .sd-zone-hint { color: rgba(17,24,39,.54); }
+html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn {
+  border-radius: 999px !important;
+  background: var(--cr416-fill) !important;
+  border-color: var(--cr416-border) !important;
+  color: var(--cr416-text) !important;
+}
+html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
+  background: var(--cr416-blue) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+#station-detail-panel .sd-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 36px;
+  grid-auto-flow: row;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 8px;
+  margin: 18px -20px -16px;
+  padding: 13px 20px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(20,20,24,0.42);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  position: sticky;
+  bottom: -16px;
+  z-index: 4;
+}
+#station-detail-panel .sd-actions button {
+  width: 100%; min-width: 0; height: 36px; padding: 0 8px; font-size: 12px; font-weight: 800;
   cursor: pointer; font-family: inherit;
-  border-radius: var(--radius-sm);
+  border: 0; border-radius: 11px;
   transition: all var(--transition-fast);
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
   color: var(--text-dim);
 }
-.sd-actions button:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-.sd-actions button.active-action {
+#station-detail-panel .sd-actions button:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+#station-detail-panel .sd-actions button.active-action {
   background: rgba(10,132,255,0.1); border-color: var(--accent); color: var(--accent);
 }
+#station-detail-panel .sd-actions #sd-btn-extend-line { order: 1; }
+#station-detail-panel .sd-actions #sd-btn-branch-line { order: 2; }
+#station-detail-panel .sd-actions #sd-btn-delete {
+  order: 3;
+  margin-right: 0;
+}
+#station-detail-panel .sd-actions #sd-station-toggle-open { order: 4; }
+#station-detail-panel .sd-actions #sd-btn-move { order: 5; }
+#station-detail-panel .sd-actions #sd-btn-block-external-flow { order: 6; }
+#station-detail-panel .sd-actions #sd-btn-block-external-flow.active-action {
+  background: rgba(255,159,10,0.14);
+  border-color: rgba(255,159,10,0.55);
+  color: #ffb340;
+}
 .sd-btn-danger:hover { border-color: var(--danger) !important; color: var(--danger) !important; background: rgba(255,69,58,0.06) !important; }
+#sd-station-toggle-open {
+  background: rgba(48,209,88,0.16);
+  border: 1px solid rgba(48,209,88,0.36);
+  color: #30d158;
+}
+#sd-station-toggle-open:hover {
+  background: rgba(48,209,88,0.22);
+  border-color: rgba(48,209,88,0.50);
+  color: #8ff0a4;
+}
+#sd-station-toggle-open.closed {
+  background: rgba(255,69,58,0.10);
+  border-color: rgba(255,69,58,0.24);
+  color: #ffb4ad;
+  box-shadow: 0 10px 24px rgba(255,69,58,0.12), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+#sd-station-toggle-open.closed:hover {
+  background: rgba(255,69,58,0.16);
+  border-color: rgba(255,69,58,0.42);
+  color: #ffd1cc;
+}
+
+/* ===== Unified Object Panels: Line / Station / Depot ===== */
+.cityrail-object-panel,
+.cityrail-depot-panel {
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  pointer-events: auto;
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+}
+#line-config-panel,
+#station-detail-panel {
+  padding: 0;
+  overflow: hidden;
+}
+.cityrail-object-panel-body,
+.cityrail-depot-body {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px;
+}
+#line-config-panel h2,
+#station-detail-panel h2,
+.cityrail-depot-head {
+  margin: -16px -20px 14px;
+  padding: 18px 20px 12px;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+#line-config-close,
+#station-detail-close,
+.cityrail-depot-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+#line-config-close:hover,
+#station-detail-close:hover,
+.cityrail-depot-close:hover {
+  background: rgba(255,255,255,0.14);
+  color: var(--text);
+}
+.cfg-line-station-flow,
+.depot-kpis,
+.sd-waiting-card,
+.sd-bar-row {
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.045);
+}
+.sd-bar-row {
+  min-height: 42px;
+  padding: 8px 10px;
+}
+.cityrail-object-panel-actions,
+.depot-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px -20px -16px;
+  padding: 13px 20px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(20,20,24,0.42);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  position: sticky;
+  bottom: -16px;
+  z-index: 4;
+}
+.cityrail-object-panel-actions button,
+.depot-actions button {
+  min-width: 86px;
+  height: 36px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.cityrail-object-panel-actions button:active,
+.depot-actions button:active { transform: scale(0.97); }
+#sd-btn-move,
+#sd-btn-block-external-flow,
+.depot-actions .secondary {
+  background: rgba(255,255,255,0.10);
+  color: var(--text);
+}
+#cfg-btn-save,
+.depot-actions .primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 24px var(--accent-glow);
+}
+#cfg-btn-delete-line,
+.depot-actions .danger {
+  order: -1;
+  margin-right: auto;
+}
+#cfg-btn-delete-line,
+#sd-btn-delete,
+.depot-actions .danger {
+  background: rgba(255,69,58,0.16);
+  color: #ffb4ad;
+  border: 1px solid rgba(255,69,58,0.28);
+}
+#cfg-btn-delete-line:hover,
+#sd-btn-delete:hover,
+.depot-actions .danger:hover {
+  background: rgba(255,69,58,0.22) !important;
+  color: #fff !important;
+  border-color: rgba(255,69,58,0.42) !important;
+}
+#cfg-btn-delete-line {
+  order: 0;
+  margin-right: 0;
+}
+html.cityrail-light-ui .cityrail-object-panel,
+html.cityrail-light-ui .cityrail-depot-panel {
+  border-color: rgba(0,0,0,.10) !important;
+  background: rgba(255,255,255,.90) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  color: #1d1d1f !important;
+}
+html.cityrail-light-ui #line-config-panel h2,
+html.cityrail-light-ui #station-detail-panel h2,
+html.cityrail-light-ui .cityrail-depot-head,
+html.cityrail-light-ui .cityrail-object-panel-actions,
+html.cityrail-light-ui .depot-actions {
+  border-color: rgba(0,0,0,.08) !important;
+}
+html.cityrail-light-ui .cityrail-object-panel-actions,
+html.cityrail-light-ui .depot-actions { background: rgba(255,255,255,.72); }
+html.cityrail-light-ui .cfg-line-station-flow,
+html.cityrail-light-ui .depot-kpis,
+html.cityrail-light-ui .sd-waiting-card,
+html.cityrail-light-ui .sd-bar-row {
+  border-color: rgba(0,0,0,.08) !important;
+  background: rgba(255,255,255,.62) !important;
+}
+html.cityrail-light-ui #sd-btn-move,
+html.cityrail-light-ui #sd-btn-block-external-flow,
+html.cityrail-light-ui .depot-actions .secondary {
+  background: rgba(60,60,67,.10) !important;
+  color: #1d1d1f !important;
+}
+html.cityrail-light-ui #cfg-btn-delete-line,
+html.cityrail-light-ui #sd-btn-delete,
+html.cityrail-light-ui .depot-actions .danger {
+  background: rgba(255,59,48,.10) !important;
+  color: #b42318 !important;
+  border-color: rgba(255,59,48,.22) !important;
+}
 
 /* ===== LINE OPERATIONS ===== */
 #sd-line-actions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
@@ -1743,6 +2157,14 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   box-shadow: 0 0 0 3px rgba(10,132,255,0.12), 0 4px 16px rgba(10,132,255,0.08);
   background: rgba(10,132,255,0.05);
 }
+.reg-field-limit-hint,
+.reg-password-limit-hint {
+  margin: 7px 0 0;
+  color: rgba(255,255,255,0.66);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
 .reg-hint {
   position: relative; z-index: 1;
   text-align: center;
@@ -1752,6 +2174,24 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   line-height: 1.6;
   max-width: 360px;
   margin-bottom: 24px;
+}
+.login-version-note {
+  position: relative; z-index: 1;
+  align-self: center;
+  width: 100%;
+  max-width: 420px;
+  margin-top: -4px;
+  padding: 11px 14px;
+  text-align: center;
+  font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.62);
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  box-sizing: border-box;
 }
 .reg-error-hint {
   position: relative; z-index: 1;
@@ -1962,7 +2402,7 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   position: relative; z-index: 1;
   padding: 18px 88px;
   font-family: var(--font-sans);
-  font-size: 19px; font-weight: 600; letter-spacing: 0.12em;
+  font-size: 19px; font-weight: 800; letter-spacing: 0.12em;
   border-radius: 100px;
   cursor: pointer;
   user-select: none;
@@ -1982,17 +2422,38 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 }
 .invite-continue-btn.active {
   color: #fff;
-  background: linear-gradient(135deg, #0A84FF 0%, #0066cc 100%);
-  border: 1px solid rgba(10,132,255,0.4);
-  box-shadow: 0 4px 20px rgba(10,132,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  background: linear-gradient(135deg, #31A8FF 0%, #0A84FF 46%, #0066CC 100%);
+  border: 1px solid rgba(125,212,255,0.66);
+  box-shadow:
+    0 12px 34px rgba(10,132,255,0.42),
+    0 0 0 1px rgba(255,255,255,0.08) inset,
+    inset 0 1px 0 rgba(255,255,255,0.28);
   cursor: pointer;
   pointer-events: auto;
 }
 .invite-continue-btn.active:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 28px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  background: linear-gradient(135deg, #64D2FF 0%, #0A84FF 48%, #007AFF 100%);
+  border-color: rgba(167,226,255,0.82);
+  box-shadow:
+    0 16px 44px rgba(10,132,255,0.56),
+    0 0 0 1px rgba(255,255,255,0.12) inset,
+    inset 0 1px 0 rgba(255,255,255,0.34);
 }
-.invite-continue-btn.active:active { transform: translateY(0); }
+.invite-continue-btn.active:focus-visible {
+  box-shadow:
+    0 14px 38px rgba(10,132,255,0.50),
+    0 0 0 4px rgba(100,210,255,0.24),
+    inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.invite-continue-btn.active:active {
+  transform: translateY(1px) scale(0.98);
+  background: linear-gradient(135deg, #007AFF 0%, #0066CC 100%);
+  box-shadow:
+    0 6px 18px rgba(10,132,255,0.34),
+    inset 0 3px 10px rgba(0,42,94,0.36),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
 
 #city-select-screen {
   position: fixed; inset: 0; z-index: 99998;
@@ -2189,10 +2650,16 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   width: min(420px, 88vw);
 }
 .pay-option {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 18px;
   padding: 24px 28px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   background: rgba(255,255,255,0.05);
   border: 1.5px solid rgba(255,255,255,0.10);
   border-radius: var(--radius-lg);
@@ -2259,8 +2726,9 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   outline: none;
   user-select: none;
-  opacity: 0;
-  animation: splashFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  opacity: 1;
+  transform: translateY(0);
+  animation: splashFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-delay: 1.35s;
   /* Pulse ring */
 }
@@ -2299,6 +2767,12 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 .splash-continue-btn:active {
   transform: translateY(0) scale(0.98);
 }
+@media (prefers-reduced-motion: reduce) {
+  .splash-continue-btn {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
 
 /* Typing cursor blink */
 .typing-cursor::after {
@@ -2318,6 +2792,215 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
   overflow: hidden;
 }
 #ctrl-center-overlay.hidden { display: none; }
+#ctrl-center-overlay:not(.hidden){
+  width:100vw!important;
+  height:100vh!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  pointer-events:auto!important;
+}
+#ctrl-center-overlay #ctrl-topbar{flex:0 0 auto!important;}
+#ctrl-center-overlay #ctrl-body{flex:1 1 auto!important;min-height:0!important;min-width:0!important;overflow:hidden!important;pointer-events:auto!important;}
+#ctrl-center-overlay #ctrl-nav{flex:0 0 auto!important;}
+#ctrl-center-overlay #ctrl-main{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  min-width:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-gutter:stable!important;
+  pointer-events:auto!important;
+}
+#ctrl-center-overlay #ctrl-content-grid{
+  min-width:0!important;
+  min-height:max-content!important;
+  overflow:visible!important;
+  align-content:start!important;
+  padding-bottom:max(36px,env(safe-area-inset-bottom))!important;
+}
+#ctrl-center-overlay #ctrl-alerts{
+  flex:0 0 260px!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 96px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+#ctrl-center-overlay #cct-line-stats-scroll-wrap,
+#ctrl-center-overlay .ctrl-line-stats-scroll-wrap{
+  max-height:min(46vh,420px)!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y!important;
+  border-radius:8px!important;
+  border:1px solid rgba(255,255,255,.035)!important;
+}
+#ctrl-center-overlay .ctrl-line-stats-scroll-wrap table.ctrl-table{min-width:860px!important;width:100%!important;}
+#ctrl-center-overlay .ctrl-line-stats-scroll-wrap thead th{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  background:rgba(20,22,30,.96)!important;
+  backdrop-filter:blur(8px)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+}
+#ctrl-center-overlay #cct-intensity-bars{max-height:none!important;overflow:visible!important;}
+#ctrl-center-overlay #ctrl-main::-webkit-scrollbar,
+#ctrl-center-overlay .ctrl-line-stats-scroll-wrap::-webkit-scrollbar{width:8px!important;height:8px!important;}
+#ctrl-center-overlay #ctrl-main::-webkit-scrollbar-thumb,
+#ctrl-center-overlay .ctrl-line-stats-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22)!important;border-radius:999px!important;}
+#ctrl-center-overlay:not([data-active-tab="depots"]) .cr200-depot-card{display:none!important;}
+#ctrl-center-overlay[data-active-tab="depots"] #ctrl-content-grid>.ctrl-card:not(.cr200-depot-card){display:none!important;}
+#ctrl-center-overlay[data-active-tab="depots"] .cr200-depot-card{display:block!important;grid-column:1 / -1;}
+#ctrl-center-overlay:not([data-active-tab="fare-policy"]) .cr210-fare-card{display:none!important;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] #ctrl-content-grid>.ctrl-card:not(.cr210-fare-card){display:none!important;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] .cr210-fare-card{display:block!important;grid-column:1 / -1;}
+#ctrl-center-overlay:not([data-active-tab="daily-report"]) .cr-daily-card{display:none!important;}
+#ctrl-center-overlay[data-active-tab="daily-report"] #ctrl-content-grid>.ctrl-card:not(.cr-daily-card){display:none!important;}
+#ctrl-center-overlay[data-active-tab="daily-report"] .cr-daily-card{display:block!important;grid-column:1 / -1;}
+.cr200-depot-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+.cr200-depot-summary>div{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.cr200-depot-summary span{display:block;font-size:11px;color:rgba(255,255,255,.44);margin-bottom:5px;}
+.cr200-depot-summary b{display:block;font-size:20px;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:0;}
+.cr200-depot-list{display:grid;gap:10px;}
+.cr200-depot-row{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(5,minmax(72px,.55fr));gap:10px;align-items:center;min-height:58px;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);}
+.cr200-depot-row.shortage{border-color:rgba(255,69,58,.35);background:rgba(255,69,58,.075);}
+.cr200-depot-name{min-width:0;font-size:14px;font-weight:850;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr200-depot-lines{margin-top:4px;font-size:11px;color:rgba(255,255,255,.46);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr200-depot-stat{text-align:right;font-variant-numeric:tabular-nums;}
+.cr200-depot-stat span{display:block;font-size:10px;color:rgba(255,255,255,.42);}
+.cr200-depot-stat b{display:block;margin-top:3px;font-size:15px;color:#fff;}
+.cr200-depot-alert{margin-top:12px;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,69,58,.30);background:rgba(255,69,58,.08);color:#ffb4ad;font-size:12px;font-weight:760;}
+#cct-line-stats-table.cityrail-control-line-table{width:100%;min-width:860px;table-layout:fixed;border-collapse:collapse;}
+#cct-line-stats-table.cityrail-control-line-table th,
+#cct-line-stats-table.cityrail-control-line-table td{box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
+#cct-line-stats-table.cityrail-control-line-table [data-col="color"]{text-align:center;}
+#cct-line-stats-table.cityrail-control-line-table [data-col="speed"],
+#cct-line-stats-table.cityrail-control-line-table [data-col="length"],
+#cct-line-stats-table.cityrail-control-line-table [data-col="trains"],
+#cct-line-stats-table.cityrail-control-line-table [data-col="ridership"],
+#cct-line-stats-table.cityrail-control-line-table [data-col="crowding"]{text-align:right!important;font-variant-numeric:tabular-nums;}
+#cct-line-stats-table.cityrail-control-line-table th[data-col="crowding"],
+#cct-line-stats-table.cityrail-control-line-table td[data-col="crowding"]{width:88px;min-width:88px;max-width:88px;padding-right:14px!important;}
+#cct-line-stats-table.cityrail-control-line-table th[data-col="line"],
+#cct-line-stats-table.cityrail-control-line-table td[data-col="line"]{text-align:left;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] #ctrl-main{overflow-y:auto!important;overflow-x:hidden!important;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] #ctrl-content-grid{min-height:max-content!important;align-content:start!important;overflow:visible!important;padding-bottom:max(36px,env(safe-area-inset-bottom))!important;}
+.cr210-fare-card{box-sizing:border-box;overflow:visible!important;min-height:0;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] .cr210-fare-card{height:auto!important;max-height:none!important;overflow:visible!important;padding-bottom:max(20px,env(safe-area-inset-bottom))!important;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] .cr210-fare-card::-webkit-scrollbar{width:8px;}
+#ctrl-center-overlay[data-active-tab="fare-policy"] .cr210-fare-card::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:999px;}
+.cr210-fare-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;}
+.cr210-fare-title{font-size:20px;font-weight:900;letter-spacing:0;color:#fff;}
+.cr210-fare-sub{margin-top:4px;font-size:12px;color:rgba(255,255,255,.48);}
+.cr210-fare-badge{min-width:96px;text-align:center;padding:7px 10px;border-radius:999px;background:rgba(48,209,88,.14);color:#30D158;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums;}
+.cr210-segment{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px;border-radius:14px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);margin-bottom:16px;}
+.cr210-segment button{height:34px;border:0;border-radius:10px;background:transparent;color:rgba(255,255,255,.62);font-weight:800;cursor:pointer;}
+.cr210-segment button.on{background:rgba(10,132,255,.92);color:#fff;box-shadow:0 8px 18px rgba(10,132,255,.22),inset 0 1px 0 rgba(255,255,255,.22);}
+.cr210-fare-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.cr210-field{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);}
+.cr210-field label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px;color:rgba(255,255,255,.48);}
+.cr210-field label b{font-size:12px;color:#fff;font-weight:850;font-variant-numeric:tabular-nums;}
+.cr210-field input{width:100%;height:34px;box-sizing:border-box;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(0,0,0,.18);color:#fff;padding:0 10px;font-size:14px;font-weight:760;font-variant-numeric:tabular-nums;outline:none;}
+.cr210-field input:focus{border-color:rgba(10,132,255,.78);box-shadow:0 0 0 3px rgba(10,132,255,.16);}
+.cr210-field input:disabled{cursor:not-allowed;opacity:.52;background:rgba(255,255,255,.035);color:rgba(255,255,255,.48);}
+.cr210-samples{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px;}
+.cr210-sample{padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
+.cr210-sample span{display:block;font-size:11px;color:rgba(255,255,255,.44);}
+.cr210-sample b{display:block;margin-top:5px;font-size:18px;color:#fff;font-variant-numeric:tabular-nums;}
+.cr210-fare-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+.cr210-fare-actions button{height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.82);font-weight:800;padding:0 14px;cursor:pointer;}
+.cr210-fare-actions button:hover{background:rgba(255,255,255,.10);}
+.cr210-line-section{margin-top:16px;padding-top:14px;padding-bottom:2px;border-top:1px solid rgba(255,255,255,.08);}
+.cr210-line-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.cr210-line-head b{font-size:14px;color:#fff;}
+.cr210-line-head span{font-size:12px;color:rgba(255,255,255,.44);}
+.cr210-line-buttons{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(104px,148px);grid-template-rows:repeat(2,32px);gap:8px;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 2px 8px 2px;scrollbar-gutter:stable;overscroll-behavior-x:contain;overscroll-behavior-y:none;-webkit-overflow-scrolling:touch;touch-action:pan-x;}
+.cr210-line-buttons[data-control-scroll-surface="fare-line-selector"]{contain:layout paint;scroll-snap-type:x proximity;}
+.cr210-line-buttons[data-control-scroll-surface="fare-line-selector"] .cr210-line-btn{scroll-snap-align:start;}
+.cr210-line-buttons .ctrl-empty-row{grid-row:1 / -1;align-self:center;min-width:180px;}
+.cr210-line-buttons::-webkit-scrollbar{height:8px;}
+.cr210-line-buttons::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:999px;}
+.cr210-line-btn{height:32px;min-width:0;width:100%;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);border-left:4px solid var(--line-color,#0A84FF);border-radius:999px;padding:0 10px 0 8px;background:rgba(255,255,255,.065);color:#fff;font-weight:850;font-size:12px;cursor:pointer;overflow:hidden;text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.16);}
+.cr210-line-btn span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr210-line-swatch{width:10px;height:10px;border-radius:999px;flex:0 0 auto;background:var(--line-color,#0A84FF);box-shadow:0 0 0 2px rgba(255,255,255,.16);}
+.cr210-line-btn.on{border-color:var(--line-color,#0A84FF);box-shadow:0 0 0 3px color-mix(in srgb,var(--line-color,#0A84FF) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.18);}
+.cr210-line-editor{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;gap:10px;align-items:end;margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);}
+.cr210-line-editor-name{min-width:0;display:flex;align-items:center;gap:10px;}
+.cr210-line-color{width:14px;height:14px;border-radius:999px;flex:0 0 auto;background:var(--line-color,#0A84FF);box-shadow:0 0 0 3px rgba(255,255,255,.10);}
+.cr210-line-editor-name>div{min-width:0;}
+.cr210-line-editor-name b{display:block;color:#fff;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr210-line-editor-name span{display:block;margin-top:3px;font-size:11px;color:rgba(255,255,255,.44);}
+.cr210-line-editor label{display:block;font-size:11px;color:rgba(255,255,255,.46);}
+.cr210-line-editor input{margin-top:6px;width:100%;height:34px;box-sizing:border-box;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(0,0,0,.18);color:#fff;padding:0 10px;font-size:14px;font-weight:760;font-variant-numeric:tabular-nums;outline:none;}
+.cr210-line-editor input:focus{border-color:rgba(10,132,255,.78);box-shadow:0 0 0 3px rgba(10,132,255,.16);}
+.cr210-line-editor button{height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.82);font-weight:800;padding:0 14px;cursor:pointer;}
+html.cityrail-light-ui .cr210-fare-title{color:#111827;}
+html.cityrail-light-ui .cr210-fare-sub,html.cityrail-light-ui .cr210-field label,html.cityrail-light-ui .cr210-sample span,html.cityrail-light-ui .cr210-line-head span,html.cityrail-light-ui .cr210-line-editor-name span,html.cityrail-light-ui .cr210-line-editor label{color:rgba(17,24,39,.55);}
+html.cityrail-light-ui .cr210-line-head b,html.cityrail-light-ui .cr210-line-editor-name b{color:#111827;}
+html.cityrail-light-ui .cr210-line-section{border-top-color:rgba(15,23,42,.10);}
+html.cityrail-light-ui .cr210-segment,html.cityrail-light-ui .cr210-field,html.cityrail-light-ui .cr210-sample,html.cityrail-light-ui .cr210-line-editor{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.10);}
+html.cityrail-light-ui .cr210-segment button{color:rgba(17,24,39,.58);}
+html.cityrail-light-ui .cr210-field label b,html.cityrail-light-ui .cr210-sample b{color:#111827;}
+html.cityrail-light-ui .cr210-field input,html.cityrail-light-ui .cr210-line-editor input{background:rgba(248,250,252,.92);border-color:rgba(15,23,42,.12);color:#111827;}
+html.cityrail-light-ui .cr210-field input:disabled{background:rgba(241,245,249,.72);color:rgba(17,24,39,.42);}
+html.cityrail-light-ui .cr210-fare-actions button,html.cityrail-light-ui .cr210-line-editor button{background:rgba(248,250,252,.86);border-color:rgba(15,23,42,.12);color:#111827;}
+html.cityrail-light-ui .cr210-line-btn{background:rgba(248,250,252,.88);border-top-color:rgba(15,23,42,.12);border-right-color:rgba(15,23,42,.12);border-bottom-color:rgba(15,23,42,.12);color:#111827;}
+html.cityrail-light-ui .cr210-line-swatch{box-shadow:0 0 0 2px rgba(15,23,42,.10);}
+html.cityrail-apple-spatial-ui .cr210-line-btn{background:var(--cr416-fill)!important;border-top-color:var(--cr416-border)!important;border-right-color:var(--cr416-border)!important;border-bottom-color:var(--cr416-border)!important;color:var(--cr416-text)!important;}
+html.cityrail-apple-spatial-ui .cr210-line-btn.on{border-color:var(--line-color,#0A84FF)!important;}
+.cr-daily-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px;}
+.cr-daily-title{font-size:20px;font-weight:900;color:#fff;letter-spacing:0;}
+.cr-daily-sub{margin-top:4px;font-size:12px;color:rgba(255,255,255,.48);}
+.cr-daily-badge{padding:7px 10px;border-radius:999px;border:1px solid rgba(10,132,255,.30);background:rgba(10,132,255,.12);color:#b9dcff;font-size:12px;font-weight:850;white-space:nowrap;}
+.cr-daily-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+.cr-daily-kpi{min-width:0;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);}
+.cr-daily-kpi span{display:block;font-size:11px;color:rgba(255,255,255,.46);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-daily-kpi b{display:block;margin-top:5px;font-size:20px;line-height:1.1;color:#fff;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-daily-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cr-daily-panel{min-width:0;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:12px;overflow:hidden;}
+.cr-daily-panel h4{margin:0;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;color:rgba(255,255,255,.86);}
+.cr-daily-list{display:grid;max-height:280px;overflow:auto;scrollbar-gutter:stable;}
+.cr-daily-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;color:rgba(255,255,255,.68);}
+.cr-daily-row:last-child{border-bottom:0;}
+.cr-daily-row strong{display:block;color:rgba(255,255,255,.92);font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr-daily-row small{display:block;margin-top:2px;color:rgba(255,255,255,.42);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cr-daily-row em{font-style:normal;color:#fff;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cr-daily-note{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;line-height:1.5;color:rgba(255,255,255,.70);}
+.cr-daily-note b{color:#ffd60a;}
+html.cityrail-light-ui .cr-daily-title,html.cityrail-light-ui .cr-daily-kpi b,html.cityrail-light-ui .cr-daily-row strong,html.cityrail-light-ui .cr-daily-row em{color:#111827;}
+html.cityrail-light-ui .cr-daily-sub,html.cityrail-light-ui .cr-daily-kpi span,html.cityrail-light-ui .cr-daily-row,html.cityrail-light-ui .cr-daily-row small,html.cityrail-light-ui .cr-daily-note{color:rgba(17,24,39,.62);}
+html.cityrail-light-ui .cr-daily-kpi,html.cityrail-light-ui .cr-daily-panel{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.10);}
+html.cityrail-light-ui .cr-daily-panel h4{border-bottom-color:rgba(15,23,42,.09);color:rgba(17,24,39,.78);}
+@media(max-width:900px){
+  #ctrl-center-overlay #ctrl-main{padding-bottom:max(18px,env(safe-area-inset-bottom))!important;}
+  #ctrl-center-overlay #ctrl-alerts{display:none!important;}
+  .cr200-depot-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cr200-depot-row{grid-template-columns:1fr 1fr 1fr;}
+  .cr200-depot-row .cr200-depot-namebox{grid-column:1 / -1;}
+  .cr200-depot-stat{text-align:left;}
+  .cr210-fare-grid{grid-template-columns:1fr 1fr;}
+  .cr210-samples{grid-template-columns:1fr 1fr;}
+  .cr210-segment{grid-template-columns:1fr 1fr;}
+  .cr210-fare-head{display:block;}
+  .cr210-fare-badge{display:inline-block;margin-top:10px;}
+  #ctrl-center-overlay[data-active-tab="fare-policy"] .cr210-fare-card{padding-bottom:max(24px,env(safe-area-inset-bottom))!important;}
+  .cr210-line-editor{grid-template-columns:1fr;}
+  .cr210-line-buttons{grid-auto-columns:minmax(92px,128px);grid-template-rows:repeat(2,32px);}
+  .cr-daily-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cr-daily-grid{grid-template-columns:1fr;}
+  .cr-daily-head{display:block;}
+  .cr-daily-badge{display:inline-block;margin-top:10px;}
+}
 
 /* 顶部状态栏 */
 #ctrl-topbar {
@@ -2663,7 +3346,7 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 .cityrail-english-mode-row {
   margin-top: 4px;
 }
-body.cityrail-englishi-mode #settings-panel h2::after {
+body.cityrail-english-mode #settings-panel h2::after {
   content: ' / Settings';
   opacity: .62;
   font-weight: 500;
@@ -2743,21 +3426,12 @@ button{
 
 /* ===== 30-hourly-flow.css ===== */
 #cityrailControlCenterPlus{display:none!important;visibility:hidden!important;pointer-events:none!important;}
-#ctrl-center-overlay[data-active-tab="passenger-flow"] .ctrl-card{display:none;}
-#ctrl-center-overlay[data-active-tab="passenger-flow"] .ctrl-passenger-flow-card{display:block;}
-#cct-hourly-flow-svg text{fill:rgba(255,255,255,.55);font-size:10px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;}
-#cct-hourly-flow-svg .grid{stroke:rgba(255,255,255,.08);stroke-width:1;}
-#cct-hourly-flow-svg .axis{stroke:rgba(255,255,255,.18);stroke-width:1;}
-#cct-hourly-flow-svg .line{fill:none;stroke:#0A84FF;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;}
-#cct-hourly-flow-svg .area{fill:rgba(10,132,255,.18);}
-#cct-hourly-flow-svg .dot{fill:#fff;stroke:#0A84FF;stroke-width:3;}
 
 
 /* ===== 40-performance-safe.css ===== */
 /* Performance-only hints: does not remove UI or gameplay features */
-#map, .leaflet-map-pane, .leaflet-overlay-pane, .leaflet-marker-pane, .train-marker, .station-marker {
+.train-marker, .station-marker {
   will-change: transform;
-  transform: translateZ(0);
 }
 .leaflet-interactive {
   vector-effect: non-scaling-stroke;
@@ -2782,157 +3456,16 @@ button{
 #cct-load-level-panel {
   contain: content;
 }
+#cct-line-status-list {
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: hidden;
+  scrollbar-gutter: auto;
+  overscroll-behavior: auto;
+}
 .leaflet-tooltip,
 .leaflet-popup {
   will-change: transform, opacity;
-}
-
-
-/* ===== 60-control-scroll.css ===== */
-/* 修复控制中心线路运营数据无法滚动 */
-#ctrl-center-overlay:not(.hidden){
-  pointer-events:auto!important;
-}
-#ctrl-body{
-  min-height:0!important;
-  overflow:hidden!important;
-}
-#ctrl-main{
-  min-height:0!important;
-  height:calc(100vh - 52px)!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
-  pointer-events:auto!important;
-}
-#ctrl-content-grid{
-  min-height:min-content!important;
-  overflow:visible!important;
-  padding-bottom:28px;
-}
-#cct-line-stats-body{
-  pointer-events:auto!important;
-}
-.ctrl-line-stats-scroll-wrap{
-  max-height:42vh;
-  overflow:auto!important;
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
-  border-radius:8px;
-}
-.ctrl-line-stats-scroll-wrap table{
-  width:100%;
-}
-.ctrl-line-stats-scroll-wrap::-webkit-scrollbar,
-#ctrl-main::-webkit-scrollbar{
-  width:6px;
-  height:6px;
-}
-.ctrl-line-stats-scroll-wrap::-webkit-scrollbar-thumb,
-#ctrl-main::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.18);
-  border-radius:999px;
-}
-/* v4: make the OCC panel itself the single reliable vertical scroller */
-#ctrl-center-overlay:not(.hidden){
-  height:100vh!important;
-  max-height:100vh!important;
-  display:flex!important;
-  flex-direction:column!important;
-  overflow:hidden!important;
-}
-#ctrl-body{
-  flex:1 1 auto!important;
-  min-height:0!important;
-  height:auto!important;
-}
-#ctrl-main{
-  flex:1 1 auto!important;
-  height:auto!important;
-  max-height:none!important;
-  min-height:0!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  scroll-behavior:auto!important;
-}
-#cct-intensity-bars{
-  max-height:none!important;
-  overflow:visible!important;
-}
-
-
-/* ===== 70-control-line-table-v12.css ===== */
-/* V12: control center line operation table scroll + wider columns */
-.ctrl-line-stats-scroll-wrap{
-  max-height:min(46vh, 420px)!important;
-  overflow-y:auto!important;
-  overflow-x:auto!important;
-  overscroll-behavior:contain!important;
-  -webkit-overflow-scrolling:touch!important;
-  touch-action:pan-x pan-y!important;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,.035);
-}
-.ctrl-line-stats-scroll-wrap table.ctrl-table{
-  min-width:760px!important;
-  width:100%!important;
-}
-.ctrl-line-stats-scroll-wrap thead th{
-  position:sticky;
-  top:0;
-  z-index:2;
-  background:rgba(20,22,30,.96);
-  backdrop-filter:blur(8px);
-}
-.ctrl-line-stats-scroll-wrap::-webkit-scrollbar{
-  width:8px;
-  height:8px;
-}
-.ctrl-line-stats-scroll-wrap::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.22);
-  border-radius:999px;
-}
-.ctrl-line-stats-scroll-wrap td:nth-child(3),
-.ctrl-line-stats-scroll-wrap td:nth-child(4),
-.ctrl-line-stats-scroll-wrap td:nth-child(5){
-  color:rgba(255,255,255,.62);
-  white-space:nowrap;
-}
-
-
-/* ===== 80-od-icons-v14.css ===== */
-.od-flow-line {
-  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.35));
-  pointer-events: none;
-}
-.od-icon-wrapper { pointer-events: none; }
-.od-icon {
-  min-width: 24px;
-  height: 24px;
-  padding: 0 5px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #0b1220;
-  border: 1px solid rgba(255,255,255,0.75);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.34), 0 0 0 1px rgba(0,0,0,0.18) inset;
-  white-space: nowrap;
-}
-.od-icon-origin { background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: #04131f; }
-.od-icon-dest { background: linear-gradient(135deg, #f97316, #facc15); color: #1c1200; }
-.od-icon-flow { background: rgba(17, 24, 39, 0.88); color: #fbbf24; border-color: rgba(251, 191, 36, 0.55); }
-.settings-row[data-setting="od-icons"] .sr-label::after {
-  content: ' Top OD';
-  margin-left: 6px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.45);
 }
 
 
@@ -2986,40 +3519,6 @@ button{
 
 /* v43: hide transfer corridor endpoint dots; source rendering is also disabled. */
 .transfer-corridor-platform-dot { display: none !important; }
-
-
-/* ===== 85-control-flow-rank-v15.css ===== */
-/* CITYRAIL V15: robust scroll for the full line ridership ranking. */
-.ctrl-flow-rank-scroll-wrap{
-  max-height:min(46vh, 420px)!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  overscroll-behavior:contain!important;
-  -webkit-overflow-scrolling:touch!important;
-  touch-action:pan-y!important;
-  padding-right:4px;
-  border-radius:8px;
-}
-.ctrl-flow-rank-scroll-wrap #cct-intensity-bars{
-  max-height:none!important;
-  overflow:visible!important;
-  min-height:min-content!important;
-  padding-bottom:4px;
-}
-.ctrl-flow-rank-scroll-wrap::-webkit-scrollbar{
-  width:8px;
-}
-.ctrl-flow-rank-scroll-wrap::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.22);
-  border-radius:999px;
-}
-.ctrl-flow-rank-scroll-wrap .ctrl-bar-row{
-  min-height:22px;
-}
-/* Keep the OCC panel as the fallback scroller when a nested list reaches top/bottom. */
-#ctrl-main{
-  overscroll-behavior:contain!important;
-}
 
 
 /* ===== 95-train-animation-v22.css ===== */
@@ -3241,20 +3740,65 @@ body.cityrail-v30-heavy .leaflet-tooltip {
 
 /* ===== 102-smooth-zoom-v33.css ===== */
 /* CityRail v33 smooth zoom visual tuning */
-#map.cityrail-smooth-zoom-v33,
-.cityrail-smooth-zoom-v33 .leaflet-map-pane,
-.cityrail-smooth-zoom-v33 .leaflet-tile-pane,
-.cityrail-smooth-zoom-v33 .leaflet-overlay-pane,
-.cityrail-smooth-zoom-v33 .leaflet-marker-pane,
-.cityrail-smooth-zoom-v33 .leaflet-shadow-pane,
-.cityrail-smooth-zoom-v33 .leaflet-tooltip-pane,
-.cityrail-smooth-zoom-v33 .leaflet-popup-pane {
-  will-change: transform;
+.cityrail-smooth-zoom-v33 .leaflet-tile {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.cityrail-apple-zooming .leaflet-tile,
+html.cityrail-map-zooming .leaflet-tile,
+html.cityrail-basemap-dragging .leaflet-tile {
+  will-change: transform, opacity;
   backface-visibility: hidden;
   transform-style: preserve-3d;
 }
 
-.cityrail-smooth-zoom-v33 .leaflet-tile {
+html.cityrail-basemap-dragging .leaflet-tile-pane,
+html.cityrail-map-zooming .leaflet-tile-pane {
+  will-change: transform;
+}
+
+html.cityrail-map-zooming .leaflet-tile,
+html.cityrail-apple-zoom-committing .leaflet-tile,
+html.cityrail-apple-zoom-committing .leaflet-tile-pane,
+#map.cityrail-apple-zoom-committing .leaflet-tile,
+#map.cityrail-apple-zoom-committing .leaflet-tile-pane {
+  transition: none !important;
+  animation: none !important;
+}
+
+.cityrail-tile-continuity-hold,
+.cityrail-tile-continuity-backup {
+  position: absolute;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  overflow: hidden;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  contain: layout paint style;
+  transition: opacity .16s ease;
+}
+
+.cityrail-tile-continuity-hold {
+  opacity: 1;
+}
+
+.cityrail-tile-continuity-backup {
+  opacity: 0;
+  z-index: 249;
+}
+
+.cityrail-tile-continuity-hold.retiring {
+  opacity: 0;
+}
+
+.cityrail-tile-continuity-hold .cityrail-held-tile,
+.cityrail-tile-continuity-backup .cityrail-held-tile {
+  position: absolute;
+  max-width: none !important;
+  pointer-events: none !important;
+  user-select: none;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
@@ -3267,7 +3811,6 @@ body.cityrail-v30-heavy .leaflet-tooltip {
 /* During zoom gestures, avoid expensive decorative shadow filters causing jank. */
 .cityrail-is-zooming-v33 .leaflet-tooltip,
 .cityrail-is-zooming-v33 .leaflet-popup,
-.cityrail-is-zooming-v33 .od-icon-label,
 .cityrail-is-zooming-v33 .transfer-corridor-label {
   transition: none !important;
 }
@@ -3352,16 +3895,29 @@ body.cityrail-v30-heavy .leaflet-tooltip {
   line-height:inherit !important;
   vertical-align:baseline;
 }
-#cct-line-stats-body td[data-f="util"],
-#cct-line-stats-body th:nth-child(10),
-.ctrl-table td[data-f="util"]{
-  text-align:center !important;
+#cct-line-stats-table,
+.ctrl-table[data-control-table="line-stats"]{
+  table-layout:fixed;
+}
+#cct-line-stats-table [data-col="speed"],
+#cct-line-stats-table [data-col="length"],
+#cct-line-stats-table [data-col="trains"],
+#cct-line-stats-table [data-col="ridership"],
+#cct-line-stats-table [data-col="crowding"],
+.ctrl-table[data-control-table="line-stats"] [data-col="speed"],
+.ctrl-table[data-control-table="line-stats"] [data-col="length"],
+.ctrl-table[data-control-table="line-stats"] [data-col="trains"],
+.ctrl-table[data-control-table="line-stats"] [data-col="ridership"],
+.ctrl-table[data-control-table="line-stats"] [data-col="crowding"]{
+  text-align:right !important;
   font-variant-numeric:tabular-nums;
 }
-#cct-line-stats-body td[data-f="util"]{
-  min-width:64px;
-  padding-left:8px !important;
-  padding-right:8px !important;
+#cct-line-stats-table [data-col="crowding"],
+.ctrl-table[data-control-table="line-stats"] [data-col="crowding"]{
+  width:88px;
+  min-width:88px;
+  max-width:88px;
+  padding-right:14px !important;
 }
 #ctrl-alerts .ctrl-bar-row,
 #ctrl-alerts .ctrl-bar-track,
@@ -3383,7 +3939,7 @@ body.cityrail-v30-heavy .leaflet-tooltip {
   cursor:pointer;
   font-size:12px;
 }
-body.cityrail-englishi-mode [data-i18n-original-title]::after{ content:none !important; }
+body.cityrail-english-mode [data-i18n-original-title]::after{ content:none !important; }
 
 
 /* ===== 108-root-stability-v67.css ===== */
@@ -3448,7 +4004,7 @@ button:active,.tool-btn:active,.map-btn:active,.settings-row:active,.settings-to
 }
 .cityrail-setting-actions{
   display:grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-columns: repeat(3,minmax(0,1fr));
   gap:8px;
   margin:12px 0 10px;
 }
@@ -3499,7 +4055,7 @@ button:focus-visible,.tool-btn:focus-visible,input:focus-visible,select:focus-vi
   outline: 2px solid rgba(10,132,255,.72); outline-offset: 2px;
 }
 #station-detail-overlay [data-v130-canonical],#station-detail-overlay .v101-line-wait-card,#station-detail-overlay .v102-line-wait-card,#station-detail-overlay .v112-line-wait-card,#station-detail-overlay .v130-line-wait-card,
-.ats-v82,.ats-v116,.ats-v118,.lc-v130-ats,.lc-v132-ats,#line-ops-section,#ats-expand-header-btn,#ex-select-stops,.cc-ex-map-select,.cc-ex-map-tip{
+.cc-ex-map-select,.cc-ex-map-tip{
   display:none!important; pointer-events:none!important;
 }
 .cr-v142-stable-container{ contain: content; }
@@ -4061,4 +4617,969 @@ html.cityrail-v145-ready .v145-line-status{
   .cityrail-tutorial-bottom { align-items: stretch; flex-direction: column; }
   .cityrail-tutorial-actions { width: 100%; }
   .cityrail-tutorial-actions button { flex: 1; }
+}
+
+/* ===== v177 Apple Light UI experiment (optional) ===== */
+html.cityrail-light-ui {
+  --bg: #f5f5f7;
+  --panel: rgba(255, 255, 255, 0.74);
+  --text: #1d1d1f;
+  --text-dim: rgba(60, 60, 67, 0.64);
+  --accent: #007aff;
+  --accent-glow: rgba(0, 122, 255, 0.22);
+  --danger: #ff3b30;
+  --success: #34c759;
+  --warning: #ff9500;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.16);
+  --cr-v144-bg: #f5f5f7;
+  --cr-v144-surface: rgba(255, 255, 255, 0.78);
+  --cr-v144-card: rgba(255, 255, 255, 0.64);
+  --cr-v144-line: rgba(0, 0, 0, 0.10);
+  --cr-v144-text: #1d1d1f;
+  --cr-v144-muted: rgba(60, 60, 67, 0.62);
+  --cr-v144-blue: #007aff;
+}
+
+html.cityrail-light-ui body,
+html.cityrail-light-ui.cityrail-v144-ready body { background: #f5f5f7; color: #1d1d1f; }
+html.cityrail-light-ui #map { background: #eef2f7; }
+
+html.cityrail-light-ui #app-logo .logo-en,
+html.cityrail-light-ui #app-logo.map-light .logo-en {
+  background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 42%, #007aff 84%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 1px 8px rgba(255,255,255,.65));
+}
+html.cityrail-light-ui #app-logo .logo-zh,
+html.cityrail-light-ui #app-logo.map-light .logo-zh { color: rgba(29, 29, 31, 0.44); }
+
+html.cityrail-light-ui #city-badge .city-cn,
+html.cityrail-light-ui #city-badge.map-light .city-cn {
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: rgba(29, 29, 31, 0.88);
+  text-shadow: 0 1px 0 rgba(255,255,255,.58);
+  box-shadow: 0 14px 34px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+html.cityrail-light-ui.cityrail-v144-ready #topbar,
+html.cityrail-light-ui #topbar {
+  border: 1px solid rgba(0,0,0,.08) !important;
+  background: rgba(255,255,255,.74) !important;
+  box-shadow: 0 16px 46px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.78) !important;
+  backdrop-filter: blur(26px) saturate(1.45) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.45) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready #topbar .tool-btn,
+html.cityrail-light-ui .tool-btn { color: rgba(29,29,31,.72) !important; background: transparent !important; }
+html.cityrail-light-ui.cityrail-v144-ready #topbar .tool-btn:hover,
+html.cityrail-light-ui.cityrail-v144-ready #topbar .tool-btn.active,
+html.cityrail-light-ui .tool-btn:hover,
+html.cityrail-light-ui .tool-btn.active {
+  color: #1d1d1f !important;
+  border-color: rgba(0,0,0,.08) !important;
+  background: rgba(0,122,255,.10) !important;
+}
+
+html.cityrail-light-ui.cityrail-v144-ready #bottombar,
+html.cityrail-light-ui #bottombar,
+html.cityrail-light-ui.cityrail-v144-ready #settings-panel,
+html.cityrail-light-ui #settings-panel,
+html.cityrail-light-ui.cityrail-v144-ready #new-line-dialog,
+html.cityrail-light-ui #new-line-dialog,
+html.cityrail-light-ui.cityrail-v144-ready #nav-panel,
+html.cityrail-light-ui #nav-panel,
+html.cityrail-light-ui.cityrail-v144-ready #station-detail-panel,
+html.cityrail-light-ui #station-detail-panel,
+html.cityrail-light-ui #line-config-panel,
+html.cityrail-light-ui #line-stats-panel,
+html.cityrail-light-ui .modal,
+html.cityrail-light-ui .cityrail-tutorial-panel {
+  color: #1d1d1f !important;
+  border: 1px solid rgba(0,0,0,.10) !important;
+  background: rgba(255,255,255,.78) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.76) !important;
+  backdrop-filter: blur(28px) saturate(1.55) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.55) !important;
+}
+
+html.cityrail-light-ui #settings-overlay,
+html.cityrail-light-ui .modal-overlay,
+html.cityrail-light-ui #line-stats-overlay,
+html.cityrail-light-ui #new-line-dialog-overlay,
+html.cityrail-light-ui .cityrail-tutorial-overlay {
+  background: rgba(245,247,250,.42) !important;
+  backdrop-filter: blur(24px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.35) !important;
+}
+
+html.cityrail-light-ui #settings-panel h2,
+html.cityrail-light-ui .modal h2,
+html.cityrail-light-ui #line-config-panel h2,
+html.cityrail-light-ui #station-detail-panel h2,
+html.cityrail-light-ui #line-stats-panel h2,
+html.cityrail-light-ui .ops-title,
+html.cityrail-light-ui .ctrl-card-title,
+html.cityrail-light-ui .cityrail-tutorial-title,
+html.cityrail-light-ui .cityrail-tutorial-point b { color: #1d1d1f !important; }
+
+html.cityrail-light-ui .settings-row,
+html.cityrail-light-ui .sd-line-item,
+html.cityrail-light-ui .ops-station-row,
+html.cityrail-light-ui .cityrail-tutorial-point,
+html.cityrail-light-ui .cc-express-section { border-color: rgba(0,0,0,.07) !important; }
+html.cityrail-light-ui .settings-row:hover,
+html.cityrail-light-ui .cfg-name-btn:hover,
+html.cityrail-light-ui #cfg-edit-actions button:hover { background: rgba(0,122,255,.08) !important; color: #1d1d1f !important; }
+
+html.cityrail-light-ui .settings-row .sr-label,
+html.cityrail-light-ui .cfg-label,
+html.cityrail-light-ui #cfg-subtitle,
+html.cityrail-light-ui .nav-desc,
+html.cityrail-light-ui .sd-subtitle,
+html.cityrail-light-ui .cityrail-tutorial-lede,
+html.cityrail-light-ui .cityrail-tutorial-point span,
+html.cityrail-light-ui .cityrail-tutorial-optout,
+html.cityrail-light-ui .pay-success-label,
+html.cityrail-light-ui .pay-success-note,
+html.cityrail-light-ui .speed-scale-label { color: rgba(60,60,67,.64) !important; }
+html.cityrail-light-ui .panel-close-btn {
+  background: rgba(60,60,67,.10);
+  color: rgba(60,60,67,.72);
+}
+html.cityrail-light-ui .panel-close-btn:hover {
+  background: rgba(60,60,67,.16);
+  color: #1d1d1f;
+}
+
+html.cityrail-light-ui .modal input,
+html.cityrail-light-ui .modal select,
+html.cityrail-light-ui .new-line-input,
+html.cityrail-light-ui .cfg-edit-name-input,
+html.cityrail-light-ui .cfg-select,
+html.cityrail-light-ui .nav-select,
+html.cityrail-light-ui .sd-edit-name-input,
+html.cityrail-light-ui input[type="text"],
+html.cityrail-light-ui input[type="number"],
+html.cityrail-light-ui input[type="password"],
+html.cityrail-light-ui select {
+  color: #1d1d1f !important;
+  background: rgba(255,255,255,.74) !important;
+  border-color: rgba(0,0,0,.10) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+}
+html.cityrail-light-ui .modal select option,
+html.cityrail-light-ui .cfg-select option,
+html.cityrail-light-ui .nav-select option { color: #1d1d1f !important; background: #fff !important; }
+
+html.cityrail-light-ui .btn-cancel,
+html.cityrail-light-ui .cfg-name-btn,
+html.cityrail-light-ui #cfg-edit-actions button,
+html.cityrail-light-ui .modal-btns button:not(.btn-primary),
+html.cityrail-light-ui .cityrail-tutorial-actions button,
+html.cityrail-light-ui .cityrail-tutorial-close {
+  color: rgba(29,29,31,.70) !important;
+  border-color: rgba(0,0,0,.10) !important;
+  background: rgba(255,255,255,.66) !important;
+}
+html.cityrail-light-ui .btn-primary,
+html.cityrail-light-ui #cfg-btn-save,
+html.cityrail-light-ui .cityrail-tutorial-actions .primary,
+html.cityrail-light-ui .cityrail-tutorial-settings-btn,
+html.cityrail-light-ui #sim-btn {
+  color: #fff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #007aff, #0a84ff) !important;
+  box-shadow: 0 10px 24px rgba(0,122,255,.24) !important;
+}
+
+html.cityrail-light-ui #time-label,
+html.cityrail-light-ui #speed-label,
+html.cityrail-light-ui .freq-input-row .freq-val,
+html.cityrail-light-ui .ops-train-speed { color: #007aff !important; }
+
+html.cityrail-light-ui input[type="range"] { accent-color: #007aff; }
+html.cityrail-light-ui #speed-slider,
+html.cityrail-light-ui #time-slider,
+html.cityrail-light-ui .freq-input-row input[type="range"] { background: rgba(60,60,67,.18) !important; }
+html.cityrail-light-ui .freq-input-row input[type="range"]::-webkit-slider-thumb,
+html.cityrail-light-ui #speed-slider::-webkit-slider-thumb,
+html.cityrail-light-ui #time-slider::-webkit-slider-thumb {
+  border-color: #fff !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18) !important;
+}
+
+html.cityrail-light-ui.cityrail-v144-ready #ctrl-center-overlay,
+html.cityrail-light-ui #ctrl-center-overlay {
+  color: #1d1d1f !important;
+  background: linear-gradient(180deg, #f8f9fb 0%, #eef2f7 100%) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready #ctrl-topbar,
+html.cityrail-light-ui #ctrl-topbar,
+html.cityrail-light-ui.cityrail-v144-ready #ctrl-nav,
+html.cityrail-light-ui #ctrl-nav {
+  border-color: rgba(0,0,0,.09) !important;
+  background: rgba(255,255,255,.78) !important;
+  backdrop-filter: blur(24px) saturate(1.45) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.45) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-card,
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-alert-item,
+html.cityrail-light-ui .ctrl-card,
+html.cityrail-light-ui .ctrl-alert-item {
+  color: #1d1d1f !important;
+  border-color: rgba(0,0,0,.08) !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.70) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-big-num,
+html.cityrail-light-ui .ctrl-big-num { color: #1d1d1f !important; }
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-table th,
+html.cityrail-light-ui .ctrl-table th {
+  color: rgba(60,60,67,.62) !important;
+  background: rgba(255,255,255,.92) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-table td,
+html.cityrail-light-ui .ctrl-table td {
+  color: rgba(29,29,31,.76) !important;
+  border-color: rgba(0,0,0,.06) !important;
+}
+html.cityrail-light-ui.cityrail-v144-ready .ctrl-nav-item.active,
+html.cityrail-light-ui .ctrl-nav-item.active { color: #fff !important; background: #007aff !important; }
+
+html.cityrail-light-ui #auth-screen,
+html.cityrail-light-ui #city-select-screen {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(0,122,255,.12), transparent 34%),
+    radial-gradient(circle at 82% 76%, rgba(52,199,89,.10), transparent 34%),
+    linear-gradient(145deg, #fbfbfd 0%, #f2f4f8 54%, #e8edf4 100%) !important;
+  color: #1d1d1f !important;
+}
+html.cityrail-light-ui #auth-screen::before,
+html.cityrail-light-ui #city-select-screen::before { opacity: .28 !important; }
+html.cityrail-light-ui #auth-screen::after,
+html.cityrail-light-ui #city-select-screen::after {
+  background: radial-gradient(circle at center, transparent 0%, rgba(255,255,255,.18) 64%, rgba(210,220,235,.34) 100%) !important;
+}
+html.cityrail-light-ui .auth-card,
+html.cityrail-light-ui .city-item,
+html.cityrail-light-ui .pay-success-panel,
+html.cityrail-light-ui .reg-panel,
+html.cityrail-light-ui .intro-panel,
+html.cityrail-light-ui .workshop-login-modal-card,
+html.cityrail-light-ui .workshop-modal-card,
+html.cityrail-light-ui .workshop-upload-panel {
+  color: #1d1d1f !important;
+  border-color: rgba(0,0,0,.10) !important;
+  background: rgba(255,255,255,.76) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.74) !important;
+  backdrop-filter: blur(28px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.5) !important;
+}
+html.cityrail-light-ui .auth-title,
+html.cityrail-light-ui .city-select-title,
+html.cityrail-light-ui .reg-headline,
+html.cityrail-light-ui .intro-title,
+html.cityrail-light-ui .pay-success-title,
+html.cityrail-light-ui .city-name-zh { color: #1d1d1f !important; }
+html.cityrail-light-ui .auth-lede,
+html.cityrail-light-ui .city-select-note,
+html.cityrail-light-ui .city-select-subtitle,
+html.cityrail-light-ui .city-name-en,
+html.cityrail-light-ui .reg-lede,
+html.cityrail-light-ui .intro-lede { color: rgba(60,60,67,.62) !important; }
+
+/* ===== v178 Apple Light UI legibility pass ===== */
+html.cityrail-light-ui {
+  --text: #141416;
+  --text-dim: rgba(45, 45, 49, 0.78);
+  --cr-v144-text: #141416;
+  --cr-v144-muted: rgba(45, 45, 49, 0.76);
+}
+
+html.cityrail-light-ui #app-logo .logo-zh,
+html.cityrail-light-ui #app-logo.map-light .logo-zh,
+html.cityrail-light-ui .city-select-subtitle,
+html.cityrail-light-ui .auth-lede,
+html.cityrail-light-ui .reg-lede,
+html.cityrail-light-ui .intro-lede,
+html.cityrail-light-ui .city-name-en,
+html.cityrail-light-ui .city-select-note {
+  color: rgba(45, 45, 49, 0.74) !important;
+}
+
+html.cityrail-light-ui .tool-btn,
+html.cityrail-light-ui .btn-cancel,
+html.cityrail-light-ui .cfg-name-btn,
+html.cityrail-light-ui #cfg-edit-actions button,
+html.cityrail-light-ui .modal-btns button:not(.btn-primary),
+html.cityrail-light-ui .cityrail-tutorial-actions button,
+html.cityrail-light-ui .cityrail-tutorial-close {
+  color: rgba(20, 20, 22, 0.84) !important;
+}
+
+html.cityrail-light-ui .settings-row .sr-label,
+html.cityrail-light-ui .cfg-label,
+html.cityrail-light-ui #cfg-subtitle,
+html.cityrail-light-ui .nav-desc,
+html.cityrail-light-ui .sd-subtitle,
+html.cityrail-light-ui .cityrail-tutorial-lede,
+html.cityrail-light-ui .cityrail-tutorial-point span,
+html.cityrail-light-ui .cityrail-tutorial-optout,
+html.cityrail-light-ui .pay-success-label,
+html.cityrail-light-ui .pay-success-note,
+html.cityrail-light-ui .speed-hint,
+html.cityrail-light-ui .freq-input-row .freq-sub,
+html.cityrail-light-ui .ops-train-load,
+html.cityrail-light-ui .ops-summary,
+html.cityrail-light-ui .ops-summary-label,
+html.cityrail-light-ui .sd-line-meta,
+html.cityrail-light-ui .sd-line-flow,
+html.cityrail-light-ui .sd-status-title,
+html.cityrail-light-ui .sd-line-picker-title,
+html.cityrail-light-ui #sd-od-table td:first-child {
+  color: rgba(45, 45, 49, 0.78) !important;
+}
+
+html.cityrail-light-ui .ctrl-top-logo small,
+html.cityrail-light-ui .ctrl-top-stat .ts-label,
+html.cityrail-light-ui .ctrl-nav-item,
+html.cityrail-light-ui .ctrl-card-subtitle,
+html.cityrail-light-ui .ctrl-big-num small,
+html.cityrail-light-ui .ctrl-big-sub,
+html.cityrail-light-ui .ctrl-bar-label,
+html.cityrail-light-ui .ctrl-bar-val,
+html.cityrail-light-ui .ctrl-line-row .cl-val,
+html.cityrail-light-ui .ctrl-alert-item .al-time,
+html.cityrail-light-ui .ctrl-alert-item .al-msg,
+html.cityrail-light-ui .ctrl-line-status .cls-name,
+html.cityrail-light-ui .ctrl-line-status .cls-info,
+html.cityrail-light-ui .ctrl-table th,
+html.cityrail-light-ui .ctrl-rank {
+  color: rgba(45, 45, 49, 0.76) !important;
+}
+
+html.cityrail-light-ui .ctrl-line-name,
+html.cityrail-light-ui .ctrl-table td,
+html.cityrail-light-ui .ctrl-top-stat .ts-val,
+html.cityrail-light-ui .ctrl-big-num {
+  color: #141416 !important;
+}
+
+html.cityrail-light-ui input::placeholder,
+html.cityrail-light-ui textarea::placeholder {
+  color: rgba(45, 45, 49, 0.58) !important;
+}
+
+html.cityrail-light-ui .invite-subtitle,
+html.cityrail-light-ui .invite-back-btn span,
+html.cityrail-light-ui .auth-back-btn span,
+html.cityrail-light-ui .reg-back-btn span,
+html.cityrail-light-ui .login-back-btn span,
+html.cityrail-light-ui .pay-back-btn span,
+html.cityrail-light-ui .city-back-btn span {
+  color: rgba(45, 45, 49, 0.76) !important;
+}
+
+html.cityrail-light-ui .invite-title,
+html.cityrail-light-ui .auth-title,
+html.cityrail-light-ui .city-select-title,
+html.cityrail-light-ui .reg-headline,
+html.cityrail-light-ui .intro-title,
+html.cityrail-light-ui .pay-success-title,
+html.cityrail-light-ui .city-name-zh {
+  color: #141416 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.52);
+}
+
+html.cityrail-light-ui .city-item {
+  background: rgba(255,255,255,.82) !important;
+}
+
+html.cityrail-light-ui .city-loading-step {
+  color: rgba(45, 45, 49, 0.70) !important;
+}
+html.cityrail-light-ui .city-loading-step.active,
+html.cityrail-light-ui .city-loading-step.done {
+  color: #141416 !important;
+}
+
+/* ===== v179 Apple Light UI deep menu pass ===== */
+html.cityrail-light-ui {
+  --light-text-primary: #141416;
+  --light-text-secondary: rgba(36, 36, 40, 0.82);
+  --light-text-tertiary: rgba(58, 58, 62, 0.72);
+  --light-surface: rgba(255, 255, 255, 0.84);
+  --light-surface-strong: rgba(255, 255, 255, 0.94);
+  --light-border: rgba(0, 0, 0, 0.11);
+}
+
+html.cityrail-light-ui .panel,
+html.cityrail-light-ui .control-panel,
+html.cityrail-light-ui .glass-panel,
+html.cityrail-light-ui .side-panel,
+html.cityrail-light-ui .dashboard,
+html.cityrail-light-ui .settings-panel,
+html.cityrail-light-ui .modal,
+html.cityrail-light-ui .popover,
+html.cityrail-light-ui .dropdown,
+html.cityrail-light-ui .menu,
+html.cityrail-light-ui .submenu,
+html.cityrail-light-ui [class*="submenu"],
+html.cityrail-light-ui [class*="dropdown"],
+html.cityrail-light-ui [class*="popover"],
+html.cityrail-light-ui [class*="-menu"],
+html.cityrail-light-ui [class*="-panel"],
+html.cityrail-light-ui [class*="-dialog"] {
+  color: var(--light-text-primary) !important;
+}
+
+html.cityrail-light-ui .panel *,
+html.cityrail-light-ui .control-panel *,
+html.cityrail-light-ui .glass-panel *,
+html.cityrail-light-ui .side-panel *,
+html.cityrail-light-ui .dashboard *,
+html.cityrail-light-ui .modal *,
+html.cityrail-light-ui [class*="submenu"] *,
+html.cityrail-light-ui [class*="dropdown"] *,
+html.cityrail-light-ui [class*="popover"] * {
+  border-color: var(--light-border);
+}
+
+html.cityrail-light-ui .muted,
+html.cityrail-light-ui .secondary,
+html.cityrail-light-ui .hint,
+html.cityrail-light-ui .label,
+html.cityrail-light-ui .stat-label,
+html.cityrail-light-ui .metric-label,
+html.cityrail-light-ui .sub,
+html.cityrail-light-ui .subtitle,
+html.cityrail-light-ui .description,
+html.cityrail-light-ui [class*="-hint"],
+html.cityrail-light-ui [class*="-note"],
+html.cityrail-light-ui [class*="-desc"],
+html.cityrail-light-ui [class*="-subtitle"],
+html.cityrail-light-ui [class*="-label"],
+html.cityrail-light-ui [class*="-sub"] {
+  color: var(--light-text-secondary) !important;
+}
+
+html.cityrail-light-ui button:not(.tool-btn):not(.btn-primary):not(#sim-btn):not(.sd-zone-btn):not(.cr210-line-btn),
+html.cityrail-light-ui [role="button"]:not(.tool-btn):not(.btn-primary),
+html.cityrail-light-ui .btn:not(.btn-primary),
+html.cityrail-light-ui .map-btn,
+html.cityrail-light-ui .settings-toggle,
+html.cityrail-light-ui .cityrail-save-submenu button,
+html.cityrail-light-ui .cityrail-setting-actions button,
+html.cityrail-light-ui .sd-actions button,
+html.cityrail-light-ui .sd-line-action,
+html.cityrail-light-ui .sd-name-btn,
+html.cityrail-light-ui .sd-line-pick-btn,
+html.cityrail-light-ui .branch-config-btn,
+html.cityrail-light-ui .vt-btn,
+html.cityrail-light-ui .stats-del-btn,
+html.cityrail-light-ui .cc-express-open {
+  color: var(--light-text-primary) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: var(--light-border) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.72), 0 8px 20px rgba(0,0,0,.06) !important;
+}
+
+html.cityrail-light-ui .settings-toggle.on {
+  background: #007aff !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.04), 0 4px 12px rgba(0,122,255,.22) !important;
+}
+
+html.cityrail-light-ui .settings-toggle.off {
+  background: rgba(120, 120, 128, 0.26) !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.04) !important;
+}
+
+html.cityrail-light-ui .settings-toggle::after {
+  background: #fff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.12) !important;
+}
+
+html.cityrail-light-ui .settings-row .sr-label::after,
+html.cityrail-light-ui .cityrail-performance-settings-row .sr-label::after,
+html.cityrail-light-ui .settings-row[data-setting="transfer-corridors"] .sr-label::after {
+  color: rgba(36, 36, 40, 0.72) !important;
+  background: rgba(0, 0, 0, 0.055) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  text-shadow: none !important;
+}
+
+html.cityrail-light-ui button:not(.tool-btn):not(.btn-primary):not(#sim-btn):not(.sd-zone-btn):not(.cr210-line-btn):hover,
+html.cityrail-light-ui [role="button"]:not(.tool-btn):not(.btn-primary):hover,
+html.cityrail-light-ui .btn:not(.btn-primary):hover,
+html.cityrail-light-ui .map-btn:hover,
+html.cityrail-light-ui .cityrail-save-submenu button:hover,
+html.cityrail-light-ui .cityrail-setting-actions button:hover,
+html.cityrail-light-ui .sd-actions button:hover,
+html.cityrail-light-ui .sd-line-action:hover,
+html.cityrail-light-ui .branch-config-btn:hover,
+html.cityrail-light-ui .vt-btn:hover,
+html.cityrail-light-ui .cc-express-open:hover {
+  color: #111113 !important;
+  background: rgba(0, 122, 255, 0.10) !important;
+  border-color: rgba(0, 122, 255, 0.26) !important;
+}
+
+html.cityrail-light-ui button.active,
+html.cityrail-light-ui button.active-edit,
+html.cityrail-light-ui [role="button"].active,
+html.cityrail-light-ui .cc-express-open.on,
+html.cityrail-light-ui .ctrl-nav-item.active {
+  color: #fff !important;
+  background: #007aff !important;
+  border-color: transparent !important;
+}
+
+html.cityrail-light-ui input,
+html.cityrail-light-ui select,
+html.cityrail-light-ui textarea,
+html.cityrail-light-ui .branch-config-select,
+html.cityrail-light-ui .cfg-select,
+html.cityrail-light-ui .nav-select,
+html.cityrail-light-ui .reg-input {
+  color: var(--light-text-primary) !important;
+  background: var(--light-surface-strong) !important;
+  border-color: var(--light-border) !important;
+}
+html.cityrail-light-ui .login-version-note {
+  color: rgba(60, 60, 67, 0.70) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(60, 60, 67, 0.14) !important;
+}
+
+html.cityrail-light-ui table,
+html.cityrail-light-ui th,
+html.cityrail-light-ui td,
+html.cityrail-light-ui .ctrl-table,
+html.cityrail-light-ui #line-stats-table,
+html.cityrail-light-ui #sd-od-table {
+  color: var(--light-text-primary) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.cityrail-light-ui th,
+html.cityrail-light-ui .ctrl-table th,
+html.cityrail-light-ui #line-stats-table th,
+html.cityrail-light-ui #sd-od-table th {
+  color: var(--light-text-secondary) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+html.cityrail-light-ui td,
+html.cityrail-light-ui .ctrl-table td,
+html.cityrail-light-ui #line-stats-table td,
+html.cityrail-light-ui #sd-od-table td {
+  color: rgba(20, 20, 22, 0.90) !important;
+}
+
+html.cityrail-light-ui #vt-panel,
+html.cityrail-light-ui #nav-panel,
+html.cityrail-light-ui #station-detail-panel,
+html.cityrail-light-ui #line-config-panel,
+html.cityrail-light-ui #line-stats-panel,
+html.cityrail-light-ui #cfg-express-panel,
+html.cityrail-light-ui .cityrail-save-submenu,
+html.cityrail-light-ui .cityrail-save-submenu-flat,
+html.cityrail-light-ui .sd-line-picker,
+html.cityrail-light-ui #sd-branch-config,
+html.cityrail-light-ui #cfg-freq-panel,
+html.cityrail-light-ui #cfg-time-panel,
+html.cityrail-light-ui .sd-waiting-card,
+html.cityrail-light-ui .pay-option,
+html.cityrail-light-ui .pay-promo,
+html.cityrail-light-ui .workshop-card,
+html.cityrail-light-ui .workshop-item,
+html.cityrail-light-ui .workshop-upload-panel {
+  color: var(--light-text-primary) !important;
+  background: var(--light-surface) !important;
+  border-color: var(--light-border) !important;
+}
+
+html.cityrail-light-ui .cfg-line-name,
+html.cityrail-light-ui #sd-station-name,
+html.cityrail-light-ui .sd-section-title,
+html.cityrail-light-ui #cfg-freq-panel .freq-section-title,
+html.cityrail-light-ui #cfg-time-panel .freq-section-title,
+html.cityrail-light-ui #vt-panel h2,
+html.cityrail-light-ui #nav-panel h2,
+html.cityrail-light-ui #station-detail-panel h2,
+html.cityrail-light-ui #line-config-panel h2,
+html.cityrail-light-ui #line-stats-panel h2,
+html.cityrail-light-ui #cfg-express-panel .ex-title,
+html.cityrail-light-ui .pay-title,
+html.cityrail-light-ui .pay-option-name,
+html.cityrail-light-ui .workshop-title {
+  color: var(--light-text-primary) !important;
+}
+
+html.cityrail-light-ui #vt-panel .vt-subtitle,
+html.cityrail-light-ui #vt-panel .vt-penalty-hint,
+html.cityrail-light-ui .nav-label,
+html.cityrail-light-ui .sd-bar-label,
+html.cityrail-light-ui .sd-waiting-dir-label,
+html.cityrail-light-ui .sd-waiting-dir-to,
+html.cityrail-light-ui .sd-waiting-dir-hint,
+html.cityrail-light-ui .sd-waiting-empty,
+html.cityrail-light-ui .branch-config-label,
+html.cityrail-light-ui .cfg-time-hint,
+html.cityrail-light-ui #cfg-edit-hint,
+html.cityrail-light-ui .cfg-x-edit-hint,
+html.cityrail-light-ui .reg-field-limit-hint,
+html.cityrail-light-ui .reg-password-limit-hint,
+html.cityrail-light-ui #cfg-express-panel .ex-sub,
+html.cityrail-light-ui .pay-subtitle,
+html.cityrail-light-ui .pay-original,
+html.cityrail-light-ui .pay-option-desc,
+html.cityrail-light-ui .pay-cta-hint {
+  color: var(--light-text-secondary) !important;
+}
+
+html.cityrail-light-ui .vt-type-badge,
+html.cityrail-light-ui .leg-line,
+html.cityrail-light-ui .ctrl-line-status,
+html.cityrail-light-ui .ctrl-alert-item,
+html.cityrail-light-ui .cityrail-save-menu-toggle {
+  color: var(--light-text-primary) !important;
+  background: rgba(255,255,255,.68) !important;
+  border-color: var(--light-border) !important;
+}
+
+html.cityrail-light-ui #nav-route .leg-arrow {
+  color: rgba(36, 36, 40, 0.52) !important;
+}
+
+html.cityrail-light-ui .sd-btn-danger,
+html.cityrail-light-ui .branch-config-btn-cancel,
+html.cityrail-light-ui .stats-del-btn {
+  color: #d70015 !important;
+}
+
+html.cityrail-light-ui #sd-station-toggle-open {
+  color: #248a3d !important;
+  background: rgba(52,199,89,.14) !important;
+  border-color: rgba(52,199,89,.32) !important;
+}
+html.cityrail-light-ui #sd-station-toggle-open.closed {
+  color: #d70015 !important;
+  background: rgba(255,59,48,.10) !important;
+  border-color: rgba(255,59,48,.28) !important;
+  box-shadow: 0 8px 20px rgba(255,59,48,.10), inset 0 1px 0 rgba(255,255,255,.70) !important;
+}
+
+html.cityrail-light-ui .sd-extend-btn,
+html.cityrail-light-ui .sd-waiting-dir-forward,
+html.cityrail-light-ui .sd-waiting-dir-backward {
+  color: #1f8f43 !important;
+}
+
+html.cityrail-light-ui .sd-branch-btn,
+html.cityrail-light-ui .branch-config-btn-start,
+html.cityrail-light-ui .line-stats-intensity-mid,
+html.cityrail-light-ui .intensity-mid {
+  color: #b45f00 !important;
+}
+
+/* ===== v442 Control Center light homepage polish ===== */
+html.cityrail-light-ui #ctrl-center-overlay {
+  --cc-light-bg: #eef2f7;
+  --cc-light-bg-2: #f7f9fc;
+  --cc-light-surface: rgba(255, 255, 255, 0.88);
+  --cc-light-surface-strong: rgba(255, 255, 255, 0.96);
+  --cc-light-surface-soft: rgba(248, 250, 252, 0.84);
+  --cc-light-border: rgba(15, 23, 42, 0.12);
+  --cc-light-border-soft: rgba(15, 23, 42, 0.075);
+  --cc-light-text: #111827;
+  --cc-light-text-2: rgba(17, 24, 39, 0.74);
+  --cc-light-text-3: rgba(17, 24, 39, 0.58);
+  --cc-light-blue: #006edb;
+  --cc-light-green: #188038;
+  --cc-light-orange: #a45a00;
+  --cc-light-red: #d70015;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(0, 122, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, var(--cc-light-bg-2), var(--cc-light-bg)) !important;
+  color: var(--cc-light-text) !important;
+  text-shadow: none !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay,
+html.cityrail-light-ui #ctrl-center-overlay * {
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-topbar {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid var(--cc-light-border) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,.86) !important;
+  color: var(--cc-light-text) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-logo {
+  color: var(--cc-light-blue) !important;
+  font-weight: 850 !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-logo small,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat .ts-label {
+  color: var(--cc-light-text-3) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat {
+  border-right-color: var(--cc-light-border-soft) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat .ts-val {
+  color: var(--cc-light-text) !important;
+  font-weight: 800 !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat .ts-val.ok { color: var(--cc-light-green) !important; }
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat .ts-val.warn { color: var(--cc-light-orange) !important; }
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat .ts-val.err { color: var(--cc-light-red) !important; }
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-close-btn {
+  background: rgba(15, 23, 42, 0.055) !important;
+  border: 1px solid rgba(15, 23, 42, 0.10) !important;
+  color: var(--cc-light-text-2) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.74) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-close-btn:hover {
+  background: rgba(215, 0, 21, 0.10) !important;
+  border-color: rgba(215, 0, 21, 0.22) !important;
+  color: var(--cc-light-red) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-body {
+  background: transparent !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-nav {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-right: 1px solid var(--cc-light-border) !important;
+  box-shadow: 8px 0 28px rgba(15, 23, 42, 0.055) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-nav-item {
+  color: rgba(17, 24, 39, 0.56) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-nav-item:hover {
+  color: var(--cc-light-text) !important;
+  background: rgba(0, 122, 255, 0.08) !important;
+  border-color: rgba(0, 122, 255, 0.16) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-nav-item.active {
+  color: #fff !important;
+  background: var(--cc-light-blue) !important;
+  border-color: transparent !important;
+  box-shadow: 0 10px 22px rgba(0, 110, 219, 0.24), inset 0 1px 0 rgba(255,255,255,.20) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-main {
+  background: transparent !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-card,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-status,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-summary > div,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-row {
+  background: var(--cc-light-surface) !important;
+  border-color: var(--cc-light-border) !important;
+  color: var(--cc-light-text) !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,.88) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-card {
+  border-radius: 10px !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-card-title,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-section-title {
+  color: rgba(17, 24, 39, 0.70) !important;
+  font-weight: 850 !important;
+  text-transform: none !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-big-num,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-name,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-status .cls-name,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-name,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-summary b,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-stat b {
+  color: var(--cc-light-text) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-big-num small,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-big-sub,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-bar-label,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-bar-val,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-row .cl-val,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-status .cls-info,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-lines,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-summary span,
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-stat span,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-rank {
+  color: var(--cc-light-text-2) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item .al-time {
+  color: var(--cc-light-text-3) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item .al-msg {
+  color: rgba(17, 24, 39, 0.84) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item.al-warn {
+  border-left-color: #ff9f0a !important;
+  background: linear-gradient(90deg, rgba(255, 159, 10, 0.12), var(--cc-light-surface) 24%) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item.al-err {
+  border-left-color: var(--cc-light-red) !important;
+  background: linear-gradient(90deg, rgba(215, 0, 21, 0.10), var(--cc-light-surface) 24%) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-alert-item.al-ok {
+  border-left-color: var(--cc-light-green) !important;
+  background: linear-gradient(90deg, rgba(24, 128, 56, 0.10), var(--cc-light-surface) 24%) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-bar-track {
+  background: rgba(15, 23, 42, 0.09) !important;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-row {
+  border-bottom-color: rgba(15, 23, 42, 0.075) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-dot,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-status .cls-dot {
+  box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 0 0 3px rgba(15,23,42,.12) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-table {
+  color: var(--cc-light-text) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-table th,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-stats-scroll-wrap thead th {
+  background: rgba(246, 248, 252, 0.96) !important;
+  color: rgba(17, 24, 39, 0.72) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.10) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-stats-scroll-wrap table.ctrl-table thead th,
+html.cityrail-light-ui #ctrl-center-overlay #cct-line-stats-scroll-wrap table.ctrl-table thead th {
+  background: rgba(246, 248, 252, 0.98) !important;
+  color: rgba(17, 24, 39, 0.72) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.10) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.84) inset !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-table td {
+  color: rgba(17, 24, 39, 0.88) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.07) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #cct-line-stats-scroll-wrap,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-stats-scroll-wrap {
+  background: rgba(255, 255, 255, 0.66) !important;
+  border-color: var(--cc-light-border) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-row.shortage {
+  background: linear-gradient(90deg, rgba(215, 0, 21, 0.10), rgba(255,255,255,.88) 28%) !important;
+  border-color: rgba(215, 0, 21, 0.24) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay .cr200-depot-alert {
+  background: rgba(215, 0, 21, 0.09) !important;
+  border-color: rgba(215, 0, 21, 0.24) !important;
+  color: var(--cc-light-red) !important;
+}
+
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-main::-webkit-scrollbar-thumb,
+html.cityrail-light-ui #ctrl-center-overlay #ctrl-alerts::-webkit-scrollbar-thumb,
+html.cityrail-light-ui #ctrl-center-overlay .ctrl-line-stats-scroll-wrap::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.22) !important;
+}
+
+@media (max-width: 900px) {
+  html.cityrail-light-ui #ctrl-center-overlay #ctrl-topbar {
+    height: auto !important;
+    min-height: 102px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-content: center !important;
+    gap: 6px 8px !important;
+    padding: 8px 10px !important;
+    overflow: visible !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-logo {
+    order: 0 !important;
+    flex: 1 1 120px !important;
+    margin-right: 0 !important;
+    line-height: 1.12 !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay #ctrl-close-btn {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    height: 30px !important;
+    margin-left: 0 !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay .ctrl-top-stat {
+    order: 2 !important;
+    flex: 1 1 calc(25% - 8px) !important;
+    min-width: 74px !important;
+    height: 28px !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    padding: 0 7px !important;
+    border-right: 0 !important;
+    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.045) !important;
+    font-size: 10px !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay #ctrl-main {
+    overflow-x: hidden !important;
+    padding: 12px !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay #ctrl-content-grid {
+    width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html.cityrail-light-ui #ctrl-center-overlay .ctrl-card {
+    width: auto !important;
+    min-width: 0 !important;
+    grid-column: 1 / -1 !important;
+    padding: 13px !important;
+  }
 }

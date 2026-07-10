@@ -10,12 +10,21 @@ script_srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 if any('js/legacy/' in src for src in script_srcs): errors.append('index still loads js/legacy')
 local_js=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 local_js=[x for x in local_js if './js/' in x or '/js/' in x or x.startswith('js/')]
-expected_js=['cityrail-runtime.js','cityrail-v146-single-control-owner.js']
+expected_js=[
+    'cityrail-runtime.js',
+    'cityrail-v146-single-control-owner.js',
+    'cityrail-apple-spatial-ui-authority.js',
+    'cityrail-maplibre-pmtiles-authority.js',
+    'cityrail-living-city.js',
+    'cityrail-external-sources-v1.js',
+    'cityrail-performance-authority-v400.js',
+]
 inline_js=(
     'id="cityrail-inline-runtime"' in idx
     and 'id="cityrail-inline-control-owner"' in idx
 )
-external_js_ok=len(local_js)==2 and not any(name not in src for name,src in zip(expected_js,local_js))
+local_js_names=[src.split('?',1)[0].rsplit('/',1)[-1] for src in local_js]
+external_js_ok=local_js_names==expected_js
 if not (external_js_ok or inline_js): errors.append(f'unexpected local JS entries: {local_js}')
 local_css=re.findall(r'<link[^>]+href=["\']([^"\']+)["\']', idx)
 local_css=[x for x in local_css if './css/' in x or '/css/' in x or x.startswith('css/')]
@@ -35,11 +44,11 @@ for req in ['cityrailV143Report','cityrailSelfCheck','CityRailInteractionV143','
 v145=(ROOT/'js/cityrail-v146-single-control-owner.js').read_text(encoding='utf-8')
 for req in ['cityrailV145Report','__v145StableOwner','snapshotOwner','CityRailStationDragCore']:
     if req not in v145: errors.append(f'missing required v145 symbol: {req}')
-for req in ['__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__','legacyControlSuppressed','singleControlOwner','cloudflare-pages-functions']:
+for req in ['__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__','legacyControlSuppressed','singleControlOwner','CITYRAIL_BUILD_VERSION']:
     if req not in idx + js + v145: errors.append(f'missing required v146 single-owner symbol: {req}')
 for req in ['/api/pay/create','/api/pay/status','cityrail-pay-modal']:
     if req not in idx + js + css: errors.append(f'missing required payment symbol: {req}')
-for req in ['bindStableDispatchEvents','CityRailDispatchConsoleV146','cityrailLastDispatch','cityrailLastOvertake']:
+for req in ['CityRailDispatchAuthorityV300','CityRailDispatchAuthorityV301','cityrailDispatchAuthorityOwnsFleet','CityRailDispatchConsoleV146','cityrailLastDispatch','cityrailLastOvertake']:
     if req not in js: errors.append(f'missing required v146 dispatch symbol: {req}')
 # Static buttons should have data-action when declared in HTML.
 html_shell=idx.split('<script',1)[0]

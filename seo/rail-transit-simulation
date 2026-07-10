@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>轨道交通模拟：CityRail 都市城轨的线网、客流与换乘系统</title>
+  <meta name="description" content="CityRail 都市城轨面向轨道交通模拟玩家，支持城市线网规划、车站客流、换乘通道、线路运能、运行图和创意工坊存档分享。">
+  <meta name="keywords" content="轨道交通模拟,城市轨道交通规划,地铁线路规划游戏,客流模拟,换乘模拟">
+  <link rel="canonical" href="https://cityrailgame.pages.dev/seo/rail-transit-simulation">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="轨道交通模拟：线网、客流与换乘系统">
+  <meta property="og:description" content="从线路规划到客流压力，CityRail 让城市轨道交通网络变成可运行、可观察、可调整的系统。">
+  <meta property="og:image" content="https://cityrailgame.pages.dev/og-image.webp">
+  <meta property="og:url" content="https://cityrailgame.pages.dev/seo/rail-transit-simulation">
+  <style>
+    :root{color-scheme:light;--blue:#0a84ff;--text:#111827;--muted:#5f6673;--line:#e5e7eb;--bg:#f5f5f7}
+    *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+    main{max-width:980px;margin:0 auto;padding:56px 22px 72px}h1{margin:0;font-size:clamp(34px,6vw,64px);line-height:1.08;letter-spacing:0}h2{margin:42px 0 12px;font-size:28px;letter-spacing:0}p{margin:0 0 14px;color:var(--muted);font-size:17px}a{color:var(--blue);text-decoration:none}
+    .hero{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}.cta{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.cta a{display:inline-flex;align-items:center;min-height:42px;padding:9px 16px;border-radius:999px;background:#111827;color:white;font-weight:700}.cta a.secondary{background:white;color:#111827;border:1px solid var(--line)}
+    .shot{width:100%;border-radius:18px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(15,23,42,.14);background:white}.list{display:grid;gap:12px;margin-top:18px}.item{background:white;border:1px solid var(--line);border-radius:18px;padding:18px}.item strong{display:block;margin-bottom:6px}.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
+    @media(max-width:720px){main{padding-top:36px}h2{font-size:24px}}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"轨道交通模拟：CityRail 都市城轨的线网、客流与换乘系统","description":"介绍 CityRail 的城市轨道交通规划、客流模拟和换乘系统。","image":"https://cityrailgame.pages.dev/og-image.webp","author":{"@type":"Organization","name":"CityRail"},"publisher":{"@type":"Organization","name":"CityRail"},"datePublished":"2026-06-09","dateModified":"2026-06-09","mainEntityOfPage":"https://cityrailgame.pages.dev/seo/rail-transit-simulation"}
+  </script>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>把城市轨道交通当作系统来模拟</h1>
+      <p>CityRail 都市城轨适合喜欢城市规划、轨道交通、运营组织和数据观察的玩家。你可以从车站选址开始，逐步形成线路、换乘网络和完整的客流结构。</p>
+      <div class="cta"><a href="/">进入 CityRail</a><a class="secondary" href="/seo/metro-simulator-game">地铁模拟游戏介绍</a></div>
+      <img class="shot" src="/assets/register-intro-webp/control.webp" alt="CityRail 轨道交通模拟控制中心界面">
+    </section>
+    <h2>核心模拟对象</h2>
+    <div class="list">
+      <div class="item"><strong>线网结构</strong><p>线路走向、站点密度和换乘节点会影响乘客选择，也会影响一条线是否容易拥堵。</p></div>
+      <div class="item"><strong>客流分布</strong><p>系统将站点、区域吸引力、线路连接和运营能力综合成可观察的客流结果。</p></div>
+      <div class="item"><strong>运能配置</strong><p>车辆类型、速度、发车频率和线路组织会改变高峰承载能力。</p></div>
+      <div class="item"><strong>作品分享</strong><p>玩家可以保存城市线网，通过创意工坊下载或分享不同城市的规划方案。</p></div>
+    </div>
+    <h2>适合写评测和教程的切入点</h2>
+    <p>可以从“为什么某条线拥挤”“换乘站为什么失效”“快慢车怎样影响运行图”“车辆制式如何影响运能”等角度做内容，这些主题比单纯展示截图更容易被搜索引擎和玩家理解。</p>
+    <div class="links"><a href="/seo/ats-dispatch-simulator">ATS 调度模拟</a><a href="/">返回官网首页</a></div>
+  </main>
+</body>
+</html>
