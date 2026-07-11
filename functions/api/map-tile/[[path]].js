@@ -99,7 +99,9 @@ function upstreamHeaders(provider) {
 }
 
 function upstreamUrls(tile) {
-  return [PROVIDERS[tile.provider](tile)];
+  const subs = SUBDOMAINS[tile.provider] || [tile.sub || ''];
+  const ordered = [tile.sub, ...subs].filter((sub, index, arr) => sub != null && arr.indexOf(sub) === index);
+  return ordered.map(sub => PROVIDERS[tile.provider]({ ...tile, sub }));
 }
 
 async function fetchUpstream(url, provider) {
@@ -140,6 +142,7 @@ export async function onRequestGet(context) {
   }
 
   let upstream;
+  let body;
   let lastError = '';
   let lastStatus = 0;
   let lastType = '';
@@ -148,18 +151,23 @@ export async function onRequestGet(context) {
     usedUrl = url;
     try {
       upstream = await fetchUpstream(url, tile.provider);
+      lastStatus = upstream.status || 0;
+      lastType = String(upstream.headers.get('content-type') || '').toLowerCase();
+      if (!upstream.ok || !lastType.startsWith('image/')) {
+        upstream = null;
+        continue;
+      }
+      body = await upstream.arrayBuffer();
+      break;
     } catch (err) {
       lastError = err && err.message ? err.message : String(err);
       upstream = null;
+      body = null;
       continue;
     }
-    lastStatus = upstream.status || 0;
-    lastType = String(upstream.headers.get('content-type') || '').toLowerCase();
-    if (upstream.ok && lastType.startsWith('image/')) break;
-    upstream = null;
   }
 
-  if (!upstream) {
+  if (!upstream || !body) {
     return responseText(lastError ? `tile upstream fetch failed: ${lastError}` : `tile upstream returned ${lastStatus || 0}`, 502, {
       'x-cityrail-tile-provider': tile.provider,
       'x-cityrail-upstream-status': String(lastStatus || 0),
@@ -177,7 +185,6 @@ export async function onRequestGet(context) {
     });
   }
 
-  const body = await upstream.arrayBuffer();
   const contentType = detectImageType(body, upstream.headers.get('content-type') || 'image/png');
   const response = new Response(body, {
     status: 200,
