@@ -7584,8 +7584,8 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     });
   }
   function removeLegacyDecor(){
-    D.querySelectorAll('#cfg-grid-bg,#cfg-scanline,#cityrailControlCenterPlus,.cc-ex-map-tip,.cc-ex-stop-marker').forEach(el=>el.remove());
-    D.querySelectorAll('#line-stats-panel > div[style*="animation"],#station-detail-panel > div[style*="animation"],#nav-panel > div[style*="animation"]').forEach(el=>el.remove());
+    D.querySelectorAll('#cityrailControlCenterPlus,.cc-ex-map-tip,.cc-ex-stop-marker').forEach(el=>el.remove());
+    D.querySelectorAll('#line-stats-panel > div[style*="animation"],#nav-panel > div[style*="animation"]').forEach(el=>el.remove());
   }
   function renderControl(force){
     const overlay=byId('ctrl-center-overlay');
@@ -14495,123 +14495,73 @@ const DepotService = (function(){
       .cityrail-depot-connector-node-icon:active{cursor:grabbing;}
       .cityrail-depot-connection-modal{position:fixed;top:70px;left:12px;z-index:100220;display:none;pointer-events:none;}
       .cityrail-depot-connection-modal.visible{display:block;}
-      .cityrail-depot-connection-card{width:380px;max-width:calc(100vw - 24px);max-height:calc(100vh - 100px);display:flex;flex-direction:column;border-radius:22px;border:1px solid rgba(255,255,255,.18);background:rgba(28,28,30,.88);box-shadow:0 28px 90px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.14);overflow:hidden;color:#fff;pointer-events:auto;backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);}
-      .cityrail-depot-connection-body{padding:16px 20px;overflow:auto;display:grid;gap:12px;}
-      .depot-conn-route{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);}
-      .depot-conn-route strong{display:block;font-size:14px;font-weight:850;color:#fff;}
-      .depot-conn-route small{display:block;margin-top:3px;font-size:12px;color:rgba(255,255,255,.52);}
-      .depot-conn-hint{font-size:12px;line-height:1.45;color:rgba(255,255,255,.58);font-weight:760;padding:0 2px;}
+      .cityrail-depot-connection-card{--cr-object-accent:#0a84ff;width:min(430px,calc(100vw - 36px));max-width:min(430px,calc(100vw - 36px));max-height:calc(100vh - 100px);display:flex;flex-direction:column;border-radius:20px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));background:var(--cr-object-bg,rgba(12,14,18,.88));box-shadow:none;overflow:hidden;color:var(--cr-object-text,#f8fafc);pointer-events:auto;backdrop-filter:blur(12px) saturate(126%);-webkit-backdrop-filter:blur(12px) saturate(126%);text-shadow:none;}
+      .cityrail-depot-connection-body{padding:12px 20px 14px;overflow:auto;display:grid;gap:12px;min-height:0;scrollbar-gutter:stable;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+      .depot-conn-route{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:10px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(5,8,12,.28);box-shadow:none;}
+      .depot-conn-route strong{display:block;font-size:14px;font-weight:850;color:var(--cr-object-text,#f8fafc);}
+      .depot-conn-route small{display:block;margin-top:3px;font-size:12px;color:var(--cr-object-muted,rgba(235,241,248,.62));}
+      .depot-conn-hint{font-size:12px;line-height:1.45;color:var(--cr-object-muted,rgba(235,241,248,.62));font-weight:760;padding:0 2px;}
       .depot-conn-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-      .depot-conn-tools button{min-height:36px;border:0;border-radius:11px;font-size:12px;font-weight:850;cursor:pointer;}
-      .depot-conn-tools .primary{background:#0a84ff;color:#fff;}
-      .depot-conn-tools .secondary{background:rgba(255,255,255,.10);color:#fff;}
-      .depot-conn-tools .danger{background:rgba(255,69,58,.16);color:#ffb4ad;border:1px solid rgba(255,69,58,.28);}
+      .depot-conn-tools button{min-height:36px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-radius:8px;font-size:12px;font-weight:850;cursor:pointer;box-shadow:none;background:rgba(255,255,255,.055);color:var(--cr-object-text,#f8fafc);}
+      .depot-conn-tools .primary{background:var(--cr-object-accent,#0a84ff);border-color:var(--cr-object-accent,#0a84ff);color:#fff;}
+      .depot-conn-tools .secondary{background:rgba(255,255,255,.055);color:var(--cr-object-text,#f8fafc);}
+      .depot-conn-tools .danger{background:rgba(255,69,58,.12);color:#ffb4ad;border-color:rgba(255,69,58,.42);}
       .depot-conn-node-field{align-items:start;}
       .depot-conn-node-list{display:grid;gap:7px;min-width:0;}
-      .depot-conn-node-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:8px 9px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);color:#fff;text-align:left;cursor:pointer;}
-      .depot-conn-node-row.active{border-color:rgba(10,132,255,.50);background:rgba(10,132,255,.16);}
+      .depot-conn-node-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:8px 9px;border-radius:10px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(5,8,12,.28);color:var(--cr-object-text,#f8fafc);text-align:left;cursor:pointer;box-shadow:none;}
+      .depot-conn-node-row.active{border-color:var(--cr-object-accent,#0a84ff);background:rgba(10,132,255,.16);}
       .depot-conn-node-row b{display:block;font-size:12px;font-weight:850;}
-      .depot-conn-node-row small{display:block;margin-top:2px;font-size:11px;color:rgba(255,255,255,.46);font-variant-numeric:tabular-nums;}
+      .depot-conn-node-row small{display:block;margin-top:2px;font-size:11px;color:var(--cr-object-faint,rgba(235,241,248,.42));font-variant-numeric:tabular-nums;}
       .depot-conn-node-row i{font-style:normal;flex:0 0 auto;font-size:12px;font-weight:850;color:#ffb4ad;padding:7px 9px;border-radius:9px;background:rgba(255,69,58,.12);}
       .depot-name-tooltip{font-weight:800;}
       .cityrail-depot-modal{position:fixed;top:70px;left:12px;z-index:100200;display:none;pointer-events:none;}
       .cityrail-depot-modal.visible{display:block;}
-      .cityrail-depot-panel{width:380px;max-width:calc(100vw - 24px);max-height:calc(100vh - 100px);display:flex;flex-direction:column;border-radius:22px;border:1px solid rgba(255,255,255,.18);background:rgba(28,28,30,.86);box-shadow:0 28px 90px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.14);overflow:hidden;color:#fff;pointer-events:auto;backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);}
-      .cityrail-depot-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 12px;border-bottom:1px solid rgba(255,255,255,.08);}
-      .cityrail-depot-title{font-size:18px;font-weight:850;letter-spacing:0;}
-      .cityrail-depot-sub{font-size:12px;color:rgba(255,255,255,.48);margin-top:3px;}
-      .cityrail-depot-close{width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.10);color:#fff;font-size:18px;cursor:pointer;}
-      .cityrail-depot-body{padding:16px 20px;overflow:auto;display:grid;gap:12px;}
-      .depot-field{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:center;}
-      .depot-field label{font-size:12px;color:rgba(255,255,255,.58);font-weight:760;}
-      .depot-field input,.depot-field select{width:100%;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;padding:0 10px;font-size:13px;outline:none;}
-      .depot-field input.invalid{border-color:rgba(255,69,58,.72);box-shadow:0 0 0 3px rgba(255,69,58,.14);}
+      .cityrail-depot-panel{--cr-object-accent:#0a84ff;width:min(430px,calc(100vw - 36px));max-width:min(430px,calc(100vw - 36px));max-height:calc(100vh - 100px);display:flex;flex-direction:column;border-radius:20px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));background:var(--cr-object-bg,rgba(12,14,18,.88));box-shadow:none;overflow:hidden;color:var(--cr-object-text,#f8fafc);pointer-events:auto;backdrop-filter:blur(12px) saturate(126%);-webkit-backdrop-filter:blur(12px) saturate(126%);text-shadow:none;}
+      .cityrail-depot-head{display:grid;grid-template-columns:minmax(0,1fr) 34px;align-items:center;gap:12px;padding:28px 20px 16px;border-bottom:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
+      .cityrail-depot-title{font-size:30px;font-weight:880;line-height:1.08;letter-spacing:0;color:var(--cr-object-text,#f8fafc);overflow-wrap:anywhere;}
+      .cityrail-depot-sub{font-size:12px;color:var(--cr-object-muted,rgba(235,241,248,.62));margin-top:5px;}
+      .cityrail-depot-close{width:34px;height:34px;border-radius:999px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));background:rgba(255,255,255,.055);color:var(--cr-object-muted,rgba(235,241,248,.62));font-size:18px;cursor:pointer;box-shadow:none;}
+      .cityrail-depot-close:hover{background:rgba(255,255,255,.09);color:var(--cr-object-text,#f8fafc);}
+      .cityrail-depot-body{padding:12px 20px 14px;overflow:auto;display:grid;gap:12px;min-height:0;scrollbar-gutter:stable;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+      .depot-field{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:center;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-left-color:var(--cr-object-accent,#0a84ff);border-radius:12px;background:var(--cr-object-card,rgba(18,21,27,.76));padding:12px;box-shadow:none;}
+      .depot-field label{font-size:12px;color:var(--cr-object-muted,rgba(235,241,248,.62));font-weight:820;}
+      .depot-field input,.depot-field select{width:100%;height:34px;border-radius:8px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(4,7,11,.30);color:var(--cr-object-text,#f8fafc);padding:0 10px;font-size:13px;outline:none;box-shadow:none;}
+      .depot-field input:focus,.depot-field select:focus{border-color:var(--cr-object-accent,#0a84ff);box-shadow:none;}
+      .depot-field input.invalid{border-color:rgba(255,69,58,.72);box-shadow:none;}
       .depot-capacity-wrap{display:grid;gap:6px;}
       .depot-capacity-error{display:none;color:#ffb4ad;font-size:12px;font-weight:760;}
       .depot-capacity-error.visible{display:block;}
       .depot-angle-wrap{display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:10px;align-items:center;}
-      .depot-angle-wrap input[type="range"]{height:28px;padding:0;border:0;background:transparent;accent-color:#0a84ff;}
+      .depot-angle-wrap input[type="range"]{height:4px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.12);accent-color:var(--cr-object-accent,#0a84ff);}
       .depot-angle-wrap input[type="number"]{text-align:center;font-variant-numeric:tabular-nums;}
       .depot-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-      .depot-kpi{min-height:58px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);padding:10px 11px;}
-      .depot-kpi strong{display:block;font-size:18px;font-weight:880;line-height:1.1;}
-      .depot-kpi span{display:block;margin-top:5px;font-size:11px;color:rgba(255,255,255,.52);font-weight:700;}
-      .depot-capacity-impact{border:1px solid rgba(255,159,10,.34);background:rgba(255,159,10,.10);border-radius:14px;padding:11px 12px;display:grid;gap:8px;}
+      .depot-kpi{min-height:58px;border-radius:10px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(5,8,12,.28);padding:10px 11px;box-shadow:none;}
+      .depot-kpi strong{display:block;font-size:18px;font-weight:880;line-height:1.1;color:var(--cr-object-text,#f8fafc);}
+      .depot-kpi span{display:block;margin-top:5px;font-size:11px;color:var(--cr-object-faint,rgba(235,241,248,.42));font-weight:700;}
+      .depot-capacity-impact{border:1px solid rgba(255,159,10,.34);background:rgba(255,159,10,.10);border-radius:12px;padding:11px 12px;display:grid;gap:8px;box-shadow:none;}
       .depot-capacity-impact h4{margin:0;font-size:13px;line-height:1.25;font-weight:880;color:#ffd9a3;letter-spacing:0;}
-      .depot-capacity-impact small{display:block;color:rgba(255,255,255,.62);font-size:11px;font-weight:740;line-height:1.45;}
-      .depot-impact-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px;font-weight:800;color:rgba(255,255,255,.82);}
+      .depot-capacity-impact small{display:block;color:var(--cr-object-muted,rgba(235,241,248,.62));font-size:11px;font-weight:740;line-height:1.45;}
+      .depot-impact-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--cr-object-text,#f8fafc);}
       .depot-impact-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      .depot-impact-row b{font-variant-numeric:tabular-nums;color:#fff;}
+      .depot-impact-row b{font-variant-numeric:tabular-nums;color:var(--cr-object-text,#f8fafc);}
       .depot-impact-list{display:grid;gap:4px;}
       .depot-lines{display:grid;gap:8px;}
-	      .depot-line-row{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:center;padding:9px 10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:12px;}
+	      .depot-line-row{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:center;padding:9px 10px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(5,8,12,.28);border-radius:10px;box-shadow:none;}
 	      .depot-line-row input{width:16px;height:16px;}
-	      .depot-line-name{display:flex;align-items:center;gap:7px;min-width:0;font-size:13px;font-weight:760;}
+	      .depot-line-name{display:flex;align-items:center;gap:7px;min-width:0;font-size:13px;font-weight:760;color:var(--cr-object-text,#f8fafc);}
 	      .depot-line-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
-	      .depot-line-meta{grid-column:2;font-size:11px;font-weight:760;color:rgba(255,255,255,.48);font-variant-numeric:tabular-nums;}
+	      .depot-line-meta{grid-column:2;font-size:11px;font-weight:760;color:var(--cr-object-faint,rgba(235,241,248,.42));font-variant-numeric:tabular-nums;}
 	      .depot-line-connect{grid-column:2;display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:7px;align-items:center;}
-      .depot-connect-btn{height:36px;border:0;border-radius:10px;background:rgba(10,132,255,.18);color:#b9dcff;font-size:12px;font-weight:850;cursor:pointer;}
-      .depot-connect-btn:hover{background:rgba(10,132,255,.28);color:#fff;}
+      .depot-connect-btn{height:34px;border:1px solid color-mix(in srgb,var(--cr-object-accent,#0a84ff) 70%, rgba(255,255,255,.18));border-radius:8px;background:rgba(10,132,255,.14);color:#b9dcff;font-size:12px;font-weight:850;cursor:pointer;box-shadow:none;}
+      .depot-connect-btn:hover{background:rgba(10,132,255,.22);color:#fff;}
       @media(max-width:720px){.cityrail-depot-modal{top:66px;left:10px;right:10px}.cityrail-depot-panel{width:auto;max-width:none;max-height:calc(100vh - 86px)}}
       @media(max-width:720px){.cityrail-depot-connection-modal{top:66px;left:10px;right:10px}.cityrail-depot-connection-card{width:auto;max-width:none;max-height:calc(100vh - 86px)}}
-      .depot-actions{display:flex;justify-content:flex-end;gap:10px;padding:13px 20px 18px;border-top:1px solid rgba(255,255,255,.08);}
-      .depot-actions button{min-width:86px;height:36px;border:0;border-radius:11px;font-weight:800;cursor:pointer;}
-      .depot-actions .secondary{background:rgba(255,255,255,.10);color:#fff;}
-      .depot-actions .danger{background:rgba(255,69,58,.16);color:#ffb4ad;border:1px solid rgba(255,69,58,.28);}
-      .depot-actions .primary{background:#0a84ff;color:#fff;}
-      .depot-empty{font-size:12px;color:rgba(255,255,255,.46);padding:10px;border-radius:12px;background:rgba(255,255,255,.045);}
-      html.cityrail-light-ui .cityrail-depot-connection-card{border-color:rgba(0,0,0,.10);background:rgba(255,255,255,.90);box-shadow:0 24px 70px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.88);color:#1d1d1f;}
-      html.cityrail-light-ui .cityrail-depot-connection-card .cityrail-depot-head{border-color:rgba(0,0,0,.08);}
-      html.cityrail-light-ui .depot-conn-route,
-      html.cityrail-light-ui .depot-conn-node-row{border-color:rgba(0,0,0,.08);background:rgba(255,255,255,.62);}
-      html.cityrail-light-ui .depot-conn-route strong,
-      html.cityrail-light-ui .depot-conn-node-row{color:#1d1d1f;}
-      html.cityrail-light-ui .depot-conn-route small,
-      html.cityrail-light-ui .depot-conn-node-row small,
-      html.cityrail-light-ui .depot-conn-hint{color:rgba(60,60,67,.62);}
-      html.cityrail-light-ui .depot-conn-tools .secondary{background:rgba(60,60,67,.10);color:#1d1d1f;}
-      html.cityrail-light-ui .depot-conn-tools .danger{background:rgba(255,59,48,.10);color:#b42318;border-color:rgba(255,59,48,.22);}
-      html.cityrail-light-ui .depot-conn-node-row.active{border-color:rgba(0,122,255,.34);background:rgba(0,122,255,.10);}
-      html.cityrail-light-ui .depot-conn-node-row i{background:rgba(255,59,48,.10);color:#b42318;}
-      html.cityrail-light-ui .cityrail-depot-panel{border-color:rgba(0,0,0,.10);background:rgba(255,255,255,.90);box-shadow:0 24px 70px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.88);color:#1d1d1f;}
-      html.cityrail-light-ui .cityrail-depot-head,
-      html.cityrail-light-ui .depot-actions{border-color:rgba(0,0,0,.08);}
-	      html.cityrail-light-ui .cityrail-depot-title,
-	      html.cityrail-light-ui .depot-line-name,
-	      html.cityrail-light-ui .depot-kpi strong{color:#1d1d1f;}
-	      html.cityrail-light-ui .depot-line-meta{color:rgba(60,60,67,.62);}
-      html.cityrail-light-ui .cityrail-depot-sub,
-      html.cityrail-light-ui .depot-field label,
-      html.cityrail-light-ui .depot-kpi span{color:rgba(60,60,67,.62);}
-      html.cityrail-light-ui .cityrail-depot-close,
-      html.cityrail-light-ui .depot-actions .secondary{background:rgba(60,60,67,.10);color:#1d1d1f;}
-      html.cityrail-light-ui .cityrail-depot-close:hover,
-      html.cityrail-light-ui .depot-actions .secondary:hover{background:rgba(60,60,67,.16);}
-      html.cityrail-light-ui .depot-field input,
-      html.cityrail-light-ui .depot-field select{border-color:rgba(0,0,0,.10);background:rgba(255,255,255,.78);color:#1d1d1f;}
-      html.cityrail-light-ui .depot-field input.invalid{border-color:rgba(255,59,48,.72);box-shadow:0 0 0 3px rgba(255,59,48,.14);}
-      html.cityrail-light-ui .depot-field select option{color:#1d1d1f;background:#fff;}
-      html.cityrail-light-ui .depot-kpi,
-      html.cityrail-light-ui .depot-line-row{border-color:rgba(0,0,0,.08);background:rgba(255,255,255,.62);}
-      html.cityrail-light-ui .depot-capacity-impact{border-color:rgba(180,105,0,.28);background:rgba(255,159,10,.12);}
-      html.cityrail-light-ui .depot-capacity-impact h4{color:#8a4f00;}
-      html.cityrail-light-ui .depot-capacity-impact small{color:rgba(60,60,67,.64);}
-      html.cityrail-light-ui .depot-impact-row{color:#1d1d1f;}
-      html.cityrail-light-ui .depot-impact-row b{color:#1d1d1f;}
-      html.cityrail-light-ui .depot-empty{background:rgba(255,255,255,.62);color:rgba(60,60,67,.68);}
-      html.cityrail-light-ui .depot-connect-btn{background:rgba(0,122,255,.12);color:#0066cc;}
-      html.cityrail-light-ui .depot-connect-btn:hover{background:rgba(0,122,255,.20);color:#004c99;}
-      html.cityrail-light-ui .depot-actions .danger{background:rgba(255,59,48,.10);color:#b42318;border-color:rgba(255,59,48,.22);}
-      html.cityrail-light-ui .depot-capacity-error{color:#b42318;}
-      .cityrail-depot-panel.cityrail-object-panel{width:380px;max-width:calc(100vw - 24px);max-height:calc(100vh - 100px);display:flex;flex-direction:column;border-radius:22px;overflow:hidden;}
-      .cityrail-depot-panel .cityrail-depot-head{margin:0;padding:18px 20px 12px;min-height:62px;border-bottom:1px solid rgba(255,255,255,.08);}
-      .cityrail-depot-panel .cityrail-depot-body{min-height:0;overflow:auto;padding:16px 20px;}
-      .cityrail-depot-panel .depot-actions.cityrail-object-panel-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:13px 20px 18px;border-top:1px solid rgba(255,255,255,.08);background:rgba(20,20,24,.42);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);}
-      .cityrail-depot-panel .depot-actions .danger{order:-1;margin-right:auto;}
-      .cityrail-depot-panel .depot-actions button{height:36px;border-radius:11px;min-width:86px;}
-      html.cityrail-light-ui .cityrail-depot-panel .cityrail-depot-head,
-      html.cityrail-light-ui .cityrail-depot-panel .depot-actions.cityrail-object-panel-actions{border-color:rgba(0,0,0,.08);}
-      html.cityrail-light-ui .cityrail-depot-panel .depot-actions.cityrail-object-panel-actions{background:rgba(255,255,255,.72);}
+      .depot-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 20px 18px;border-top:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(9,11,15,.82);backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);}
+      .depot-actions button{min-width:0;height:36px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-radius:8px;font-weight:800;cursor:pointer;box-shadow:none;}
+      .depot-actions .secondary{background:rgba(255,255,255,.055);color:var(--cr-object-text,#f8fafc);}
+      .depot-actions .danger{background:rgba(255,69,58,.12);color:#ffb4ad;border-color:rgba(255,69,58,.42);}
+      .depot-actions .primary{background:var(--cr-object-accent,#0a84ff);border-color:var(--cr-object-accent,#0a84ff);color:#fff;}
+      .depot-empty{font-size:12px;color:var(--cr-object-muted,rgba(235,241,248,.62));padding:10px;border-radius:10px;background:rgba(5,8,12,.28);border:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
       #btn-new-line.placing{background:rgba(10,132,255,.20);border-color:rgba(10,132,255,.58);color:#fff;}
     `;
     document.head.appendChild(st);
@@ -18368,6 +18318,7 @@ function renderLine(line) {
   }
   if (!line || !line.id) return;
   cityrailRemoveLineVisuals(line.id);
+  const visualColor = cityrailLineVisualColor(line);
   // 使用与列车相同的统一高分辨率路径，确保视觉线路与列车轨迹完全贴合
   const trainNodes = getLineTrainNodes(line);
   const latlngs = trainNodes.map(n => [n.lat, n.lng]);
@@ -18376,7 +18327,7 @@ function renderLine(line) {
 
   const lineRenderer = cityrailIsConnectorLine(line) ? cityrailGetConnectorLineRenderer() : cityrailGetLineRenderer();
 	  const polyline = L.polyline(latlngs, {
-	    color: cityrailIsConnectorLine(line) ? cityrailConnectorGradientColor(line) : line.color,
+	    color: cityrailIsConnectorLine(line) ? cityrailConnectorGradientColor(line) : visualColor,
 	    weight: cityrailIsConnectorLine(line) ? 3.5 : 4,
 	    opacity: cityrailIsConnectorLine(line) ? 0.72 : 0.8,
 	    lineCap: 'round',
@@ -18388,6 +18339,7 @@ function renderLine(line) {
   try {
     if (polyline._path) {
       polyline._path.dataset.lineId = String(line.id);
+      polyline._path.dataset.lineColor = visualColor;
       polyline._path.classList.add('cityrail-line-path');
     }
 	  } catch(e) {}
@@ -18412,6 +18364,7 @@ function renderLine(line) {
   cityrailScheduleStationLayerOrder('renderLine');
 
   linePolylines[line.id] = polyline;
+  cityrailSyncLineVisualColor(line);
 }
 
 function refreshLinePolyline(line) {
@@ -18426,6 +18379,114 @@ function refreshLinePolyline(line) {
   clearWaypoints(line.id);
   renderLine(line);
 }
+
+function cityrailLineVisualColor(line) {
+  return normalizeHexColor(line && line.color || '#0a84ff');
+}
+
+function cityrailLineVisualLayers(lineId) {
+  const id = String(lineId == null ? '' : lineId);
+  const layers = new Set();
+  if (!id) return [];
+  try {
+    if (linePolylines && linePolylines[id]) layers.add(linePolylines[id]);
+  } catch(e) {}
+  try {
+    if (map && typeof map.eachLayer === 'function') {
+      map.eachLayer(layer => {
+        if (layer && String(layer._lineId || '') === id) layers.add(layer);
+      });
+    }
+  } catch(e) {}
+  return Array.from(layers);
+}
+
+function cityrailSyncLineVisualColor(line) {
+  if (!line || !line.id) return false;
+  const id = String(line.id);
+  const color = cityrailLineVisualColor(line);
+  const connector = cityrailIsConnectorLine(line);
+  const connectorColor = connector ? cityrailConnectorGradientColor(line) : color;
+  let updated = 0;
+  cityrailLineVisualLayers(id).forEach(layer => {
+    try {
+      if (layer && typeof layer.setStyle === 'function') {
+        layer.setStyle({ color: connector ? connectorColor : color });
+        if (layer.options) layer.options.color = connector ? connectorColor : color;
+        updated++;
+      }
+      if (layer && layer._path) {
+        layer._path.dataset.lineId = id;
+        layer._path.dataset.lineColor = color;
+        layer._path.classList.add('cityrail-line-path');
+        if (connector) {
+          cityrailApplyConnectorGradient(layer, line);
+        } else {
+          layer._path.setAttribute('stroke', color);
+          layer._path.style.stroke = color;
+        }
+      }
+    } catch(e) {}
+  });
+  try {
+    document.querySelectorAll('.cityrail-line-path,svg path[data-line-id],svg polyline[data-line-id]').forEach(el => {
+      if (!el || String(el.dataset && el.dataset.lineId || '') !== id) return;
+      el.dataset.lineColor = color;
+      if (!connector) {
+        el.setAttribute('stroke', color);
+        el.style.stroke = color;
+      }
+      updated++;
+    });
+  } catch(e) {}
+  try {
+    if (linePolylines && linePolylines[id]) linePolylines[id].options.color = connector ? connectorColor : color;
+    window.linePolylines = linePolylines;
+  } catch(e) {}
+  return updated > 0;
+}
+window.cityrailSyncLineVisualColor = cityrailSyncLineVisualColor;
+
+function cityrailSyncAllLineVisualColors(reason) {
+  let count = 0;
+  try {
+    (state && Array.isArray(state.lines) ? state.lines : []).forEach(line => {
+      if (cityrailSyncLineVisualColor(line)) count++;
+    });
+  } catch(e) {}
+  try {
+    document.documentElement.dataset.cityrailLastLineColorSync = [reason || 'sync', String(count), String(Date.now())].join(':');
+  } catch(e) {}
+  return count;
+}
+window.cityrailSyncAllLineVisualColors = cityrailSyncAllLineVisualColors;
+
+function cityrailRemoveDuplicateLineVisualPaths(lineId) {
+  const id = String(lineId == null ? '' : lineId);
+  if (!id) return 0;
+  let removed = 0;
+  try {
+    const keeper = linePolylines && linePolylines[id] && linePolylines[id]._path;
+    document.querySelectorAll('.cityrail-line-path,svg path[data-line-id],svg polyline[data-line-id]').forEach(el => {
+      if (!el || String(el.dataset && el.dataset.lineId || '') !== id || el === keeper) return;
+      const ownerLayer = cityrailLineVisualLayers(id).some(layer => layer && layer._path === el);
+      if (ownerLayer) return;
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+        removed++;
+      }
+    });
+  } catch(e) {}
+  return removed;
+}
+
+function cityrailNormalizeVisibleLineColor(line) {
+  if (!line || !line.id) return false;
+  const synced = cityrailSyncLineVisualColor(line);
+  cityrailRemoveDuplicateLineVisualPaths(line.id);
+  return synced;
+}
+window.cityrailNormalizeVisibleLineColor = cityrailNormalizeVisibleLineColor;
 
 function cityrailMarkLineGeometryChanged(line, reason) {
   if (!line || !line.id) return;
@@ -23119,6 +23180,8 @@ function renderConfigLineStationFlow(line) {
 function openLineConfig(lineId) {
   const line = state.lines.find(l => l.id === lineId);
   if (!line) return;
+  const linePanel = document.getElementById('line-config-panel');
+  if (linePanel) linePanel.style.setProperty('--cr-object-accent', normalizeHexColor(line.color || '#0a84ff'));
   cityrailSetLineNodeFocus(line.id, 'openLineConfig');
   const overlay = document.getElementById('line-config-overlay');
   overlay.classList.remove('hidden');
@@ -23169,7 +23232,7 @@ function openLineConfig(lineId) {
   const nameEl = document.getElementById('cfg-line-name');
   nameEl.textContent = line.name;
   nameEl.style.color = line.color;
-  nameEl.style.textShadow = `0 0 8px ${line.color}66`;
+  nameEl.style.textShadow = '';
 
   // Populate name editor color picker & hide editor
   document.getElementById('cfg-edit-color').value = line.color;
@@ -26502,8 +26565,8 @@ function renderStationWaitingSection(stationId, contextLineId) {
         stationId, waitingStationId: waitStation.id, line: line.name, forward: fwdRealWaiting, backward: bwdRealWaiting, source: row.source
       });
     }
-    return `<div class="sd-waiting-card" data-waiting-line="${cityrailStationPanelEsc(line.id)}" data-waiting-station="${cityrailStationPanelEsc(waitStation.id)}">
-      <div class="sd-waiting-card-header">
+    return `<div class="sd-waiting-entry" data-waiting-line="${cityrailStationPanelEsc(line.id)}" data-waiting-station="${cityrailStationPanelEsc(waitStation.id)}">
+      <div class="sd-waiting-entry-header">
         <span class="sd-waiting-line-dot" style="background:${cityrailStationPanelEsc(line.color || '#9aa0a6')};color:${cityrailStationPanelEsc(line.color || '#9aa0a6')}"></span>
         <span class="sd-waiting-line-name">${cityrailStationPanelEsc((line.name || line.id || '线路') + peerLabel)}</span>
       </div>
@@ -26888,6 +26951,11 @@ function openStationDetail(stationId, lineId) {
   if (drawNewLine) return;
   const station = state.stations.find(s => s.id === stationId);
   if (!station) return;
+  const stationPanel = document.getElementById('station-detail-panel');
+  const accentLine = (lineId != null ? state.lines.find(l => String(l.id) === String(lineId)) : null)
+    || getStationLines(stationId)[0]
+    || null;
+  if (stationPanel) stationPanel.style.setProperty('--cr-object-accent', normalizeHexColor(accentLine && accentLine.color || '#0a84ff'));
 
   stationDetailId = stationId;
   stationDetailLineId = lineId || null;
@@ -27270,21 +27338,29 @@ document.getElementById('cfg-name-save').addEventListener('click', () => {
   if (!line) return;
   const newName = document.getElementById('cfg-edit-name').value.trim();
   if (!newName) return;
-  const newColor = document.getElementById('cfg-edit-color').value;
+  const oldColor = normalizeHexColor(line.color || '#0a84ff');
+  const newColor = normalizeHexColor(document.getElementById('cfg-edit-color').value);
   line.name = newName;
   line.color = newColor;
+  document.getElementById('line-config-panel')?.style.setProperty('--cr-object-accent', newColor);
   // Update line name display
   const nameEl = document.getElementById('cfg-line-name');
   nameEl.textContent = newName;
   nameEl.style.color = newColor;
-  nameEl.style.textShadow = `0 0 8px ${newColor}66`;
+  nameEl.style.textShadow = '';
   document.getElementById('cfg-name-editor').classList.add('hidden');
+  if (oldColor.toLowerCase() !== newColor.toLowerCase()) {
+    cityrailNormalizeVisibleLineColor(line);
+    try {
+      if (state.showCurrentLineNodes && typeof showCurrentLineNodes === 'function') {
+        const focused = typeof cityrailResolveLineNodeFocus === 'function' ? cityrailResolveLineNodeFocus() : null;
+        if (focused && String(focused.id) === String(line.id)) showCurrentLineNodes(line);
+      }
+    } catch(e) {}
+  }
   saveState();
   updateUI();
-  invalidateFlowCache();
   if (state.showLineStats) renderLineStats();
-  // 异步重算
-  setTimeout(() => { runSimulation(); }, 0);
 });
 document.getElementById('cfg-name-cancel').addEventListener('click', () => {
   document.getElementById('cfg-name-editor').classList.add('hidden');
@@ -30279,9 +30355,7 @@ function loadDemo() {
     const line = state.lines[state.lines.length - 1];
     line.name = lineData.name;
     line.color = lineData.color;
-    if (linePolylines[line.id]) {
-      linePolylines[line.id].setStyle({ color: lineData.color });
-    }
+    cityrailNormalizeVisibleLineColor(line);
   });
   cityrailClearLineNodeFocus(null, 'loadImportedSave');
   // 统一刷新所有站台（兜底 circleMarker + 线路多边形）
@@ -41365,7 +41439,14 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       const nodes=(typeof getLineTrainNodes==='function'?getLineTrainNodes(line):null)||[];
       const latlngs=nodes.map(n=>[n.lat,n.lng]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));
       const poly=(typeof linePolylines!=='undefined' && linePolylines)?linePolylines[line.id]:null;
-      if(poly&&typeof poly.setLatLngs==='function'&&latlngs.length>=2){ poly.setLatLngs(latlngs); S.liveLineUpdates++; }
+      if(poly&&typeof poly.setLatLngs==='function'&&latlngs.length>=2){
+        poly.setLatLngs(latlngs);
+        try {
+          if(typeof W.cityrailNormalizeVisibleLineColor === 'function') W.cityrailNormalizeVisibleLineColor(line);
+          else if(typeof cityrailNormalizeVisibleLineColor === 'function') cityrailNormalizeVisibleLineColor(line);
+        } catch(e) {}
+        S.liveLineUpdates++;
+      }
     }catch(e){ if(W.__CITYRAIL_DEBUG__) console.warn('[CityRail v143] live line update failed',e); }
   }
 	  function scheduleLiveLines(ids){
@@ -43002,54 +43083,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',()=>finalize('dom-ready'),{once:true}); else finalize('boot');
   setTimeout(()=>finalize('late-1'),800);
   setTimeout(()=>finalize('late-2'),2400);
-})();
-
-;/* CityRail v209: light UI menu and nested text adaptation. */
-(function(){
-  'use strict';
-  const W=window,D=document,VERSION='v209-light-menu-adaptation';
-  function installStyle(){
-    if(D.getElementById('cityrail-v209-light-menu-style')) return;
-    const st=D.createElement('style');
-    st.id='cityrail-v209-light-menu-style';
-    st.textContent=`
-      html.cityrail-light-ui{--cr209-text:#1d1d1f;--cr209-text-2:rgba(60,60,67,.72);--cr209-text-3:rgba(60,60,67,.54);--cr209-border:rgba(0,0,0,.095);--cr209-surface:rgba(255,255,255,.86);--cr209-surface-strong:rgba(255,255,255,.94);--cr209-hover:rgba(0,122,255,.09);--cr209-blue:#007aff;--cr209-red:#d70015;--cr209-green:#188038;--cr209-orange:#a45a00;}
-      html.cityrail-light-ui :where(.menu,.submenu,.dropdown,.popover,.context-menu,[role="menu"],[role="listbox"],[class*="menu"],[class*="submenu"],[class*="dropdown"],[class*="popover"],[class*="context"],[class*="-panel"],[class*="-dialog"],[class*="-modal"],#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-config-panel,#station-detail-panel,#line-stats-panel,#ctrl-center-overlay,#metro-map-overlay,#cc-express-modal .cc-express-dialog,.cityrail-depot-panel,.cityrail-depot-connection-card,.cityrail-save-submenu,.cityrail-update-guide-panel,.cityrail-tutorial-panel,.workshop-modal-card,.workshop-upload-panel,.pay-success-panel){color:var(--cr209-text)!important;border-color:var(--cr209-border)!important;}
-      html.cityrail-light-ui :where(.menu,.submenu,.dropdown,.popover,.context-menu,[role="menu"],[role="listbox"],[class*="submenu"],[class*="dropdown"],[class*="popover"],[class*="context"],.cityrail-save-submenu,.cityrail-save-submenu-flat,.sd-line-picker,#sd-branch-config,#cfg-freq-panel,#cfg-time-panel,.cfg-through-panel,.branch-config-row,.depot-conn-route,.depot-conn-node-row,.cc-express-section,.cc-ex-station-list,.cr135-selected-panel,.cr135-command-panel,.cr135-overtake-panel,.cr135-station-flow-panel,.cr135-depot-guide,.cr135-depot-step,.cr135-line,.cr135-stctl,.ctrl-card,.ctrl-alert-item,.ctrl-line-status,.control-card,.line-ops-table-wrap,.flow-rank-scroll,.cr207-kpi,.cr207-table-wrap){background:var(--cr209-surface)!important;border-color:var(--cr209-border)!important;color:var(--cr209-text)!important;box-shadow:0 10px 28px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.78)!important;}
-      html.cityrail-light-ui :where(#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-config-panel,#station-detail-panel,#line-stats-panel,#ctrl-center-overlay,#ctrl-topbar,#ctrl-nav,.cityrail-object-panel,.cityrail-depot-panel,.cityrail-depot-connection-card,.cc-express-dialog,.modal,.workshop-modal-card,.workshop-upload-panel,.cityrail-update-guide-panel,.cityrail-tutorial-panel){background:var(--cr209-surface-strong)!important;color:var(--cr209-text)!important;border-color:var(--cr209-border)!important;}
-      html.cityrail-light-ui :where(#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-config-panel,#station-detail-panel,#line-stats-panel,#ctrl-center-overlay,.cityrail-object-panel,.cityrail-depot-panel,.cityrail-depot-connection-card,.cc-express-dialog,.modal,.workshop-modal-card,.workshop-upload-panel,.cityrail-update-guide-panel,.cityrail-tutorial-panel) :where(h1,h2,h3,h4,b,strong,.title,[class*="-title"],[class*="-name"],.ctrl-big-num,.ctrl-top-stat .ts-val,.cr135-pill){color:var(--cr209-text)!important;text-shadow:none!important;}
-      html.cityrail-light-ui :where(#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-config-panel,#station-detail-panel,#line-stats-panel,#ctrl-center-overlay,.cityrail-object-panel,.cityrail-depot-panel,.cityrail-depot-connection-card,.cc-express-dialog,.modal,.workshop-modal-card,.workshop-upload-panel,.cityrail-update-guide-panel,.cityrail-tutorial-panel,.menu,.submenu,.dropdown,.popover,[role="menu"],[role="listbox"],[class*="submenu"],[class*="dropdown"],[class*="popover"]) :where(p,span,small,td,th,label,output,li,div){text-shadow:none;}
-      html.cityrail-light-ui :where(.muted,.secondary,.hint,.note,.desc,.subtitle,.sub,.label,.kicker,.empty,.sr-desc,.ctrl-big-sub,.ctrl-card-subtitle,.ctrl-bar-label,.ctrl-bar-val,.ctrl-line-status .cls-info,.ctrl-alert-item .al-time,.ctrl-alert-item .al-msg,.cr135-note,.cr135-empty,.cc-express-note,.cc-ex-list-hint,.cc-ex-stop-count,.depot-conn-hint,.depot-field label,.depot-kpi span,[class*="-hint"],[class*="-note"],[class*="-desc"],[class*="-subtitle"],[class*="-sub"],[class*="-label"],[class*="-kicker"],[class*="-empty"]){color:var(--cr209-text-2)!important;}
-      html.cityrail-light-ui :where(button,[role="button"],.btn,.tool-btn,.map-btn,.settings-row,.cityrail-save-submenu button,.cityrail-setting-actions button,.sd-actions button,.sd-name-btn,.sd-line-pick-btn,.branch-config-btn,.vt-btn,.stats-del-btn,.cc-express-open,.cc-express-actions button,.cc-express-foot button,.cc-ex-station-chip,.cr135-tab,.cr135-cmd,.cr135-line-cmd,.cr135-small,.cr135-line,.cr207-sort button,.depot-actions button,.depot-connect-btn,.depot-conn-tools button){color:var(--cr209-text)!important;background:rgba(255,255,255,.72)!important;border-color:var(--cr209-border)!important;box-shadow:0 1px 0 rgba(255,255,255,.76),0 8px 20px rgba(0,0,0,.055)!important;}
-      html.cityrail-light-ui :where(button,[role="button"],.btn,.tool-btn,.map-btn,.settings-row,.cityrail-save-submenu button,.cityrail-setting-actions button,.sd-actions button,.sd-name-btn,.sd-line-pick-btn,.branch-config-btn,.vt-btn,.stats-del-btn,.cc-express-open,.cc-express-actions button,.cc-express-foot button,.cc-ex-station-chip,.cr135-tab,.cr135-cmd,.cr135-line-cmd,.cr135-small,.cr135-line,.cr207-sort button,.depot-actions button,.depot-connect-btn,.depot-conn-tools button):hover{color:var(--cr209-text)!important;background:var(--cr209-hover)!important;border-color:rgba(0,122,255,.24)!important;}
-      html.cityrail-light-ui :where(button.active,button.on,.active,[aria-selected="true"],.selected,.is-selected,.primary,.btn-primary,#cfg-btn-save,#nav-btn-find,#sim-btn,.ctrl-nav-item.active,.cr135-line.active,.cr135-tab.active,.cr135-cmd.ok,.cr135-line-cmd.ok,.cc-express-foot .primary,.branch-config-btn-start,.cr207-sort button.on,.settings-toggle.on){background:var(--cr209-blue)!important;border-color:var(--cr209-blue)!important;color:#fff!important;box-shadow:0 10px 22px rgba(0,122,255,.20),inset 0 1px 0 rgba(255,255,255,.22)!important;}
-      html.cityrail-light-ui :where(.danger,.warn,#sd-btn-delete,.sd-btn-danger,.stats-del-btn,.depot-actions .danger,.depot-conn-tools .danger,.cc-express-actions button.warn,.cr135-cmd.danger){color:var(--cr209-red)!important;background:rgba(255,59,48,.10)!important;border-color:rgba(255,59,48,.24)!important;}
-      html.cityrail-light-ui :where(.ok,.success,.sd-extend-btn,.sd-waiting-dir-forward,.sd-waiting-dir-backward,.cc-ex-station-chip.fixed){color:var(--cr209-green)!important;background:rgba(52,199,89,.12)!important;border-color:rgba(52,199,89,.24)!important;}
-      html.cityrail-light-ui :where(.branch-config-btn-cancel,.sd-branch-btn,.line-stats-intensity-mid,.intensity-mid){color:var(--cr209-orange)!important;}
-      html.cityrail-light-ui :where(input,select,textarea,option,.cfg-select,.nav-select,.branch-config-select,.ex-select,#cc-ex-density,#cc-ex-overtake,.depot-field input,.depot-field select,.reg-input){color:var(--cr209-text)!important;background:#fff!important;border-color:var(--cr209-border)!important;box-shadow:inset 0 1px 0 rgba(0,0,0,.025)!important;}
-      html.cityrail-light-ui :where(input,textarea)::placeholder{color:var(--cr209-text-3)!important;}
-	      html.cityrail-light-ui :where(table,thead,tbody,tr,th,td,.ctrl-table,.cr207-table,#line-stats-table){color:var(--cr209-text)!important;border-color:rgba(0,0,0,.075)!important;}
-	      html.cityrail-light-ui :where(th,.ctrl-table th,.cr207-table th,#line-stats-table th){background:rgba(247,248,250,.96)!important;color:var(--cr209-text-2)!important;}
-	      html.cityrail-light-ui :where(td,.ctrl-table td,.cr207-table td,#line-stats-table td){color:rgba(29,29,31,.88)!important;}
-      html.cityrail-light-ui :where(.cc-ex-station-chip .idx,.cc-ex-station-chip .tag,.cr135-pill,.vt-type-badge,.leg-line,.formation-badge,.line-badge,.ctrl-pill,.depot-kpi,.cr207-kpi){background:rgba(0,0,0,.045)!important;border-color:rgba(0,0,0,.075)!important;color:var(--cr209-text)!important;}
-      html.cityrail-light-ui :where(.cc-ex-station-chip.on,.cc-ex-station-chip.overtake-on){background:rgba(0,122,255,.12)!important;border-color:rgba(0,122,255,.28)!important;color:var(--cr209-text)!important;}
-      html.cityrail-light-ui :where(.cc-ex-station-chip.on .tag,.cc-ex-station-chip.overtake-on .tag){background:var(--cr209-blue)!important;color:#fff!important;}
-      html.cityrail-light-ui :where(#tooltip,#draw-tooltip,#drag-transfer-tooltip,.leaflet-tooltip,.cc-ex-map-tip,.cityrail-floating-toast),
-      html.cityrail-light-ui [data-tooltip]::after{background:rgba(255,255,255,.94)!important;color:var(--cr209-text)!important;border-color:var(--cr209-border)!important;box-shadow:0 12px 30px rgba(0,0,0,.14)!important;}
-      html.cityrail-light-ui :where(.panel-close-btn,.cc-express-close,.cityrail-depot-close,.cityrail-update-guide-close,.cityrail-tutorial-close){background:rgba(60,60,67,.10)!important;color:var(--cr209-text)!important;border-color:rgba(0,0,0,.07)!important;}
-      html.cityrail-light-ui :where(.panel-close-btn,.cc-express-close,.cityrail-depot-close,.cityrail-update-guide-close,.cityrail-tutorial-close):hover{background:rgba(60,60,67,.16)!important;color:var(--cr209-red)!important;}
-      html.cityrail-light-ui :where(.cr135-svg){background:#f7f8fb!important;}
-      html.cityrail-light-ui :where(.cr135-board){background:rgba(255,255,255,.72)!important;border-color:var(--cr209-border)!important;}
-      html.cityrail-light-ui :where(svg text){paint-order:stroke;stroke:rgba(255,255,255,.62);stroke-width:2px;stroke-linejoin:round;}
-    `;
-    (D.head||D.documentElement).appendChild(st);
-  }
-  function boot(){
-    installStyle();
-    D.documentElement.dataset.cityrailLightMenus=VERSION;
-  }
-  W.CityRailLightMenusV209={version:VERSION,installStyle};
-  if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
 
 ;/* CityRail v210: station model hitbox opens station panel. */
@@ -45046,13 +45079,17 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     st.textContent = `
       #new-build-choice.cr269-has-connector{grid-template-columns:repeat(4,minmax(132px,1fr))!important;width:min(880px,calc(100vw - 112px))!important;min-width:0!important;overflow:visible!important;}
       #new-connector-form.hidden{display:none!important;}
-      #new-connector-form{display:flex;flex-direction:column;gap:10px;margin-top:4px;min-width:min(520px,calc(100vw - 64px));}
+      #new-connector-form{--cr269-bg:var(--cr-object-card,rgba(18,21,27,.76));--cr269-line:var(--cr-object-line,rgba(255,255,255,.095));--cr269-border:var(--cr-object-border,rgba(255,255,255,.13));--cr269-text:var(--cr-object-text,#f8fafc);--cr269-muted:var(--cr-object-muted,rgba(235,241,248,.62));--cr269-control:rgba(4,7,11,.30);display:flex;flex-direction:column;gap:12px;margin-top:4px;min-width:min(520px,calc(100vw - 64px));color:var(--cr269-text);}
+      html.cityrail-light-ui #new-connector-form{--cr269-bg:rgba(255,255,255,.86);--cr269-line:rgba(0,0,0,.10);--cr269-border:rgba(0,0,0,.13);--cr269-text:#1d1d1f;--cr269-muted:rgba(60,60,67,.66);--cr269-control:#fff;}
       .cr269-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-      .cr269-field{display:flex;flex-direction:column;gap:5px;}
-      .cr269-field label{font-size:12px;color:var(--text-dim);font-weight:700;}
-      .cr269-field select,.cr269-field input{height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:var(--text-main);padding:0 9px;font:inherit;}
-      .cr269-create{height:38px;border-radius:9px;border:0;background:#0a84ff;color:#fff;font-weight:800;cursor:pointer;}
-      .cr269-create:disabled{opacity:.45;cursor:not-allowed;}
+      .cr269-field{display:flex;flex-direction:column;gap:7px;border:1px solid var(--cr269-border);border-left-color:var(--cr-object-accent,#0a84ff);border-radius:12px;background:var(--cr269-bg);padding:12px;box-shadow:none;}
+      .cr269-field label{font-size:12px;color:var(--cr269-muted);font-weight:820;}
+      .cr269-field select,.cr269-field input{height:34px;border-radius:8px;border:1px solid var(--cr269-line)!important;background:var(--cr269-control)!important;color:var(--cr269-text)!important;padding:0 9px;font:inherit;outline:0;box-shadow:none!important;}
+      .cr269-field select:focus,.cr269-field input:focus{border-color:var(--cr-object-accent,#0a84ff)!important;box-shadow:none!important;}
+      .cr269-field select option{background:#11151b;color:#f8fafc;}
+      html.cityrail-light-ui .cr269-field select option{background:#fff;color:#1d1d1f;}
+      #new-line-back.cr269-continue{background:var(--cr-object-accent,#0a84ff)!important;border-color:var(--cr-object-accent,#0a84ff)!important;color:#fff!important;}
+      #new-line-back.cr269-continue:disabled{opacity:.45;cursor:not-allowed;}
       #cr269-connector-panel{margin-top:12px;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;display:flex;flex-direction:column;gap:10px;}
       .cr269-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--text-dim);}
       .cr269-row b{color:var(--text-main);}
@@ -45145,7 +45182,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         <div class="cr269-field"><label for="new-connector-to-line">线路 B</label><select id="new-connector-to-line"></select></div>
         <div class="cr269-field"><label for="new-connector-to-station">车站 B</label><select id="new-connector-to-station"></select></div>
       </div>
-      <button type="button" class="cr269-create" id="new-connector-create">创建联络线</button>
       <div class="cr269-note">联络线只连接既有车站；开启贯通运营后才进入客流导航，且不产生换乘罚时。</div>
     `;
     const btns = dialog.querySelector('.new-line-btns');
@@ -45171,8 +45207,26 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if (list.length > 1) b.value = sid(list[1].id);
     fillStations('new-connector-from-line', 'new-connector-from-station');
     fillStations('new-connector-to-line', 'new-connector-to-station');
-    const create = byId('new-connector-create');
-    if (create) create.disabled = list.length < 2;
+    const next = byId('new-line-back');
+    if (next && next.dataset.cr269Continue === '1') next.disabled = list.length < 2;
+  }
+
+  function setConnectorContinueButton(on){
+    const back = byId('new-line-back');
+    if (!back) return;
+    if (on) {
+      back.textContent = '继续';
+      back.dataset.cr269Continue = '1';
+      back.classList.remove('new-line-btn-cancel');
+      back.classList.add('new-line-btn-start', 'cr269-continue');
+      back.disabled = serviceLines().length < 2;
+    } else {
+      back.textContent = '返回';
+      delete back.dataset.cr269Continue;
+      back.classList.add('new-line-btn-cancel');
+      back.classList.remove('new-line-btn-start', 'cr269-continue');
+      back.disabled = false;
+    }
   }
 
   function showConnectorBuild(){
@@ -45184,12 +45238,14 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     byId('new-connector-form') && byId('new-connector-form').classList.remove('hidden');
     byId('new-line-start') && byId('new-line-start').classList.add('hidden');
     byId('new-line-back') && byId('new-line-back').classList.remove('hidden');
+    setConnectorContinueButton(true);
     populateConnectorForm();
   }
 
   function hideConnectorForm(){
     const form = byId('new-connector-form');
     if (form) form.classList.add('hidden');
+    setConnectorContinueButton(false);
   }
 
   function installNewBuildEntry(){
@@ -45697,10 +45753,15 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     D.addEventListener('click', ev => {
       const resetBuild = ev.target && ev.target.closest && ev.target.closest('#btn-new-line,#new-line-cancel,#new-build-line,#new-build-depot');
       if (resetBuild) hideConnectorForm();
+      const continueBtn = ev.target && ev.target.closest && ev.target.closest('#new-line-back[data-cr269-continue="1"]');
+      if (continueBtn) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!continueBtn.disabled) createConnector();
+        return;
+      }
       const card = ev.target && ev.target.closest && ev.target.closest('#new-build-connector');
       if (card) { ev.preventDefault(); ev.stopPropagation(); showConnectorBuild(); return; }
-      const create = ev.target && ev.target.closest && ev.target.closest('#new-connector-create');
-      if (create) { ev.preventDefault(); createConnector(); return; }
       const toggle = ev.target && ev.target.closest && ev.target.closest('[data-cr269-toggle-through]');
       if (toggle) {
         const line = lineById(toggle.getAttribute('data-cr269-toggle-through'));
@@ -48559,10 +48620,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     const active = trains().filter(t => t && t._storageSidingOrigin && sid(t._storageSidingStationId) === sid(station.id) && sid(t.lineId) === sid(selectedLine.id)).length;
     card.innerHTML = `<div class="sd-section-title">存车线</div>
       <div class="sd-storage-card">
-        <div class="sd-storage-head">
-          <div><b>站内存车线</b><span>${esc(selectedLine.name || selectedLine.id)} · 两岛三线</span></div>
-          <select id="sd-storage-line-select" aria-label="选择存车线所属线路">${choices.map(line => `<option value="${esc(line.id)}"${sid(line.id)===sid(selectedLine.id)?' selected':''}>${esc(line.name || line.id)}</option>`).join('')}</select>
-        </div>
         <div class="sd-storage-segment" role="group" aria-label="存车线容量">
           ${[0,1,2].map(v => `<button type="button" data-storage-cap="${v}" data-line-id="${esc(selectedLine.id)}" class="${cap===v?'active':''}">${v===0?'关闭':v+'列'}</button>`).join('')}
         </div>
@@ -48577,11 +48634,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         </div>
         <div class="sd-storage-note">运营开始按车隔从存车线发车；末班后回存并清空载客。${esc(directionHint(directionMode))}</div>
       </div>`;
-    const select = D.getElementById('sd-storage-line-select');
-    if(select && !select.__storageBound){
-      select.__storageBound = true;
-      select.addEventListener('change', () => renderStationPanel(station.id, select.value));
-    }
     card.querySelectorAll('[data-storage-cap]').forEach(btn => {
       btn.addEventListener('click', ev => {
         ev.preventDefault();
@@ -48606,27 +48658,18 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       style.id = 'cityrail-storage-siding-style';
       style.textContent = `
         #sd-storage-siding-panel{margin:8px 0 12px;}
-        .sd-storage-card{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.065);border-radius:14px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
-        .sd-storage-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
-        .sd-storage-head b{display:block;font-size:14px;font-weight:850;color:var(--text,#fff);}
-        .sd-storage-head span{display:block;margin-top:2px;font-size:11px;color:rgba(255,255,255,.56);}
-        .sd-storage-head select{max-width:150px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:var(--text,#fff);padding:0 8px;font:inherit;font-size:12px;}
-        .sd-storage-segment,.sd-storage-direction{display:grid;gap:6px;padding:4px;border-radius:12px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);}
+        .sd-storage-card{border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-left-color:var(--cr-object-accent,#0a84ff);background:var(--cr-object-card,rgba(18,21,27,.76));border-radius:12px;padding:12px;box-shadow:none;}
+        .sd-storage-segment,.sd-storage-direction{display:grid;gap:6px;padding:4px;border-radius:10px;background:rgba(5,8,12,.28);border:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
         .sd-storage-segment{grid-template-columns:repeat(3,minmax(0,1fr));}
         .sd-storage-direction{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:7px;}
-        .sd-storage-segment button,.sd-storage-direction button{height:30px;border:0;border-radius:9px;background:transparent;color:rgba(255,255,255,.72);font-weight:850;cursor:pointer;font-size:12px;}
-        .sd-storage-segment button.active,.sd-storage-direction button.active{background:#f5f7fb;color:#0b1018;box-shadow:0 4px 12px rgba(0,0,0,.18);}
+        .sd-storage-segment button,.sd-storage-direction button{height:30px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--cr-object-muted,rgba(235,241,248,.62));font-weight:780;cursor:pointer;font-size:12px;box-shadow:none;}
+        .sd-storage-segment button.active,.sd-storage-direction button.active{background:var(--cr-object-accent,#0a84ff);border-color:var(--cr-object-accent,#0a84ff);color:#fff;box-shadow:none;}
         .sd-storage-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px;}
-        .sd-storage-metrics div{border-radius:10px;background:rgba(0,0,0,.16);padding:7px 8px;}
-        .sd-storage-metrics span{display:block;font-size:10px;color:rgba(255,255,255,.52);font-weight:800;}
-        .sd-storage-metrics b{display:block;margin-top:2px;font-size:15px;color:var(--text,#fff);}
-        .sd-storage-note,.sd-storage-empty{margin-top:9px;font-size:11px;line-height:1.45;color:rgba(255,255,255,.60);}
-        html.cityrail-light-ui .sd-storage-card{background:rgba(255,255,255,.82);border-color:rgba(0,0,0,.10);}
-        html.cityrail-light-ui .sd-storage-head span,html.cityrail-light-ui .sd-storage-note,html.cityrail-light-ui .sd-storage-empty,html.cityrail-light-ui .sd-storage-metrics span{color:rgba(0,0,0,.54);}
-        html.cityrail-light-ui .sd-storage-segment,html.cityrail-light-ui .sd-storage-direction{background:rgba(0,0,0,.06);}
-        html.cityrail-light-ui .sd-storage-segment button,html.cityrail-light-ui .sd-storage-direction button{color:rgba(0,0,0,.62);}
-        html.cityrail-light-ui .sd-storage-segment button.active,html.cityrail-light-ui .sd-storage-direction button.active{background:#fff;color:#0b1018;}
-        @media (max-width:560px){.sd-storage-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.sd-storage-head{align-items:stretch;flex-direction:column;}.sd-storage-head select{max-width:none;width:100%;}}
+        .sd-storage-metrics div{border:1px solid var(--cr-object-line,rgba(255,255,255,.095));border-radius:10px;background:rgba(5,8,12,.28);padding:7px 8px;}
+        .sd-storage-metrics span{display:block;font-size:10px;color:var(--cr-object-faint,rgba(235,241,248,.42));font-weight:800;}
+        .sd-storage-metrics b{display:block;margin-top:2px;font-size:15px;color:var(--cr-object-text,#f8fafc);}
+        .sd-storage-note,.sd-storage-empty{margin-top:9px;font-size:11px;line-height:1.45;color:var(--cr-object-muted,rgba(235,241,248,.62));}
+        @media (max-width:560px){.sd-storage-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}}
       `;
       D.head.appendChild(style);
     }

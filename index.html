@@ -20,7 +20,7 @@
 <link rel="preload" href="vendor/leaflet/leaflet.js" as="script">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.css" as="style">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.js" as="script">
-<link rel="preload" href="js/cityrail-runtime.js?v=20260710-v445-error-observability" as="script">
+<link rel="preload" href="js/cityrail-runtime.js?v=20260712-v449-panel-source-connector" as="script">
 <link rel="canonical" href="https://cityrailgame.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
@@ -1284,7 +1284,6 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 }
 #line-config-panel::-webkit-scrollbar { width: 4px; }
 #line-config-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-#cfg-grid-bg, #cfg-scanline { display: none; } /* Remove sci-fi grid/scanline */
 #cfg-content { position: relative; }
 #line-config-panel h2 {
   font-size: 17px; font-weight: 600;
@@ -1803,11 +1802,7 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 }
 /* ===== STATION WAITING ===== */
 #sd-waiting-section { margin-top: 4px; }
-.sd-waiting-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 8px;
-}
-.sd-waiting-card-header {
+.sd-waiting-entry-header {
   display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
 }
 .sd-waiting-line-dot {
@@ -1843,6 +1838,16 @@ tr.overloaded-row { background: rgba(255,69,58,0.06); }
 .sd-waiting-empty {
   font-size: 12px; color: var(--text-dim); text-align: center;
   padding: 12px 0;
+}
+.sd-waiting-entry {
+  padding: 2px 0 10px;
+  margin: 0 0 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sd-waiting-entry:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 #sd-zone-row.sd-zone-grid,
 #sd-zone-row {
@@ -1970,22 +1975,24 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
   color: #ffd1cc;
 }
 
-/* ===== Unified Object Panels: Line / Station / Depot ===== */
+/* ===== Unified Object Panels: Line / Station / Depot / Passenger Source ===== */
 .cityrail-object-panel,
-.cityrail-depot-panel {
-  width: 380px;
-  max-width: calc(100vw - 24px);
+.cityrail-depot-panel,
+.cr-eps-panel {
+  width: min(430px, calc(100vw - 36px));
+  max-width: min(430px, calc(100vw - 36px));
   max-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
-  border-radius: 22px;
-  border: 1px solid var(--border-strong);
-  background: var(--panel);
-  box-shadow: var(--shadow-lg);
+  border-radius: 20px;
+  border: 1px solid var(--cr-object-border, rgba(255,255,255,.13));
+  background: var(--cr-object-bg, rgba(12,14,18,.88));
+  box-shadow: none;
   overflow: hidden;
   pointer-events: auto;
-  backdrop-filter: var(--blur-glass);
-  -webkit-backdrop-filter: var(--blur-glass);
+  color: var(--cr-object-text, #f8fafc);
+  backdrop-filter: blur(12px) saturate(126%);
+  -webkit-backdrop-filter: blur(12px) saturate(126%);
 }
 #line-config-panel,
 #station-detail-panel {
@@ -1997,32 +2004,31 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px 20px;
+  padding: 12px 20px 14px;
 }
 #line-config-panel h2,
 #station-detail-panel h2,
 .cityrail-depot-head {
-  margin: -16px -20px 14px;
-  padding: 18px 20px 12px;
-  min-height: 62px;
-  display: flex;
+  margin: 0;
+  padding: 28px 20px 16px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 34px;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--cr-object-line, rgba(255,255,255,.095));
 }
 #line-config-close,
 #station-detail-close,
 .cityrail-depot-close {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--cr-object-border, rgba(255,255,255,.13));
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.08);
-  color: var(--text-dim);
+  background: rgba(255,255,255,.055);
+  color: var(--cr-object-muted, rgba(235,241,248,.62));
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -2031,16 +2037,16 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
 #line-config-close:hover,
 #station-detail-close:hover,
 .cityrail-depot-close:hover {
-  background: rgba(255,255,255,0.14);
-  color: var(--text);
+  background: rgba(255,255,255,.09);
+  color: var(--cr-object-text, #f8fafc);
 }
 .cfg-line-station-flow,
 .depot-kpis,
-.sd-waiting-card,
 .sd-bar-row {
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--cr-object-line, rgba(255,255,255,.095));
+  border-radius: 10px;
+  background: rgba(5,8,12,.28);
+  box-shadow: none;
 }
 .sd-bar-row {
   min-height: 42px;
@@ -2048,26 +2054,25 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
 }
 .cityrail-object-panel-actions,
 .depot-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 18px -20px -16px;
-  padding: 13px 20px 18px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  background: rgba(20,20,24,0.42);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 12px 20px 18px;
+  border-top: 1px solid var(--cr-object-line, rgba(255,255,255,.095));
+  background: rgba(9,11,15,.82);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
   position: sticky;
-  bottom: -16px;
+  bottom: 0;
   z-index: 4;
 }
 .cityrail-object-panel-actions button,
 .depot-actions button {
-  min-width: 86px;
+  min-width: 0;
   height: 36px;
-  border: 0;
-  border-radius: 11px;
+  border: 1px solid var(--cr-object-border, rgba(255,255,255,.13));
+  border-radius: 8px;
   padding: 0 14px;
   font-size: 13px;
   font-weight: 800;
@@ -2080,19 +2085,15 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
 #sd-btn-move,
 #sd-btn-block-external-flow,
 .depot-actions .secondary {
-  background: rgba(255,255,255,0.10);
-  color: var(--text);
+  background: rgba(255,255,255,.055);
+  color: var(--cr-object-text, #f8fafc);
 }
 #cfg-btn-save,
 .depot-actions .primary {
-  background: var(--accent);
+  background: var(--cr-object-accent, var(--accent));
+  border-color: var(--cr-object-accent, var(--accent));
   color: #fff;
-  box-shadow: 0 10px 24px var(--accent-glow);
-}
-#cfg-btn-delete-line,
-.depot-actions .danger {
-  order: -1;
-  margin-right: auto;
+  box-shadow: none;
 }
 #cfg-btn-delete-line,
 #sd-btn-delete,
@@ -2112,36 +2113,11 @@ html.cityrail-apple-spatial-ui #sd-zone-row .sd-zone-btn.on {
   order: 0;
   margin-right: 0;
 }
-html.cityrail-light-ui .cityrail-object-panel,
-html.cityrail-light-ui .cityrail-depot-panel {
-  border-color: rgba(0,0,0,.10) !important;
-  background: rgba(255,255,255,.90) !important;
-  box-shadow: 0 24px 70px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.88) !important;
-  color: #1d1d1f !important;
-}
-html.cityrail-light-ui #line-config-panel h2,
-html.cityrail-light-ui #station-detail-panel h2,
-html.cityrail-light-ui .cityrail-depot-head,
-html.cityrail-light-ui .cityrail-object-panel-actions,
-html.cityrail-light-ui #station-detail-panel .sd-actions,
-html.cityrail-light-ui .depot-actions {
-  border-color: rgba(0,0,0,.08) !important;
-}
-html.cityrail-light-ui .cityrail-object-panel-actions,
-html.cityrail-light-ui #station-detail-panel .sd-actions,
-html.cityrail-light-ui .depot-actions { background: rgba(255,255,255,.72); }
-html.cityrail-light-ui .cfg-line-station-flow,
-html.cityrail-light-ui .depot-kpis,
-html.cityrail-light-ui .sd-waiting-card,
-html.cityrail-light-ui .sd-bar-row {
-  border-color: rgba(0,0,0,.08) !important;
-  background: rgba(255,255,255,.62) !important;
-}
 html.cityrail-light-ui #sd-btn-move,
 html.cityrail-light-ui #sd-btn-block-external-flow,
 html.cityrail-light-ui .depot-actions .secondary {
-  background: rgba(60,60,67,.10) !important;
-  color: #1d1d1f !important;
+  background: rgba(255,255,255,.055) !important;
+  color: var(--cr-object-text, #f8fafc) !important;
 }
 html.cityrail-light-ui #cfg-btn-delete-line,
 html.cityrail-light-ui #sd-btn-delete,
@@ -6222,8 +6198,7 @@ html.cityrail-v144-ready .ctrl-table td{
 html.cityrail-v144-ready #bottombar,
 html.cityrail-v144-ready #settings-panel,
 html.cityrail-v144-ready #new-line-dialog,
-html.cityrail-v144-ready #nav-panel,
-html.cityrail-v144-ready #station-detail-panel{
+html.cityrail-v144-ready #nav-panel{
   border:1px solid var(--cr-v144-line)!important;
   border-radius:18px!important;
   background:var(--cr-v144-surface)!important;
@@ -6238,8 +6213,6 @@ html.cityrail-v144-ready [role="button"]{
 html.cityrail-v144-ready .cityrail-v144-tapped{
   transform:scale(.985)!important;
 }
-html.cityrail-v144-ready #cfg-grid-bg,
-html.cityrail-v144-ready #cfg-scanline,
 html.cityrail-v144-ready #cityrailControlCenterPlus,
 html.cityrail-v144-ready .cc-ex-map-tip,
 html.cityrail-v144-ready .cc-ex-stop-marker{
@@ -6896,10 +6869,6 @@ html.cityrail-apple-spatial-ui.cityrail-light-ui{
   --cr416-shadow:0 20px 64px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.72);
 }
 html.cityrail-apple-spatial-ui body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Helvetica Neue",Arial,sans-serif!important;background:var(--cr416-bg)!important;color:var(--cr416-text)!important;}
-html.cityrail-apple-spatial-ui #cfg-grid-bg,
-html.cityrail-apple-spatial-ui #cfg-scanline,
-html.cityrail-apple-spatial-ui #station-detail-panel>div[style*=background-image],
-html.cityrail-apple-spatial-ui #station-detail-panel>div[style*=cfg-scanline],
 html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=background-image],
 html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=cfg-scanline],
 html.cityrail-apple-spatial-ui #nav-panel>div[style*=background-image],
@@ -6953,19 +6922,11 @@ html.cityrail-apple-spatial-ui #new-line-dialog,
 html.cityrail-apple-spatial-ui #nav-panel,
 html.cityrail-apple-spatial-ui #vt-panel,
 html.cityrail-apple-spatial-ui #line-stats-panel,
-html.cityrail-apple-spatial-ui #line-config-panel,
-html.cityrail-apple-spatial-ui #station-detail-panel,
-html.cityrail-apple-spatial-ui .cityrail-depot-panel,
-html.cityrail-apple-spatial-ui .cityrail-depot-connection-card,
 html.cityrail-apple-spatial-ui .cc-express-dialog,
 html.cityrail-apple-spatial-ui .modal,
 html.cityrail-apple-spatial-ui .workshop-modal-card,
 html.cityrail-apple-spatial-ui .workshop-upload-panel,
 html.cityrail-apple-spatial-ui .pay-success-panel{color:var(--cr416-text)!important;background:var(--cr416-surface-strong)!important;border:1px solid var(--cr416-border)!important;border-radius:var(--cr416-radius)!important;box-shadow:var(--cr416-shadow)!important;backdrop-filter:var(--cr416-blur)!important;-webkit-backdrop-filter:var(--cr416-blur)!important;text-shadow:none!important;}
-html.cityrail-apple-spatial-ui #line-config-panel,
-html.cityrail-apple-spatial-ui #station-detail-panel{position:absolute!important;top:72px!important;left:18px!important;right:auto!important;bottom:88px!important;width:min(408px,calc(100vw - 36px))!important;max-width:min(408px,calc(100vw - 36px))!important;max-height:none!important;overflow:hidden!important;padding:0!important;pointer-events:auto!important;}
-html.cityrail-apple-spatial-ui #line-config-panel .cityrail-object-panel-body,
-html.cityrail-apple-spatial-ui #station-detail-panel .cityrail-object-panel-body{height:100%!important;max-height:none!important;overflow:auto!important;padding:18px!important;scrollbar-gutter:stable!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;pointer-events:auto!important;}
 html.cityrail-apple-spatial-ui #settings-panel{width:min(390px,calc(100vw - 36px))!important;max-height:min(760px,calc(100dvh - 72px))!important;overflow:auto!important;padding:18px!important;}
 html.cityrail-apple-spatial-ui #new-line-dialog{width:min(920px,calc(100vw - 36px))!important;min-width:0!important;max-height:calc(100dvh - 72px)!important;overflow:auto!important;padding:18px!important;}
 html.cityrail-apple-spatial-ui .new-build-choice{width:100%!important;min-width:0!important;grid-template-columns:repeat(4,minmax(132px,1fr))!important;overflow:visible!important;}
@@ -6976,7 +6937,7 @@ html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=flex],
 html.cityrail-apple-spatial-ui #nav-panel>div[style*=relative],
 html.cityrail-apple-spatial-ui #nav-panel .nav-panel-body{height:100%!important;overflow:auto!important;min-height:0!important;}
 html.cityrail-apple-spatial-ui h1,html.cityrail-apple-spatial-ui h2,html.cityrail-apple-spatial-ui h3,html.cityrail-apple-spatial-ui h4,
-html.cityrail-apple-spatial-ui .ctrl-big-num,html.cityrail-apple-spatial-ui .ctrl-card-title,html.cityrail-apple-spatial-ui .sd-section-title,html.cityrail-apple-spatial-ui .freq-section-title{color:var(--cr416-text)!important;font-weight:680!important;text-shadow:none!important;}
+html.cityrail-apple-spatial-ui .ctrl-big-num,html.cityrail-apple-spatial-ui .ctrl-card-title{color:var(--cr416-text)!important;font-weight:680!important;text-shadow:none!important;}
 html.cityrail-apple-spatial-ui p,html.cityrail-apple-spatial-ui label,html.cityrail-apple-spatial-ui span,html.cityrail-apple-spatial-ui small,html.cityrail-apple-spatial-ui td,html.cityrail-apple-spatial-ui th,html.cityrail-apple-spatial-ui div{ text-shadow:none; }
 html.cityrail-apple-spatial-ui .ctrl-big-sub,html.cityrail-apple-spatial-ui .ctrl-card-subtitle,html.cityrail-apple-spatial-ui .nav-desc,html.cityrail-apple-spatial-ui [class*=-hint],html.cityrail-apple-spatial-ui [class*=-sub],html.cityrail-apple-spatial-ui [class*=-label]{color:var(--cr416-secondary)!important;}
 html.cityrail-apple-spatial-ui button,
@@ -6989,8 +6950,8 @@ html.cityrail-apple-spatial-ui textarea{background:var(--cr416-fill)!important;b
 html.cityrail-apple-spatial-ui input:focus,
 html.cityrail-apple-spatial-ui select:focus,
 html.cityrail-apple-spatial-ui textarea:focus{border-color:rgba(10,132,255,.72)!important;box-shadow:0 0 0 3px rgba(10,132,255,.18)!important;}
-html.cityrail-apple-spatial-ui button:not(.tool-btn):not(#sim-btn):not(#splash-continue-btn):not(.sd-zone-btn):not(.cr210-line-btn){background:var(--cr416-fill)!important;border:1px solid var(--cr416-border)!important;color:var(--cr416-text)!important;box-shadow:none!important;}
-html.cityrail-apple-spatial-ui button:not(.tool-btn):not(#sim-btn):not(#splash-continue-btn):not(.sd-zone-btn):not(.cr210-line-btn):hover{background:var(--cr416-fill-hover)!important;}
+html.cityrail-apple-spatial-ui button:not(.tool-btn):not(#sim-btn):not(#splash-continue-btn):not(.sd-zone-btn):not(.cr210-line-btn):not(.cr-eps-chip):not(.cr-eps-title):not(.cr269-continue){background:var(--cr416-fill)!important;border:1px solid var(--cr416-border)!important;color:var(--cr416-text)!important;box-shadow:none!important;}
+html.cityrail-apple-spatial-ui button:not(.tool-btn):not(#sim-btn):not(#splash-continue-btn):not(.sd-zone-btn):not(.cr210-line-btn):not(.cr-eps-chip):not(.cr-eps-title):not(.cr269-continue):hover{background:var(--cr416-fill-hover)!important;}
 html.cityrail-apple-spatial-ui #splash-continue-btn{background:linear-gradient(135deg,rgba(10,132,255,.96),rgba(0,102,204,.96))!important;border:1px solid rgba(125,212,255,.42)!important;color:#fff!important;box-shadow:0 18px 52px rgba(10,132,255,.34),inset 0 1px 0 rgba(255,255,255,.22)!important;}
 html.cityrail-apple-spatial-ui #splash-continue-btn:hover{background:linear-gradient(135deg,rgba(48,160,255,.98),rgba(0,122,255,.98))!important;border-color:rgba(10,132,255,.70)!important;box-shadow:0 22px 62px rgba(10,132,255,.42),inset 0 1px 0 rgba(255,255,255,.26)!important;}
 html.cityrail-apple-spatial-ui #cfg-btn-save,
@@ -7003,7 +6964,6 @@ html.cityrail-apple-spatial-ui #cfg-btn-delete-line,
 html.cityrail-apple-spatial-ui .cfg-btn-danger{color:var(--cr416-red)!important;background:rgba(255,69,58,.12)!important;border-color:rgba(255,69,58,.24)!important;}
 html.cityrail-apple-spatial-ui .panel-close-btn,
 html.cityrail-apple-spatial-ui .cc-express-close,
-html.cityrail-apple-spatial-ui .cityrail-depot-close{width:28px!important;height:28px!important;min-width:28px!important;padding:0!important;border-radius:999px!important;background:var(--cr416-fill)!important;color:var(--cr416-secondary)!important;}
 html.cityrail-apple-spatial-ui table{border-collapse:separate!important;border-spacing:0!important;}
 html.cityrail-apple-spatial-ui th{font-size:11px!important;font-weight:620!important;color:var(--cr416-secondary)!important;background:var(--cr416-fill)!important;}
 html.cityrail-apple-spatial-ui td{color:var(--cr416-text)!important;border-color:var(--cr416-border)!important;}
@@ -7025,18 +6985,11 @@ html.cityrail-apple-spatial-ui .cr-daily-panel{background:var(--cr416-surface)!i
 html.cityrail-apple-spatial-ui .ctrl-card{padding:14px!important;}
 html.cityrail-apple-spatial-ui .ctrl-card-title{text-transform:none!important;font-size:13px!important;margin-bottom:10px!important;}
 html.cityrail-apple-spatial-ui #ctrl-alerts{width:260px!important;min-width:260px!important;}
-html.cityrail-apple-spatial-ui .settings-row,
-html.cityrail-apple-spatial-ui .cfg-row,
-html.cityrail-apple-spatial-ui .freq-input-row,
-html.cityrail-apple-spatial-ui .sd-bar-row,
-html.cityrail-apple-spatial-ui .branch-config-row{min-height:38px!important;border-color:var(--cr416-border)!important;}
+html.cityrail-apple-spatial-ui .settings-row{min-height:38px!important;border-color:var(--cr416-border)!important;}
 html.cityrail-apple-spatial-ui .settings-toggle{width:44px!important;height:26px!important;border-radius:999px!important;background:rgba(120,120,128,.30)!important;border:0!important;position:relative!important;}
 html.cityrail-apple-spatial-ui .settings-toggle::after{content:"";position:absolute;width:22px;height:22px;left:2px;top:2px;border-radius:999px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.20);transition:transform .16s ease;}
 html.cityrail-apple-spatial-ui .settings-toggle.on{background:var(--cr416-green)!important;}
 html.cityrail-apple-spatial-ui .settings-toggle.on::after{transform:translateX(18px);}
-html.cityrail-apple-spatial-ui #station-detail-panel .sd-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:34px!important;grid-auto-flow:row!important;gap:8px!important;}
-html.cityrail-apple-spatial-ui #cfg-btn-row,html.cityrail-apple-spatial-ui #cfg-edit-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}
-html.cityrail-apple-spatial-ui .sd-actions button,html.cityrail-apple-spatial-ui #cfg-btn-row button,html.cityrail-apple-spatial-ui #cfg-edit-actions button{min-height:34px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
 html.cityrail-apple-spatial-ui ::-webkit-scrollbar{width:8px;height:8px;}
 html.cityrail-apple-spatial-ui ::-webkit-scrollbar-thumb{background:rgba(120,120,128,.36);border-radius:999px;}
 html.cityrail-apple-spatial-ui ::-webkit-scrollbar-track{background:transparent;}
@@ -7044,12 +6997,398 @@ html.cityrail-apple-spatial-ui ::-webkit-scrollbar-track{background:transparent;
   html.cityrail-apple-spatial-ui .new-build-choice{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
   html.cityrail-apple-spatial-ui #app-logo{display:none!important;}
   html.cityrail-apple-spatial-ui #topbar{top:max(10px,env(safe-area-inset-top))!important;width:max-content!important;max-width:calc(100vw - 20px)!important;overflow-x:auto!important;}
-  html.cityrail-apple-spatial-ui #line-config-panel,
-  html.cityrail-apple-spatial-ui #station-detail-panel{left:10px!important;right:10px!important;top:auto!important;bottom:84px!important;width:auto!important;max-width:none!important;height:min(62vh,560px)!important;}
   html.cityrail-apple-spatial-ui #bottombar{grid-template-columns:1fr!important;border-radius:18px!important;}
   html.cityrail-apple-spatial-ui #bottombar .row2{justify-content:stretch!important;min-width:0!important;}
   html.cityrail-apple-spatial-ui #ctrl-alerts{display:none!important;}
   html.cityrail-apple-spatial-ui #ctrl-content-grid{grid-template-columns:1fr!important;}
+}
+
+/* v448: map object panel system for station and line panels. */
+:root{
+  --cr-object-accent:#0a84ff;
+  --cr-object-bg:rgba(12,14,18,.88);
+  --cr-object-card:rgba(18,21,27,.76);
+  --cr-object-card-soft:rgba(255,255,255,.045);
+  --cr-object-border:rgba(255,255,255,.13);
+  --cr-object-line:rgba(255,255,255,.095);
+  --cr-object-text:#f8fafc;
+  --cr-object-muted:rgba(235,241,248,.62);
+  --cr-object-faint:rgba(235,241,248,.42);
+}
+#line-config-overlay,
+#station-detail-overlay,
+html.cityrail-apple-spatial-ui #line-config-overlay,
+html.cityrail-apple-spatial-ui #station-detail-overlay{
+  position:fixed!important;
+  inset:0!important;
+  background:transparent!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  pointer-events:none!important;
+}
+#line-config-panel,
+#station-detail-panel{
+  --cr-object-accent:var(--accent,#0a84ff);
+  position:absolute!important;
+  top:76px!important;
+  left:18px!important;
+  right:auto!important;
+  bottom:86px!important;
+  width:min(430px,calc(100vw - 36px))!important;
+  max-width:min(430px,calc(100vw - 36px))!important;
+  max-height:none!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:var(--cr-object-text)!important;
+  background:var(--cr-object-bg)!important;
+  border:1px solid var(--cr-object-border)!important;
+  border-top-color:var(--cr-object-border)!important;
+  border-radius:20px!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  pointer-events:auto!important;
+  backdrop-filter:blur(12px) saturate(126%)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(126%)!important;
+}
+#line-config-panel *,
+#station-detail-panel *{
+  letter-spacing:0!important;
+  text-shadow:none!important;
+}
+#line-config-panel .cityrail-object-panel-body,
+#station-detail-panel .cityrail-object-panel-body{
+  position:relative!important;
+  z-index:1!important;
+  height:100%!important;
+  max-height:none!important;
+  min-height:0!important;
+  overflow:auto!important;
+  padding:28px 20px 18px!important;
+  scrollbar-gutter:stable!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+#line-config-panel h2,
+#station-detail-panel h2{
+  min-height:0!important;
+  margin:0 0 16px!important;
+  padding:0 0 16px!important;
+  border:0!important;
+  border-bottom:1px solid var(--cr-object-line)!important;
+  background:transparent!important;
+  color:var(--cr-object-text)!important;
+}
+#line-config-panel h2{
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) 34px!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+#station-detail-panel h2{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 34px!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+#line-config-panel #cfg-line-name{
+  grid-column:2!important;
+  justify-self:center!important;
+  text-align:center!important;
+}
+#station-detail-panel #sd-station-name{
+  grid-column:1!important;
+  justify-self:start!important;
+  text-align:left!important;
+}
+#cfg-line-name,
+#sd-station-name{
+  display:block!important;
+  margin-top:2px!important;
+  padding:0!important;
+  max-width:100%!important;
+  color:var(--cr-object-text)!important;
+  font-size:30px!important;
+  font-weight:880!important;
+  line-height:1.08!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#cfg-line-name{color:var(--cr-object-accent)!important;}
+#line-config-close,
+#station-detail-close{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  padding:0!important;
+  border-radius:999px!important;
+  border:1px solid var(--cr-object-border)!important;
+  background:rgba(255,255,255,.055)!important;
+  color:var(--cr-object-muted)!important;
+  box-shadow:none!important;
+}
+#line-config-close{grid-column:3!important;grid-row:1!important;}
+#station-detail-close{grid-column:2!important;grid-row:1!important;}
+#line-config-close:hover,
+#station-detail-close:hover{
+  background:rgba(255,255,255,.09)!important;
+  color:var(--cr-object-text)!important;
+}
+#cfg-line-station-flow,
+#cfg-name-editor,
+#cfg-freq-panel,
+#cfg-time-panel,
+#cfg-edit-actions,
+#sd-name-editor,
+#sd-zone-row,
+#sd-waiting-section,
+#sd-transfer-section,
+#sd-branch-config,
+#sd-line-picker,
+.cfg-row,
+.freq-input-row,
+.sd-bar-row,
+.branch-config-row,
+.sd-storage-card{
+  border:1px solid var(--cr-object-border)!important;
+  border-left-color:var(--cr-object-accent)!important;
+  border-radius:12px!important;
+  background:var(--cr-object-card)!important;
+  box-shadow:none!important;
+}
+#cfg-line-station-flow,
+#cfg-name-editor,
+#cfg-freq-panel,
+#cfg-time-panel,
+#cfg-edit-actions,
+#sd-name-editor,
+#sd-zone-row,
+#sd-waiting-section,
+#sd-transfer-section,
+#sd-branch-config,
+#sd-line-picker,
+.sd-storage-card{
+  padding:12px!important;
+  margin:10px 0 12px!important;
+}
+.cfg-row,
+.freq-input-row,
+.sd-bar-row,
+.branch-config-row{
+  min-height:44px!important;
+  padding:9px 10px!important;
+  margin:8px 0!important;
+}
+#line-config-panel .cfg-row{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+#line-config-panel .cfg-row .cfg-label{
+  min-width:0!important;
+  width:44px!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+}
+#line-config-panel .cfg-row .cfg-select{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#line-config-panel :is(#cfg-line-station-flow,#cfg-name-editor,#cfg-freq-panel,#cfg-time-panel,#cfg-edit-actions,.cfg-row),
+#station-detail-panel :is(#sd-name-editor,#sd-zone-row,#sd-waiting-section,#sd-transfer-section,#sd-branch-config,#sd-line-picker,.sd-bar-row,.branch-config-row,.sd-storage-card){
+  font-size:13px!important;
+}
+#line-config-panel :is(.cfg-label,.freq-label,.cfg-select,.freq-val),
+#station-detail-panel :is(.sd-section-title,.sd-bar-label,.sd-bar-val,.sd-waiting-line-name,.sd-waiting-dir-to,.sd-waiting-dir-count,.branch-config-label){
+  font-size:13px!important;
+}
+#station-detail-panel .sd-waiting-line-name,
+#station-detail-panel .sd-waiting-dir-count{
+  font-size:14px!important;
+}
+
+.cfg-line-station-flow-title,
+.sd-section-title,
+#cfg-freq-panel .freq-section-title,
+#cfg-time-panel .freq-section-title{
+  color:var(--cr-object-text)!important;
+  font-size:12px!important;
+  font-weight:820!important;
+  line-height:1.25!important;
+  margin:0 0 10px!important;
+}
+.cfg-line-station-flow-title span:last-child,
+.cfg-label,
+.freq-label,
+.freq-sub,
+.sd-bar-label,
+.branch-config-label,
+.sd-zone-hint,
+.sd-storage-note,
+.sd-storage-empty,
+.cfg-time-hint,
+.cfg-x-edit-hint,
+#cfg-edit-hint{
+  color:var(--cr-object-muted)!important;
+}
+.cfg-line-station-flow-row,
+.cfg-line-station-flow-metrics div,
+.sd-storage-metrics div{
+  border:1px solid var(--cr-object-line)!important;
+  border-radius:10px!important;
+  background:rgba(5,8,12,.28)!important;
+  box-shadow:none!important;
+}
+.cfg-line-station-flow-name,
+.cfg-line-station-flow-metrics b,
+.sd-bar-val,
+.sd-storage-metrics b{
+  color:var(--cr-object-text)!important;
+}
+.cfg-line-station-flow-name small,
+.cfg-line-station-flow-metrics span,
+.sd-storage-metrics span{
+  color:var(--cr-object-faint)!important;
+}
+#line-config-panel input:not([type=color]),
+#line-config-panel select,
+#station-detail-panel input:not([type=color]),
+#station-detail-panel select{
+  height:34px!important;
+  color:var(--cr-object-text)!important;
+  background:rgba(4,7,11,.30)!important;
+  border:1px solid var(--cr-object-line)!important;
+  border-radius:8px!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+#line-config-panel input:focus,
+#line-config-panel select:focus,
+#station-detail-panel input:focus,
+#station-detail-panel select:focus{
+  border-color:var(--cr-object-accent)!important;
+  box-shadow:none!important;
+}
+#line-config-panel input[type=color]{
+  border:1px solid var(--cr-object-border)!important;
+  border-radius:8px!important;
+  background:transparent!important;
+}
+#line-config-panel input[type=range],
+#station-detail-panel input[type=range]{
+  height:4px!important;
+  background:rgba(255,255,255,.12)!important;
+  border:0!important;
+  border-radius:999px!important;
+  accent-color:var(--cr-object-accent)!important;
+}
+#line-config-panel input[type=range]::-webkit-slider-thumb,
+#station-detail-panel input[type=range]::-webkit-slider-thumb{
+  width:16px!important;
+  height:16px!important;
+  border:2px solid var(--cr-object-bg)!important;
+  border-radius:999px!important;
+  background:var(--cr-object-accent)!important;
+  box-shadow:none!important;
+}
+#cfg-btn-row,
+#station-detail-panel .sd-actions,
+#line-config-panel .cityrail-object-panel-actions,
+#station-detail-panel .cityrail-object-panel-actions{
+  position:sticky!important;
+  bottom:-18px!important;
+  z-index:3!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin:14px -20px -18px!important;
+  padding:12px 20px 18px!important;
+  border:0!important;
+  border-top:1px solid var(--cr-object-line)!important;
+  background:rgba(9,11,15,.82)!important;
+  backdrop-filter:blur(10px) saturate(120%)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(120%)!important;
+}
+#station-detail-panel .sd-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+#line-config-panel button,
+#station-detail-panel button{
+  min-height:34px!important;
+  border:1px solid var(--cr-object-border)!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.055)!important;
+  color:var(--cr-object-text)!important;
+  box-shadow:none!important;
+  font-weight:780!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#line-config-panel button:hover,
+#station-detail-panel button:hover{
+  background:rgba(255,255,255,.09)!important;
+  border-color:color-mix(in srgb,var(--cr-object-accent) 70%, rgba(255,255,255,.18))!important;
+}
+#cfg-btn-save,
+.branch-config-btn-start{
+  background:var(--cr-object-accent)!important;
+  border-color:var(--cr-object-accent)!important;
+  color:#fff!important;
+}
+#cfg-btn-delete-line,
+#sd-btn-delete,
+.sd-btn-danger{
+  background:rgba(255,69,58,.12)!important;
+  border-color:rgba(255,69,58,.42)!important;
+  color:#ffb4ad!important;
+}
+.sd-extend-btn{
+  color:#8ff0a4!important;
+  border-color:rgba(48,209,88,.40)!important;
+}
+.sd-branch-btn{
+  color:#ffd37a!important;
+  border-color:rgba(255,159,10,.42)!important;
+}
+.sd-zone-btn.on,
+.sd-storage-segment button.active,
+.sd-storage-direction button.active{
+  background:var(--cr-object-accent)!important;
+  border-color:var(--cr-object-accent)!important;
+  color:#fff!important;
+}
+.sd-bar-track{
+  height:18px!important;
+  background:rgba(5,8,12,.30)!important;
+  border:1px solid var(--cr-object-line)!important;
+  border-radius:999px!important;
+}
+.sd-bar-fill{
+  border-radius:999px!important;
+  background:var(--cr-object-accent)!important;
+}
+#line-config-panel ::-webkit-scrollbar,
+#station-detail-panel ::-webkit-scrollbar{width:7px;height:7px;}
+#line-config-panel ::-webkit-scrollbar-thumb,
+#station-detail-panel ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px;}
+@media (max-width:760px){
+  #line-config-panel,
+  #station-detail-panel{
+    left:10px!important;
+    right:10px!important;
+    top:auto!important;
+    bottom:84px!important;
+    width:auto!important;
+    max-width:none!important;
+    height:min(64vh,560px)!important;
+  }
+  #cfg-line-name,
+  #sd-station-name{font-size:26px!important;}
+  #station-detail-panel .sd-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
 }
 /* v442: light control-center homepage readability pass */
 html.cityrail-light-ui #ctrl-center-overlay{
@@ -7651,11 +7990,8 @@ html.cityrail-light-ui #ctrl-center-overlay #ctrl-main::-webkit-scrollbar-thumb,
 <!-- LINE CONFIG PANEL -->
 <div id="line-config-overlay" class="hidden">
   <div id="line-config-panel" class="cityrail-object-panel cityrail-line-object-panel">
-    <div id="cfg-grid-bg"></div>
-    <div id="cfg-scanline"></div>
     <div id="cfg-content" class="cityrail-object-panel-body">
       <h2>
-        <span>线路配置</span>
         <span id="cfg-line-name" class="cfg-line-name" title="点击更改线路名称和颜色"></span>
         <button id="line-config-close" class="panel-close-btn" title="关闭" aria-label="关闭" data-action="line-config-close">×</button>
       </h2>
@@ -7755,11 +8091,9 @@ html.cityrail-light-ui #ctrl-center-overlay #ctrl-main::-webkit-scrollbar-thumb,
 <!-- STATION DETAIL PANEL -->
 <div id="station-detail-overlay" class="hidden">
   <div id="station-detail-panel" class="cityrail-object-panel cityrail-station-object-panel">
-    <div style="position:absolute;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(79,195,247,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.02) 1px,transparent 1px);background-size:24px 24px;"></div>
-    <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:linear-gradient(to bottom,transparent 0%,transparent 60%,rgba(79,195,247,0.02) 60.5%,transparent 60.7%,transparent 100%);animation:cfg-scanline 6s linear infinite;"></div>
     <div class="cityrail-object-panel-body" style="position:relative;z-index:2;">
     <h2>
-      <span>站点详情 — <span id="sd-station-name"></span></span>
+      <span id="sd-station-name"></span>
       <button id="station-detail-close" class="panel-close-btn" title="关闭" aria-label="关闭" data-action="station-detail-close">×</button>
     </h2>
     <div id="sd-name-editor" class="hidden">
@@ -8085,7 +8419,7 @@ window.setCityRailActiveCity = function(key){
   };
 })();
 </script>
-<script src="js/cityrail-runtime.js?v=20260710-v445-error-observability"></script>
+<script src="js/cityrail-runtime.js?v=20260712-v449-panel-source-connector"></script>
 <script src="js/cityrail-v146-single-control-owner.js?v=20260710-v445-error-observability"></script>
 <script src="js/cityrail-apple-spatial-ui-authority.js?v=20260710-v445-error-observability"></script>
 <script src="js/cityrail-maplibre-pmtiles-authority.js?v=20260711-v446-vector-isolation"></script>
@@ -11082,7 +11416,7 @@ window.setCityRailActiveCity = function(key){
 
 
 </script>
-<script src="js/cityrail-external-sources-v1.js?v=20260710-v445-error-observability"></script>
+<script src="js/cityrail-external-sources-v1.js?v=20260712-v449-panel-source-connector"></script>
 <script src="js/cityrail-performance-authority-v400.js?v=20260710-v445-error-observability"></script>
 <script>
 (function(){

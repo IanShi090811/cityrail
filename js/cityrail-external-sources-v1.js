@@ -14,10 +14,10 @@
     stadium: { label:'体育场馆', icon:'体', color:'#FF2D55', baseDaily:16000, zones:{ leisure:1.28, shopping:1.05, residential:.92, railway_station:.54, office:.42, school:.38, airport:.16 }, rhythm:'stadium' }
   };
   const INTENSITY_DEFS = {
-    small: { label:'小', multiplier:.38 },
-    medium: { label:'中', multiplier:.80 },
-    large: { label:'大', multiplier:1.55 },
-    huge: { label:'超大', multiplier:2.75 }
+    small: { label:'小', multiplier:.38, color:'#64D2FF' },
+    medium: { label:'中', multiplier:.80, color:'#34C759' },
+    large: { label:'大', multiplier:1.55, color:'#FF9F0A' },
+    huge: { label:'超大', multiplier:2.75, color:'#FF2D55' }
   };
   const TYPE_ORDER = ['airport','railway','port','bus','stadium'];
   const INTENSITY_ORDER = ['small','medium','large','huge'];
@@ -100,7 +100,7 @@
 
   function isEditingName() {
     const active = D.activeElement;
-    return !!(active && active.matches && active.matches('.cr-eps-input[data-eps-field="name"]'));
+    return !!(active && active.matches && active.matches('.cr-eps-input[data-eps-field="name"],.cr-eps-title-input[data-eps-field="name"]'));
   }
 
   function affectedStationIdsForSource(source) {
@@ -353,49 +353,48 @@
       .cr-eps-marker{width:var(--eps-size,34px);height:var(--eps-size,34px);border-radius:var(--eps-radius,13px);display:flex;align-items:center;justify-content:center;background:rgba(28,28,30,.86);border:1px solid rgba(255,255,255,.24);box-shadow:0 10px 28px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;font:850 var(--eps-font,13px)/1 -apple-system,BlinkMacSystemFont,"SF Pro Text","Microsoft YaHei",sans-serif;letter-spacing:0;}
       .cr-eps-marker span{width:var(--eps-inner,24px);height:var(--eps-inner,24px);border-radius:calc(var(--eps-inner,24px) * .38);display:flex;align-items:center;justify-content:center;color:#fff;}
       .cr-eps-marker.on{transform:scale(1.08);box-shadow:0 0 0 4px rgba(10,132,255,.18),0 14px 34px rgba(0,0,0,.36);}
-      .cr-eps-panel{position:fixed;right:16px;top:86px;z-index:2147481500;width:390px;max-width:calc(100vw - 32px);max-height:calc(100vh - 112px);display:flex;flex-direction:column;border-radius:22px;background:rgba(28,28,30,.88);border:1px solid rgba(255,255,255,.14);box-shadow:0 26px 80px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.10);backdrop-filter:blur(30px) saturate(1.35);-webkit-backdrop-filter:blur(30px) saturate(1.35);color:#f5f5f7;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Microsoft YaHei",sans-serif;letter-spacing:0;}
+      .cr-eps-panel{--cr-object-accent:#0a84ff;position:fixed;right:18px;top:76px;bottom:86px;z-index:2147481500;width:min(430px,calc(100vw - 36px));max-width:min(430px,calc(100vw - 36px));max-height:none;display:flex;flex-direction:column;border-radius:20px;background:var(--cr-object-bg,rgba(12,14,18,.88));border:1px solid var(--cr-object-border,rgba(255,255,255,.13));box-shadow:none;backdrop-filter:blur(12px) saturate(126%);-webkit-backdrop-filter:blur(12px) saturate(126%);color:var(--cr-object-text,#f8fafc);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Microsoft YaHei",sans-serif;letter-spacing:0;text-shadow:none;}
       .cr-eps-panel.hidden{display:none;}
-      .cr-eps-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.10);}
-      .cr-eps-kicker{font-size:11px;font-weight:780;color:rgba(255,255,255,.48);margin-bottom:5px;}
-      .cr-eps-title{font-size:19px;font-weight:850;color:#fff;line-height:1.2;}
-      .cr-eps-close{width:30px;height:30px;border:0;border-radius:10px;background:rgba(255,255,255,.09);color:rgba(255,255,255,.75);font-size:18px;cursor:pointer;}
-      .cr-eps-body{padding:14px 18px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
-      .cr-eps-field{display:flex;flex-direction:column;gap:7px;}
-      .cr-eps-label{font-size:11px;font-weight:760;color:rgba(255,255,255,.52);}
-      .cr-eps-input,.cr-eps-select{height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;padding:0 11px;font:650 13px/38px inherit;outline:0;}
-      .cr-eps-input:focus,.cr-eps-select:focus{border-color:rgba(10,132,255,.72);box-shadow:0 0 0 4px rgba(10,132,255,.16);}
+      .cr-eps-head{display:grid;grid-template-columns:minmax(0,1fr) 34px;align-items:center;gap:12px;padding:28px 20px 16px;border-bottom:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
+      .cr-eps-title-wrap{min-width:0;display:grid;gap:6px;}
+      .cr-eps-title{display:block;width:100%;padding:0!important;border:0!important;background:transparent!important;color:var(--cr-object-text,#f8fafc)!important;font:inherit;font-size:30px;font-weight:880;line-height:1.08;text-align:left;overflow-wrap:anywhere;cursor:text;box-shadow:none!important;}
+      .cr-eps-title:hover{color:#fff;}
+      .cr-eps-title.hidden{display:none;}
+      .cr-eps-title-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--cr-object-accent,#0a84ff);background:rgba(4,7,11,.30);color:var(--cr-object-text,#f8fafc);padding:0 10px;font:800 22px/38px inherit;outline:0;box-shadow:none;}
+      .cr-eps-title-input.hidden{display:none;}
+      .cr-eps-close{width:34px;height:34px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-radius:999px;background:rgba(255,255,255,.055);color:var(--cr-object-muted,rgba(235,241,248,.62));font-size:18px;cursor:pointer;box-shadow:none;}
+      .cr-eps-close:hover{background:rgba(255,255,255,.09);color:var(--cr-object-text,#f8fafc);}
+      .cr-eps-body{padding:12px 20px 14px;overflow:auto;display:flex;flex-direction:column;gap:12px;min-height:0;scrollbar-gutter:stable;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+      .cr-eps-field{display:flex;flex-direction:column;gap:8px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));border-left-color:var(--cr-object-accent,#0a84ff);border-radius:12px;background:var(--cr-object-card,rgba(18,21,27,.76));padding:12px;box-shadow:none;}
+      .cr-eps-label{font-size:12px;font-weight:820;color:var(--cr-object-muted,rgba(235,241,248,.62));}
+      .cr-eps-input,.cr-eps-select{height:34px;border-radius:8px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(4,7,11,.30);color:var(--cr-object-text,#f8fafc);padding:0 10px;font:650 13px/34px inherit;outline:0;box-shadow:none;}
+      .cr-eps-input:focus,.cr-eps-select:focus{border-color:var(--cr-object-accent,#0a84ff);box-shadow:none;}
       .cr-eps-segment{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:6px;}
-      .cr-eps-chip{height:34px;border-radius:11px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.07);color:rgba(255,255,255,.78);font-size:12px;font-weight:760;cursor:pointer;}
-      .cr-eps-chip.active{background:#0A84FF;border-color:#0A84FF;color:#fff;box-shadow:0 8px 20px rgba(10,132,255,.24);}
+      .cr-eps-chip{height:34px;border-radius:8px;border:1px solid var(--cr-object-line,rgba(255,255,255,.095))!important;background:rgba(255,255,255,.055)!important;color:var(--cr-object-muted,rgba(235,241,248,.62))!important;font-size:12px;font-weight:780;cursor:pointer;box-shadow:none!important;}
+      .cr-eps-chip.active{background:var(--cr-object-accent,#0a84ff)!important;border-color:var(--cr-object-accent,#0a84ff)!important;color:#fff!important;box-shadow:none!important;}
       .cr-eps-range-row{display:grid;grid-template-columns:minmax(0,1fr)58px;align-items:center;gap:10px;}
-      .cr-eps-range-row input{width:100%;accent-color:#0A84FF;}
-      .cr-eps-value{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;font-weight:820;color:#fff;}
+      .cr-eps-range-row input{width:100%;height:4px;border:0;border-radius:999px;background:rgba(255,255,255,.12);accent-color:var(--cr-object-accent,#0a84ff);}
+      .cr-eps-value{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;font-weight:820;color:var(--cr-object-text,#f8fafc);}
       .cr-eps-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
-      .cr-eps-kpi{min-height:62px;border-radius:14px;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);}
-      .cr-eps-kpi b{display:block;font-size:16px;line-height:1.1;margin-bottom:5px;color:#fff;font-variant-numeric:tabular-nums;}
-      .cr-eps-kpi span{display:block;font-size:10px;color:rgba(255,255,255,.48);font-weight:650;}
-      .cr-eps-bars{height:76px;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));gap:3px;align-items:end;padding:8px 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);}
-      .cr-eps-bar{min-height:4px;border-radius:999px 999px 3px 3px;background:linear-gradient(180deg,#64D2FF,#0A84FF);}
-      .cr-eps-bar.now{background:linear-gradient(180deg,#fff,#0A84FF);box-shadow:0 0 14px rgba(10,132,255,.55);}
+      .cr-eps-kpi{min-height:62px;border-radius:10px;padding:10px;background:rgba(5,8,12,.28);border:1px solid var(--cr-object-line,rgba(255,255,255,.095));box-shadow:none;}
+      .cr-eps-kpi b{display:block;font-size:16px;line-height:1.1;margin-bottom:5px;color:var(--cr-object-text,#f8fafc);font-variant-numeric:tabular-nums;}
+      .cr-eps-kpi span{display:block;font-size:10px;color:var(--cr-object-faint,rgba(235,241,248,.42));font-weight:700;}
+      .cr-eps-bars{height:76px;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));gap:3px;align-items:end;padding:8px 0;border-top:1px solid var(--cr-object-line,rgba(255,255,255,.095));border-bottom:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
+      .cr-eps-bar{min-height:4px;border-radius:999px 999px 3px 3px;background:color-mix(in srgb,var(--cr-object-accent,#0a84ff) 78%, #ffffff 8%);}
+      .cr-eps-bar.now{background:var(--cr-object-accent,#0a84ff);box-shadow:none;}
       .cr-eps-list{display:flex;flex-direction:column;gap:6px;}
-      .cr-eps-row{display:grid;grid-template-columns:minmax(0,1fr)72px;gap:8px;align-items:center;min-height:34px;padding:8px 9px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);}
-      .cr-eps-row-name{font-size:12px;font-weight:720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.9);}
-      .cr-eps-row-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
-      .cr-eps-row-val{text-align:right;font-size:12px;font-weight:820;color:#fff;font-variant-numeric:tabular-nums;}
-      .cr-eps-actions{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);}
-      .cr-eps-actions button{height:36px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-weight:780;cursor:pointer;flex:1;}
-      .cr-eps-actions .danger{color:#ffb2ad;background:rgba(255,59,48,.12);border-color:rgba(255,59,48,.24);}
+      .cr-eps-row{display:grid;grid-template-columns:minmax(0,1fr)72px;gap:8px;align-items:center;min-height:34px;padding:8px 9px;border-radius:10px;background:rgba(5,8,12,.28);border:1px solid var(--cr-object-line,rgba(255,255,255,.095));}
+      .cr-eps-row-name{font-size:12px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--cr-object-text,#f8fafc);}
+      .cr-eps-row-sub{font-size:10px;color:var(--cr-object-faint,rgba(235,241,248,.42));margin-top:2px;}
+      .cr-eps-row-val{text-align:right;font-size:12px;font-weight:820;color:var(--cr-object-text,#f8fafc);font-variant-numeric:tabular-nums;}
+      .cr-eps-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 20px 18px;border-top:1px solid var(--cr-object-line,rgba(255,255,255,.095));background:rgba(9,11,15,.82);backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);}
+      .cr-eps-actions button{height:36px;border-radius:8px;border:1px solid var(--cr-object-border,rgba(255,255,255,.13));background:rgba(255,255,255,.055);color:var(--cr-object-text,#f8fafc);font-size:13px;font-weight:780;cursor:pointer;box-shadow:none;min-width:0;}
+      .cr-eps-actions .danger{color:#ffb4ad;background:rgba(255,69,58,.12);border-color:rgba(255,69,58,.42);}
       .cr-eps-tip{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147481600;padding:10px 14px;border-radius:999px;background:rgba(28,28,30,.86);border:1px solid rgba(255,255,255,.14);color:#fff;font:760 13px/1 -apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif;box-shadow:0 16px 44px rgba(0,0,0,.28);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
       .cr-eps-tip.hidden{display:none;}
       html.cityrail-light-ui .cr-eps-marker{background:rgba(255,255,255,.88);border-color:rgba(0,0,0,.08);color:#1d1d1f;box-shadow:0 10px 28px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.78);}
-      html.cityrail-light-ui .cr-eps-panel{background:rgba(255,255,255,.90);border-color:rgba(0,0,0,.09);color:#1d1d1f;box-shadow:0 26px 80px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.84);}
-      html.cityrail-light-ui .cr-eps-title,html.cityrail-light-ui .cr-eps-value,html.cityrail-light-ui .cr-eps-kpi b,html.cityrail-light-ui .cr-eps-row-val{color:#1d1d1f;}
-      html.cityrail-light-ui .cr-eps-kicker,html.cityrail-light-ui .cr-eps-label,html.cityrail-light-ui .cr-eps-kpi span,html.cityrail-light-ui .cr-eps-row-sub{color:rgba(29,29,31,.54);}
-      html.cityrail-light-ui .cr-eps-input,html.cityrail-light-ui .cr-eps-select,html.cityrail-light-ui .cr-eps-chip,html.cityrail-light-ui .cr-eps-kpi,html.cityrail-light-ui .cr-eps-row{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.08);color:#1d1d1f;}
-      html.cityrail-light-ui .cr-eps-row-name{color:rgba(29,29,31,.88);}
-      html.cityrail-light-ui .cr-eps-close,html.cityrail-light-ui .cr-eps-actions button{background:rgba(60,60,67,.08);border-color:rgba(0,0,0,.08);color:#1d1d1f;}
       html.cityrail-light-ui .cr-eps-tip{background:rgba(255,255,255,.90);border-color:rgba(0,0,0,.08);color:#1d1d1f;}
-      @media(max-width:760px){.new-build-choice.cr-eps-build-choice{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;min-width:0;}.cr-eps-panel{left:10px;right:10px;top:auto;bottom:12px;width:auto;max-height:72vh;}.cr-eps-kpis{grid-template-columns:1fr 1fr;}}
+      @media(max-width:760px){.new-build-choice.cr-eps-build-choice{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;min-width:0;}.cr-eps-panel{left:10px;right:10px;top:auto;bottom:84px;width:auto;max-width:none;max-height:min(64vh,560px);}.cr-eps-title{font-size:26px;}.cr-eps-kpis{grid-template-columns:1fr 1fr;}.cr-eps-segment{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
     `;
     D.head.appendChild(style);
   }
@@ -405,8 +404,8 @@
     if (panel) return panel;
     panel = D.createElement('aside');
     panel.id = 'cr-eps-panel';
-    panel.className = 'cr-eps-panel hidden';
-    panel.innerHTML = '<div class="cr-eps-head"><div><div class="cr-eps-kicker">外部客源点</div><div class="cr-eps-title" id="cr-eps-panel-title">客源点</div></div><button class="cr-eps-close" data-eps-act="close" aria-label="关闭">×</button></div><div class="cr-eps-body" id="cr-eps-panel-body"></div><div class="cr-eps-actions"><button data-eps-act="move">重新放置</button><button class="danger" data-eps-act="delete">删除</button></div>';
+    panel.className = 'cr-eps-panel cityrail-object-panel cityrail-external-source-object-panel hidden';
+    panel.innerHTML = '<div class="cr-eps-head cityrail-object-panel-head"><div class="cr-eps-title-wrap"><button type="button" class="cr-eps-title" id="cr-eps-panel-title" data-eps-act="edit-name">客源点</button><input class="cr-eps-title-input hidden" id="cr-eps-title-input" data-eps-field="name" maxlength="24" aria-label="客源点名称"></div><button class="cr-eps-close" data-eps-act="close" aria-label="关闭">×</button></div><div class="cr-eps-body cityrail-object-panel-body" id="cr-eps-panel-body"></div><div class="cr-eps-actions cityrail-object-panel-actions"><button data-eps-act="move">重新放置</button><button class="danger" data-eps-act="delete">删除</button></div>';
     try {
       if (W.L && W.L.DomEvent) {
         W.L.DomEvent.disableClickPropagation(panel);
@@ -417,6 +416,19 @@
     panel.addEventListener('input', onPanelInput);
     panel.addEventListener('change', onPanelInput);
     panel.addEventListener('keydown', ev => {
+      if (ev.target && ev.target.matches && ev.target.matches('.cr-eps-title-input[data-eps-field="name"]')) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          ev.target.blur();
+        } else if (ev.key === 'Escape') {
+          ev.preventDefault();
+          const source = selectedSource();
+          if (source) {
+            ev.target.value = source.name || ((TYPE_DEFS[source.type] || TYPE_DEFS.airport).label);
+            endSourceNameEdit(false);
+          }
+        }
+      }
       if (ev.target && ev.target.closest && ev.target.closest('input,select,textarea')) ev.stopPropagation();
     });
     panel.addEventListener('keyup', ev => {
@@ -453,6 +465,35 @@
     return ensureState().find(s => sid(s.id) === sid(selectedId)) || null;
   }
 
+  function beginSourceNameEdit() {
+    const source = selectedSource();
+    if (!source) return;
+    const title = D.getElementById('cr-eps-panel-title');
+    const input = D.getElementById('cr-eps-title-input');
+    if (!title || !input) return;
+    const def = TYPE_DEFS[source.type] || TYPE_DEFS.airport;
+    input.value = source.name || def.label;
+    title.classList.add('hidden');
+    input.classList.remove('hidden');
+    setTimeout(() => {
+      input.focus();
+      try { input.select(); } catch(e) {}
+    }, 0);
+  }
+
+  function endSourceNameEdit(commit) {
+    const source = selectedSource();
+    const title = D.getElementById('cr-eps-panel-title');
+    const input = D.getElementById('cr-eps-title-input');
+    if (!title || !input) return;
+    if (commit && source) commitSourceName(source, input);
+    const fresh = selectedSource();
+    const def = TYPE_DEFS[(fresh && fresh.type) || 'airport'] || TYPE_DEFS.airport;
+    title.textContent = (fresh && fresh.name) || def.label;
+    input.classList.add('hidden');
+    title.classList.remove('hidden');
+  }
+
   function renderPanel(id) {
     const source = ensureState().find(s => sid(s.id) === sid(id));
     const panel = ensurePanel();
@@ -464,9 +505,11 @@
     panel.classList.remove('hidden');
     const def = TYPE_DEFS[source.type] || TYPE_DEFS.airport;
     const titleEl = D.getElementById('cr-eps-panel-title');
+    const titleInput = D.getElementById('cr-eps-title-input');
     const body = D.getElementById('cr-eps-panel-body');
     if (!titleEl || !body) return;
     titleEl.textContent = source.name || def.label;
+    if (titleInput && titleInput.classList.contains('hidden')) titleInput.value = source.name || def.label;
     const live = liveSourceSnapshot(source);
     const hour = live.hour;
     const split = live.split;
@@ -479,7 +522,6 @@
     const topOD = live.topOD;
     const access = affected.slice(0, 8);
     body.innerHTML =
-      '<div class="cr-eps-field"><div class="cr-eps-label">名称</div><input class="cr-eps-input" data-eps-field="name" maxlength="24" value="' + esc(source.name) + '"></div>' +
       '<div class="cr-eps-field"><div class="cr-eps-label">类型</div><div class="cr-eps-segment" style="--cols:5">' + TYPE_ORDER.map(type => '<button class="cr-eps-chip ' + (source.type === type ? 'active' : '') + '" data-eps-type="' + type + '">' + esc(TYPE_DEFS[type].label) + '</button>').join('') + '</div></div>' +
       '<div class="cr-eps-field"><div class="cr-eps-label">客流幅度</div><div class="cr-eps-segment" style="--cols:4">' + INTENSITY_ORDER.map(key => '<button class="cr-eps-chip ' + (source.intensity === key ? 'active' : '') + '" data-eps-intensity="' + key + '">' + esc(INTENSITY_DEFS[key].label) + '</button>').join('') + '</div></div>' +
       '<div class="cr-eps-field"><div class="cr-eps-label">覆盖范围</div><div class="cr-eps-range-row"><input type="range" min="0" max="3" step="0.1" data-eps-field="radiusKm" value="' + source.radiusKm + '"><div class="cr-eps-value">' + source.radiusKm.toFixed(1) + 'km</div></div></div>' +
@@ -511,6 +553,8 @@
         movingId = source.id;
         placing = false;
         setTip('点击地图重新放置客源点');
+      } else if (action === 'edit-name') {
+        beginSourceNameEdit();
       }
       return;
     }
@@ -587,6 +631,12 @@
     if (input) input.value = name;
     const titleEl = D.getElementById('cr-eps-panel-title');
     if (titleEl) titleEl.textContent = name;
+    const titleInput = D.getElementById('cr-eps-title-input');
+    if (titleInput) {
+      titleInput.value = name;
+      titleInput.classList.add('hidden');
+    }
+    if (titleEl) titleEl.classList.remove('hidden');
     clearTimeout(renderTimer);
     persistOnly('name-commit');
     renderSources('name-commit');
