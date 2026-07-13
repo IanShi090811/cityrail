@@ -103,6 +103,7 @@
       '#map .cityrail-maplibre-basemap{position:absolute;inset:0;z-index:210;pointer-events:none;visibility:hidden;background:#eef2f4;}',
       'html.cityrail-vector-basemap-active #map .cityrail-maplibre-basemap{visibility:visible;}',
       'html.cityrail-vector-basemap-active #map .leaflet-tile-pane{display:none!important;opacity:0!important;visibility:hidden!important;}',
+      'html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailwayPane-pane,html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailway-pane{display:block!important;opacity:1!important;visibility:visible!important;}',
       '#map .leaflet-pane,#map .leaflet-control-container{position:absolute;}',
       '#map .maplibregl-control-container{display:none!important;}'
     ].join('\n');

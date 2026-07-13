@@ -49,6 +49,12 @@ body {
 .cityrail-openrailway-overlay {
   pointer-events: none !important;
 }
+html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailwayPane-pane,
+html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailway-pane {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 
 #map.hidden { display: none; }
 #map.hide-labels .station-label,
@@ -2784,15 +2790,33 @@ html.cityrail-light-ui .depot-actions .danger {
   overflow:hidden!important;
   pointer-events:auto!important;
 }
-#ctrl-center-overlay #ctrl-topbar{flex:0 0 auto!important;}
+#ctrl-center-overlay #ctrl-topbar{
+  flex:0 0 auto!important;
+  min-width:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-gutter:stable!important;
+}
 #ctrl-center-overlay #ctrl-body{flex:1 1 auto!important;min-height:0!important;min-width:0!important;overflow:hidden!important;pointer-events:auto!important;}
-#ctrl-center-overlay #ctrl-nav{flex:0 0 auto!important;}
+#ctrl-center-overlay #ctrl-nav{
+  flex:0 0 auto!important;
+  min-height:0!important;
+  max-height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-gutter:stable!important;
+}
 #ctrl-center-overlay #ctrl-main{
   flex:1 1 auto!important;
   min-height:0!important;
   min-width:0!important;
   height:auto!important;
   max-height:none!important;
+  align-items:flex-start!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
@@ -2802,10 +2826,13 @@ html.cityrail-light-ui .depot-actions .danger {
   pointer-events:auto!important;
 }
 #ctrl-center-overlay #ctrl-content-grid{
+  flex:1 1 auto!important;
+  width:auto!important;
   min-width:0!important;
   min-height:max-content!important;
   overflow:visible!important;
   align-content:start!important;
+  align-self:flex-start!important;
   padding-bottom:max(36px,env(safe-area-inset-bottom))!important;
 }
 #ctrl-center-overlay #ctrl-alerts{
@@ -2813,8 +2840,26 @@ html.cityrail-light-ui .depot-actions .danger {
   min-height:0!important;
   max-height:calc(100dvh - 96px)!important;
   overflow-y:auto!important;
+  overflow-x:hidden!important;
   overscroll-behavior:contain!important;
   -webkit-overflow-scrolling:touch!important;
+}
+#ctrl-center-overlay .ctrl-card{min-width:0!important;max-width:100%!important;}
+#ctrl-center-overlay .ctrl-card.full,
+#ctrl-center-overlay .cr200-depot-card,
+#ctrl-center-overlay .cr210-fare-card,
+#ctrl-center-overlay .cr-daily-card,
+#ctrl-center-overlay .cr161-graph-card,
+#ctrl-center-overlay .cr177-od-card,
+#ctrl-center-overlay .cr207-station-data-card{
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#ctrl-center-overlay :is(.cr161-chart-wrap,.cr177-side,.cr207-table-wrap,.cr-daily-list,.ctrl-line-stats-scroll-wrap){
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-gutter:stable!important;
 }
 #ctrl-center-overlay #cct-line-stats-scroll-wrap,
 #ctrl-center-overlay .ctrl-line-stats-scroll-wrap{
@@ -2837,8 +2882,14 @@ html.cityrail-light-ui .depot-actions .danger {
 }
 #ctrl-center-overlay #cct-intensity-bars{max-height:none!important;overflow:visible!important;}
 #ctrl-center-overlay #ctrl-main::-webkit-scrollbar,
+#ctrl-center-overlay #ctrl-topbar::-webkit-scrollbar,
+#ctrl-center-overlay #ctrl-nav::-webkit-scrollbar,
+#ctrl-center-overlay #ctrl-alerts::-webkit-scrollbar,
 #ctrl-center-overlay .ctrl-line-stats-scroll-wrap::-webkit-scrollbar{width:8px!important;height:8px!important;}
 #ctrl-center-overlay #ctrl-main::-webkit-scrollbar-thumb,
+#ctrl-center-overlay #ctrl-topbar::-webkit-scrollbar-thumb,
+#ctrl-center-overlay #ctrl-nav::-webkit-scrollbar-thumb,
+#ctrl-center-overlay #ctrl-alerts::-webkit-scrollbar-thumb,
 #ctrl-center-overlay .ctrl-line-stats-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22)!important;border-radius:999px!important;}
 #ctrl-center-overlay:not([data-active-tab="depots"]) .cr200-depot-card{display:none!important;}
 #ctrl-center-overlay[data-active-tab="depots"] #ctrl-content-grid>.ctrl-card:not(.cr200-depot-card){display:none!important;}
@@ -5945,4 +5996,203 @@ html.cityrail-light-ui.cityrail-apple-spatial-ui #splash-continue-btn:hover {
   background: linear-gradient(135deg, rgba(48,160,255,0.98), rgba(0,122,255,0.98)) !important;
   border-color: rgba(10,132,255,0.70) !important;
   box-shadow: 0 22px 62px rgba(10,132,255,0.42), inset 0 1px 0 rgba(255,255,255,0.26) !important;
+}
+
+/* v451: unified readable color system for dark and light UI. */
+:root{
+  --cr-readable-text:#f8fafc;
+  --cr-readable-text-soft:rgba(235,241,248,.80);
+  --cr-readable-text-muted:rgba(235,241,248,.66);
+  --cr-readable-text-faint:rgba(235,241,248,.50);
+  --cr-readable-surface:rgba(12,14,18,.88);
+  --cr-readable-card:rgba(18,21,27,.78);
+  --cr-readable-card-soft:rgba(255,255,255,.055);
+  --cr-readable-border:rgba(255,255,255,.14);
+  --cr-readable-line:rgba(255,255,255,.10);
+  --cr-readable-input:rgba(4,7,11,.34);
+  --cr-readable-action:rgba(9,11,15,.84);
+  --cr-object-bg:var(--cr-readable-surface);
+  --cr-object-card:var(--cr-readable-card);
+  --cr-object-card-soft:var(--cr-readable-card-soft);
+  --cr-object-border:var(--cr-readable-border);
+  --cr-object-line:var(--cr-readable-line);
+  --cr-object-text:var(--cr-readable-text);
+  --cr-object-muted:var(--cr-readable-text-muted);
+  --cr-object-faint:var(--cr-readable-text-faint);
+}
+html.cityrail-light-ui{
+  color-scheme:light;
+  --text:#111827;
+  --text-dim:rgba(31,41,55,.76);
+  --panel:rgba(255,255,255,.88);
+  --border:rgba(15,23,42,.12);
+  --border-strong:rgba(15,23,42,.18);
+  --light-text-primary:#111827;
+  --light-text-secondary:rgba(31,41,55,.78);
+  --light-text-tertiary:rgba(55,65,81,.66);
+  --cr-readable-text:#111827;
+  --cr-readable-text-soft:rgba(31,41,55,.84);
+  --cr-readable-text-muted:rgba(55,65,81,.72);
+  --cr-readable-text-faint:rgba(75,85,99,.62);
+  --cr-readable-surface:rgba(255,255,255,.92);
+  --cr-readable-card:rgba(255,255,255,.84);
+  --cr-readable-card-soft:rgba(15,23,42,.045);
+  --cr-readable-border:rgba(15,23,42,.14);
+  --cr-readable-line:rgba(15,23,42,.10);
+  --cr-readable-input:rgba(255,255,255,.96);
+  --cr-readable-action:rgba(255,255,255,.92);
+  --cr-object-bg:var(--cr-readable-surface);
+  --cr-object-card:var(--cr-readable-card);
+  --cr-object-card-soft:var(--cr-readable-card-soft);
+  --cr-object-border:var(--cr-readable-border);
+  --cr-object-line:var(--cr-readable-line);
+  --cr-object-text:var(--cr-readable-text);
+  --cr-object-muted:var(--cr-readable-text-muted);
+  --cr-object-faint:var(--cr-readable-text-faint);
+}
+html:not(.cityrail-light-ui){
+  color-scheme:dark;
+}
+html.cityrail-apple-spatial-ui{
+  --cr416-secondary:rgba(235,235,245,.72);
+  --cr416-tertiary:rgba(235,235,245,.54);
+}
+html.cityrail-apple-spatial-ui.cityrail-light-ui{
+  --cr416-text:#111827;
+  --cr416-secondary:rgba(31,41,55,.78);
+  --cr416-tertiary:rgba(55,65,81,.66);
+  --cr416-fill:rgba(15,23,42,.07);
+  --cr416-fill-hover:rgba(15,23,42,.11);
+  --cr416-border:rgba(15,23,42,.14);
+}
+html.cityrail-light-ui body,
+html.cityrail-light-ui :is(#topbar,#bottombar,#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-stats-panel,#auth-screen,#city-select-screen,#workshop-screen,#ctrl-center-overlay,.modal,.panel,.side-panel,.control-panel,.auth-card,.reg-panel,.ctrl-card,.cityrail-object-panel,.cr-eps-panel,.cityrail-depot-panel){
+  color:var(--cr-readable-text)!important;
+  text-shadow:none!important;
+}
+html.cityrail-light-ui :is(h1,h2,h3,h4,b,strong,.title,.card-title,.ctrl-card-title,.ctrl-big-num,.ctrl-line-name,.ctrl-line-status .cls-name,#cfg-line-name,#sd-station-name,.cr-eps-title,.cityrail-depot-name,.city-name-zh,.auth-title,.reg-headline){
+  color:var(--cr-readable-text)!important;
+  text-shadow:none!important;
+}
+html.cityrail-light-ui :is(small,.muted,.secondary,.hint,.label,.stat-label,.metric-label,.ctrl-card-subtitle,.ctrl-big-sub,.ctrl-bar-label,.ctrl-bar-val,.ctrl-line-row .cl-val,.ctrl-rank,.sd-zone-hint,.sd-storage-note,.sd-storage-empty,.depot-field label,.cityrail-depot-sub,.depot-kpi span,.depot-line-meta,.depot-empty,.cr-eps-label,.cr-eps-row-sub,.cr-eps-kpi span,[class*="-hint"],[class*="-note"],[class*="-desc"],[class*="-subtitle"],[class*="-sub"]){
+  color:var(--cr-readable-text-muted)!important;
+  text-shadow:none!important;
+}
+html.cityrail-light-ui :is(input,select,textarea,.cfg-select,.nav-select,.cr-eps-input,.cr-eps-select,.cr-eps-title-input,.depot-field input,.depot-field select){
+  color:var(--cr-readable-text)!important;
+  background:var(--cr-readable-input)!important;
+  border-color:var(--cr-readable-border)!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+}
+html.cityrail-light-ui :is(input,textarea)::placeholder{
+  color:rgba(75,85,99,.58)!important;
+}
+html.cityrail-light-ui option{
+  color:#111827!important;
+  background:#fff!important;
+}
+html.cityrail-light-ui :is(#line-config-panel,#station-detail-panel,.cr-eps-panel,.cityrail-depot-panel,.cityrail-object-panel){
+  background:var(--cr-object-bg)!important;
+  border-color:var(--cr-object-border)!important;
+  color:var(--cr-object-text)!important;
+}
+html.cityrail-light-ui :is(#line-config-panel,#station-detail-panel,.cr-eps-panel,.cityrail-depot-panel) :is(.cfg-row,.freq-input-row,.branch-config-row,.sd-storage-card,.sd-bar-row,.cr-eps-field,.depot-field,.cityrail-depot-lines,.depot-capacity-impact){
+  background:var(--cr-object-card)!important;
+  border-color:var(--cr-object-border)!important;
+  color:var(--cr-object-text)!important;
+}
+html.cityrail-light-ui :is(#line-config-panel,#station-detail-panel,.cr-eps-panel,.cityrail-depot-panel) :is(.cfg-line-station-flow-row,.cfg-line-station-flow-metrics div,.sd-storage-metrics div,.sd-storage-segment,.sd-storage-direction,.cr-eps-kpi,.cr-eps-row,.depot-kpi,.depot-line-row,.depot-conn-route,.depot-conn-node-row,.depot-empty){
+  background:var(--cr-readable-card-soft)!important;
+  border-color:var(--cr-object-line)!important;
+  color:var(--cr-object-text)!important;
+}
+html.cityrail-light-ui :is(#cfg-btn-row,#station-detail-panel .sd-actions,#line-config-panel .cityrail-object-panel-actions,#station-detail-panel .cityrail-object-panel-actions,.cr-eps-actions,.depot-actions){
+  background:var(--cr-readable-action)!important;
+  border-top-color:var(--cr-object-line)!important;
+}
+html.cityrail-light-ui :is(#line-config-panel,#station-detail-panel,.cr-eps-panel,.cityrail-depot-panel) button:not(.active):not(.active-action):not(.on):not(.primary):not(.danger):not(#cfg-btn-save):not(#cfg-btn-delete-line):not(#sd-btn-delete):not(.branch-config-btn-start):not(.sd-extend-btn):not(.sd-branch-btn){
+  color:var(--cr-object-text)!important;
+  background:rgba(15,23,42,.055)!important;
+  border-color:var(--cr-object-border)!important;
+}
+html.cityrail-light-ui :is(#cfg-btn-save,.branch-config-btn-start,.sd-zone-btn.on,.sd-storage-segment button.active,.sd-storage-direction button.active,.cr-eps-chip.active,.depot-actions .primary){
+  background:var(--cr-object-accent,#0a84ff)!important;
+  border-color:var(--cr-object-accent,#0a84ff)!important;
+  color:#fff!important;
+}
+html.cityrail-light-ui :is(#cfg-btn-delete-line,#sd-btn-delete,.sd-btn-danger,.cr-eps-actions .danger,.depot-actions .danger,.depot-conn-tools .danger,.depot-conn-node-row i){
+  background:rgba(180,35,24,.09)!important;
+  border-color:rgba(180,35,24,.28)!important;
+  color:#b42318!important;
+}
+html.cityrail-light-ui :is(.depot-connect-btn,.depot-conn-tools .primary){
+  background:rgba(10,132,255,.12)!important;
+  border-color:rgba(10,132,255,.30)!important;
+  color:#0057b8!important;
+}
+html.cityrail-light-ui .depot-capacity-impact h4{
+  color:#8a4b00!important;
+}
+html.cityrail-light-ui .depot-capacity-error{
+  color:#b42318!important;
+}
+html.cityrail-light-ui .sd-extend-btn{
+  background:rgba(24,128,56,.08)!important;
+  border-color:rgba(24,128,56,.28)!important;
+  color:#137333!important;
+}
+html.cityrail-light-ui .sd-branch-btn{
+  background:rgba(164,90,0,.08)!important;
+  border-color:rgba(164,90,0,.30)!important;
+  color:#8a4b00!important;
+}
+html.cityrail-light-ui :is(#line-config-panel,#station-detail-panel,.cr-eps-panel,.cityrail-depot-panel) :is(input[type=range],.cr-eps-range-row input,.depot-angle-wrap input[type="range"]){
+  background:rgba(15,23,42,.14)!important;
+  accent-color:var(--cr-object-accent,#0a84ff)!important;
+}
+html.cityrail-light-ui :is(.sd-bar-track,.ctrl-bar-track){
+  background:rgba(15,23,42,.10)!important;
+  border-color:var(--cr-object-line)!important;
+}
+html.cityrail-light-ui :is(table,.ctrl-table,#line-stats-table,#sd-od-table) :is(th,td){
+  color:var(--cr-readable-text-soft)!important;
+  border-color:var(--cr-readable-line)!important;
+}
+html.cityrail-light-ui :is(.leaflet-popup-content-wrapper,.leaflet-control,.maplibregl-ctrl-group){
+  background:rgba(255,255,255,.92)!important;
+  color:var(--cr-readable-text)!important;
+  border-color:rgba(15,23,42,.12)!important;
+}
+html.cityrail-light-ui[data-cityrail-station-label-tone="light-map"] .leaflet-tooltip.station-label,
+html.cityrail-light-ui[data-cityrail-station-label-tone="light-map"] .station-label,
+html.cityrail-light-ui:not([data-cityrail-station-label-tone]) .leaflet-tooltip.station-label,
+html.cityrail-light-ui:not([data-cityrail-station-label-tone]) .station-label{
+  color:#111827!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.98),0 0 5px rgba(255,255,255,.88),0 0 10px rgba(255,255,255,.70)!important;
+}
+html.cityrail-light-ui[data-cityrail-station-label-tone="dark-map"] .leaflet-tooltip.station-label,
+html.cityrail-light-ui[data-cityrail-station-label-tone="mixed-map"] .leaflet-tooltip.station-label,
+html.cityrail-light-ui[data-cityrail-station-label-tone="dark-map"] .station-label,
+html.cityrail-light-ui[data-cityrail-station-label-tone="mixed-map"] .station-label{
+  color:#fff!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.90),0 0 5px rgba(0,0,0,.78),0 0 12px rgba(0,0,0,.66)!important;
+}
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:#fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]),
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: #fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]){
+  color:var(--cr-readable-text)!important;
+}
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:rgba(255,255,255" i],
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: rgba(255,255,255" i]{
+  color:var(--cr-readable-text-muted)!important;
+}
+html.cityrail-light-ui :is(.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-card){
+  background:var(--cr-readable-surface)!important;
+  border-color:var(--cr-readable-border)!important;
+  color:var(--cr-readable-text)!important;
+}
+html:not(.cityrail-light-ui) .cityrail-system-card{
+  background:rgba(35,35,39,.88)!important;
+  border-color:rgba(255,255,255,.18)!important;
+  color:#fff!important;
 }

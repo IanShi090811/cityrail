@@ -382,7 +382,10 @@ function cityrailInstallAppleMapZoom(targetMap, reason) {
       m.eachLayer(layer => {
         if (!layer || !layer._container || !(layer._url || layer.getTileUrl)) return;
         try {
-          if (typeof layer._setView === 'function') layer._setView(m.getCenter(), m.getZoom(), true, false);
+          const center = typeof window.cityrailGetLeafletDisplayCenterForTiles === 'function'
+            ? window.cityrailGetLeafletDisplayCenterForTiles()
+            : m.getCenter();
+          if (typeof layer._setView === 'function') layer._setView(center, m.getZoom(), true, false);
           else if (typeof layer._update === 'function') layer._update();
         } catch(e) {}
       });
@@ -1842,10 +1845,10 @@ cityrailApplyPassengerShapeProfiles();
   function installWrappers(){
     if(!W.__cityrailV306BaseSyncStationName){
       W.__cityrailV306BaseSyncStationName = W.cityrailSyncStationNameOnMap || W.syncStationNameOnMap;
-      const wrappedSync = function(stationOrId, name){
+      const wrappedSync = function(stationOrId, name, options){
         const station = typeof stationOrId === 'object' && stationOrId ? stationOrId : stationById(stationOrId);
-        const manual = station && station.__manualName === true;
-        return syncTransferStationName(stationOrId, name, { manual });
+        const manual = !!(options && options.manual) || (station && station.__manualName === true);
+        return syncTransferStationName(stationOrId, name, Object.assign({}, options || {}, { manual }));
       };
       wrappedSync.__v306TransferNameAuthority = true;
       W.cityrailSyncStationNameOnMap = wrappedSync;
@@ -5403,6 +5406,8 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   }
   function mountLayer(key,reason){
     key=canonicalKey(key||W.__cityrailPreferredMapLayerKey||'dark');
+    const anchorCenter=(()=>{ try{ return W.map&&W.map.getCenter&&W.map.getCenter(); }catch(e){ return null; } })();
+    const anchorZoom=(()=>{ try{ return W.map&&W.map.getZoom&&W.map.getZoom(); }catch(e){ return null; } })();
     if(typeof W.cityrailHasEnteredCityMap === 'function' && !W.cityrailHasEnteredCityMap()){
       W.__cityrailPreferredMapLayerKey=key;
       D.documentElement.dataset.cityrailBaseLayer=key;
@@ -5426,12 +5431,14 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     try{
       Object.keys(W.tileLayers||{}).forEach(k=>markLayerCoord(W.tileLayers[k],(MAP_DEFS[k]&&MAP_DEFS[k].coord)||'wgs84'));
       if(!W.map.hasLayer(layer)) layer.addTo(W.map);
+      try{ if(typeof W.cityrailReanchorMapToBaseLayer==='function') W.cityrailReanchorMapToBaseLayer(key,'v247-anchor-before-clean-'+(reason||'mount'),anchorCenter,anchorZoom); }catch(e){}
       Object.keys(W.tileLayers||{}).forEach(key=>{
         if((!ORDER.includes(key)&&key!=='satellite'&&key!=='cartoDark'&&key!=='openrailway')&&W.tileLayers[key]) removeLayer(W.tileLayers[key]);
         if(ORDER.includes(key)&&W.tileLayers[key]!==layer) removeLayer(W.tileLayers[key]);
       });
       if(typeof layer.setZIndex==='function') layer.setZIndex(200);
       if(W.map.invalidateSize) W.map.invalidateSize();
+      try{ if(typeof W.cityrailReanchorMapToBaseLayer==='function') W.cityrailReanchorMapToBaseLayer(key,'v247-anchor-after-clean-'+(reason||'mount'),anchorCenter,anchorZoom); }catch(e){}
     }catch(e){}
     syncLayerState(key);
     D.documentElement.dataset.cityrailBaseLayer=key;
@@ -5501,8 +5508,6 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     mountLayer(W.__cityrailPreferredMapLayerKey||'dark',reason||'boot');
   }
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',()=>boot('dom'),{once:true}); else boot('now');
-  W.setTimeout(()=>boot('late-800'),800);
-  W.setTimeout(()=>boot('late-2400'),2400);
   W.CityRailCachedWgs84Basemap={
     version:VERSION,
     boot,
@@ -6075,7 +6080,6 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   }
   W.CityRailMapChoicesV219={version:VERSION,keys:()=>visibleChoiceKeys().slice(),labels:Object.assign({},labels),defs,setLayer,nextLayer,sync:boot,licensing:'map UI code is local; tile provider licenses remain separate.'};
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',()=>boot('dom-ready'),{once:true}); else boot('boot');
-  [400,1200,2600,5200].forEach(ms=>W.setTimeout(()=>boot('late-'+ms),ms));
   try { W.addEventListener('cityrail-save-loaded',()=>W.setTimeout(()=>boot('save-loaded'),0)); } catch(e) {}
   try { D.addEventListener('visibilitychange',()=>{ if(!D.hidden) boot('visible'); },{passive:true}); } catch(e) {}
 })();
@@ -6825,12 +6829,12 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
       #ctrl-center-overlay[data-active-tab="od-visual"] #ctrl-content-grid>.ctrl-card:not(.cr177-od-card){display:none!important;}
       #ctrl-center-overlay[data-active-tab="od-visual"] .cr177-od-card{display:block!important;grid-column:1 / -1;}
       .cr177-od-card{
-        min-height:calc(100vh - 96px);padding:0!important;overflow:hidden!important;
+        min-height:0!important;padding:0!important;overflow:visible!important;
         border-color:var(--cr-chart-border,rgba(255,255,255,.12))!important;
         background:var(--cr-chart-pane,linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.032)))!important;
         border-radius:18px!important;
       }
-      .cr177-shell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0;min-height:calc(100vh - 96px);}
+      .cr177-shell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0;min-height:0;}
       .cr177-map-pane{position:relative;min-height:560px;padding:18px 18px 16px;background:var(--cr-chart-map-pane,radial-gradient(circle at 18% 18%,rgba(10,132,255,.16),transparent 34%),linear-gradient(180deg,rgba(8,12,20,.60),rgba(8,12,20,.22)));}
       .cr177-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px;}
       .cr177-title{font-size:20px;font-weight:900;color:var(--cr-chart-text,#fff);letter-spacing:0;}
@@ -6851,7 +6855,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
       #cr177-od-svg .flow-label{fill:var(--cr-chart-text-soft,rgba(255,255,255,.76));font-size:10px;font-weight:900;text-anchor:middle;paint-order:stroke;stroke:var(--cr-chart-label-stroke,rgba(5,7,12,.72));stroke-width:4;stroke-linejoin:round;}
       #cr177-od-svg .empty-title{fill:var(--cr-chart-text,#fff);font-size:20px;font-weight:900;text-anchor:middle;}
       #cr177-od-svg .empty-sub{fill:var(--cr-chart-text-faint,rgba(255,255,255,.52));font-size:13px;text-anchor:middle;}
-      .cr177-side{border-left:1px solid var(--cr-chart-border,rgba(255,255,255,.08));background:var(--cr-chart-panel,rgba(12,14,20,.54));backdrop-filter:blur(24px) saturate(1.25);-webkit-backdrop-filter:blur(24px) saturate(1.25);padding:18px;min-width:0;overflow:auto;}
+      .cr177-side{border-left:1px solid var(--cr-chart-border,rgba(255,255,255,.08));background:var(--cr-chart-panel,rgba(12,14,20,.54));backdrop-filter:blur(24px) saturate(1.25);-webkit-backdrop-filter:blur(24px) saturate(1.25);padding:18px;min-width:0;max-height:calc(100dvh - 132px);overflow:auto;}
       .cr177-side h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--cr-chart-text-faint,rgba(255,255,255,.46));}
       .cr177-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
       .cr177-kpi{border:1px solid var(--cr-chart-border,rgba(255,255,255,.10));background:var(--cr-chart-panel,rgba(255,255,255,.055));border-radius:14px;padding:11px;}
@@ -7207,7 +7211,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
       #ctrl-center-overlay:not([data-active-tab="station-data"]) .cr207-station-data-card{display:none!important;}
       #ctrl-center-overlay[data-active-tab="station-data"] #ctrl-content-grid>.ctrl-card:not(.cr207-station-data-card){display:none!important;}
       #ctrl-center-overlay[data-active-tab="station-data"] .cr207-station-data-card{display:block!important;grid-column:1 / -1;}
-      .cr207-station-data-card{min-height:0!important;overflow:hidden!important;}
+      .cr207-station-data-card{min-height:0!important;overflow:visible!important;}
       .cr207-station-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px;}
       .cr207-station-title{font-size:22px;line-height:1.15;font-weight:850;letter-spacing:0;color:rgba(255,255,255,.95);}
       .cr207-station-sub{margin-top:5px;font-size:12px;line-height:1.45;color:rgba(255,255,255,.48);}
@@ -15230,6 +15234,16 @@ function cityrailEnsureOpenRailwayPane() {
     return 'tilePane';
   }
 }
+function cityrailIsOpenRailwayOverlayLayer(layer) {
+  try {
+    const opts = layer && layer.options || {};
+    const cls = String(opts.className || '');
+    const url = String(layer && layer._url || '');
+    return !!(opts.cityrailOpenRailwayOverlay || opts.cityrailOverlay === 'openrailway' || /openrailway/i.test(cls) || /openrailway/i.test(url));
+  } catch(e) {
+    return false;
+  }
+}
 function cityrailSyncStationLabelTone(key) {
   const k = String(key || cityrailActiveBaseLayerKey() || '').trim();
   const dark = /dark|satellite|imagery/i.test(k);
@@ -15282,20 +15296,38 @@ function cityrailRefreshOpenRailwayOverlay(reason) {
     const layer = window.__cityrailGetOpenRailwayOverlay();
     if (!layer) return;
     const paneName = cityrailEnsureOpenRailwayPane();
-    if (layer.options) layer.options.pane = CITYRAIL_OPENRAILWAY_PANE;
+    if (layer.options) {
+      layer.options.pane = CITYRAIL_OPENRAILWAY_PANE;
+      layer.options.cityrailOverlay = 'openrailway';
+      layer.options.cityrailOpenRailwayOverlay = true;
+      layer.options.cityrailCoord = CITYRAIL_COORD_WGS84;
+      layer.options.coordSystem = CITYRAIL_COORD_WGS84;
+      layer.options.coordinateSystem = CITYRAIL_COORD_WGS84;
+    }
     cityrailSetTileLayerZ(layer, CITYRAIL_OVERLAY_TILE_Z);
     try {
       const pane = map.getPane && map.getPane(paneName);
       if (pane) {
-        pane.style.zIndex = String(CITYRAIL_OVERLAY_TILE_Z);
-        pane.style.pointerEvents = 'none';
+        pane.style.setProperty('z-index', String(CITYRAIL_OVERLAY_TILE_Z), 'important');
+        pane.style.setProperty('pointer-events', 'none', 'important');
+        pane.style.setProperty('display', 'block', 'important');
+        pane.style.setProperty('opacity', '1', 'important');
+        pane.style.setProperty('visibility', 'visible', 'important');
       }
     } catch(e) {}
     if (map.hasLayer(layer)) {
       map.removeLayer(layer);
       layer.addTo(map);
     }
+    cityrailRestoreActiveBaseLayerCoordinate('openrailway-refresh-' + (reason || 'overlay'));
     document.documentElement.dataset.cityrailOverlayLayer = reason || 'refresh';
+  } catch(e) {}
+}
+function cityrailRestoreActiveBaseLayerCoordinate(reason) {
+  try {
+    const activeKey = cityrailActiveBaseLayerKey() || window.__cityrailPreferredMapLayerKey || CITYRAIL_DEFAULT_BASE_LAYER;
+    cityrailReanchorMapToBaseLayer(activeKey, reason || 'restore-base-layer-coordinate');
+    document.documentElement.dataset.cityrailMapCoordBaseLayer = activeKey || '';
   } catch(e) {}
 }
 function cityrailSetBaseMapLayer(key, reason) {
@@ -15303,6 +15335,8 @@ function cityrailSetBaseMapLayer(key, reason) {
   const next = keys.includes(key) ? key : (keys[currentLayerIdx] || keys[0] || 'dark');
   if (!tileLayers[next]) return false;
   const layerCoord = tileLayers[next] && tileLayers[next].options && (tileLayers[next].options.cityrailCoord || tileLayers[next].options.coordSystem || tileLayers[next].options.coordinateSystem) || 'wgs84';
+  const anchorCenter = cityrailCurrentDataCenter();
+  const anchorZoom = map.getZoom();
   if (!cityrailHasEnteredCityMap()) {
     cityrailSyncCurrentLayerIndex(next);
     cityrailSyncStationLabelTone(next);
@@ -15327,9 +15361,10 @@ function cityrailSetBaseMapLayer(key, reason) {
     }
   });
   try {
-    cityrailSetMapCoordSystem(layerCoord, 'base-layer-' + next + '-' + (reason || 'set'));
+    cityrailReanchorMapCoordSystem(layerCoord, 'base-layer-' + next + '-' + (reason || 'set'), anchorCenter, anchorZoom);
     cityrailSetTileLayerZ(tileLayers[next], CITYRAIL_BASE_TILE_Z);
     if (!map.hasLayer(tileLayers[next])) tileLayers[next].addTo(map);
+    cityrailReanchorMapCoordSystem(layerCoord, 'base-layer-mounted-' + next + '-' + (reason || 'set'), anchorCenter, anchorZoom);
     cityrailSyncCurrentLayerIndex(next);
     cityrailSyncStationLabelTone(next);
     document.documentElement.dataset.cityrailBaseLayer = next;
@@ -15360,12 +15395,14 @@ function cityrailEnsureDefaultMapLayer(reason) {
 window.cityrailEnsureDefaultMapLayer = cityrailEnsureDefaultMapLayer;
 window.cityrailSetBaseMapLayer = cityrailSetBaseMapLayer;
 window.cityrailRefreshOpenRailwayOverlay = cityrailRefreshOpenRailwayOverlay;
+window.cityrailRestoreActiveBaseLayerCoordinate = cityrailRestoreActiveBaseLayerCoordinate;
+window.cityrailReanchorMapToBaseLayer = cityrailReanchorMapToBaseLayer;
 
 // Mainland China basemap coordinate adapter.
 // CityRail's canonical state is WGS84. Mainland China web basemaps such as
 // AMap are rendered in GCJ-02, so Leaflet display coordinates are adapted at
 // the map boundary instead of shifting user-built geometry by a fixed offset.
-const CITYRAIL_MAP_COORD_VERSION = 'v435-coordinate-boundary-lock';
+const CITYRAIL_MAP_COORD_VERSION = 'v453-gcj-provider-projection-authority';
 const CITYRAIL_COORD_WGS84 = 'wgs84';
 const CITYRAIL_COORD_GCJ02 = 'gcj02';
 const CITYRAIL_COORD_BD09 = 'bd09';
@@ -15436,10 +15473,13 @@ function cityrailGcjToWgsRaw(lat, lng) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || cityrailOutOfChina(lat, lng)) return { lat, lng };
   let wgsLat = lat;
   let wgsLng = lng;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 10; i++) {
     const gcj = cityrailWgsToGcjRaw(wgsLat, wgsLng);
-    wgsLat -= gcj.lat - lat;
-    wgsLng -= gcj.lng - lng;
+    const dLat = gcj.lat - lat;
+    const dLng = gcj.lng - lng;
+    wgsLat -= dLat;
+    wgsLng -= dLng;
+    if (Math.max(Math.abs(dLat), Math.abs(dLng)) < 1e-9) break;
   }
   return { lat: wgsLat, lng: wgsLng };
 }
@@ -15470,6 +15510,31 @@ function cityrailDisplayToWgs(lat, lng, coord) {
     return cityrailGcjToWgsRaw(gcj.lat, gcj.lng);
   }
   return { lat, lng };
+}
+function cityrailNormalizeCoordSystem(coord) {
+  const c = String(coord || '').trim().toLowerCase();
+  if (c === CITYRAIL_COORD_GCJ02 || c === 'gcj' || c === 'gcj-02' || c === 'amap' || c === 'gaode' || c === 'tencent') return CITYRAIL_COORD_GCJ02;
+  if (c === CITYRAIL_COORD_BD09 || c === 'bd-09' || c === 'baidu') return CITYRAIL_COORD_BD09;
+  return CITYRAIL_COORD_WGS84;
+}
+function cityrailGetLeafletDisplayCenterForTiles() {
+  try {
+    if (map && map.__cityrailRawGetCenter) return map.__cityrailRawGetCenter.call(map);
+    if (map && typeof map.getCenter === 'function') return cityrailToLeafletLatLng(map.getCenter());
+  } catch(e) {}
+  try { return map && map.getCenter && map.getCenter(); } catch(e) { return null; }
+}
+window.cityrailGetLeafletDisplayCenterForTiles = cityrailGetLeafletDisplayCenterForTiles;
+function cityrailTransformCoord(lat, lng, from, to) {
+  const source = cityrailNormalizeCoordSystem(from);
+  const target = cityrailNormalizeCoordSystem(to);
+  const inputLat = cityrailCoordNum(lat, 0);
+  const inputLng = cityrailCoordNum(lng, 0);
+  if (source === target) return { lat: inputLat, lng: inputLng };
+  const wgs = source === CITYRAIL_COORD_WGS84
+    ? { lat: inputLat, lng: inputLng }
+    : cityrailDisplayToWgs(inputLat, inputLng, source);
+  return target === CITYRAIL_COORD_WGS84 ? wgs : cityrailWgsToDisplay(wgs.lat, wgs.lng, target);
 }
 function cityrailToLeafletLatLng(input, lngMaybe) {
   const p = cityrailCoordPair(input, lngMaybe);
@@ -15520,7 +15585,12 @@ function cityrailInferTileCoord(url, options) {
   return CITYRAIL_COORD_WGS84;
 }
 function cityrailTagTileLayer(layer, coord) {
-  if (layer && layer.options) layer.options.cityrailCoord = coord || layer.options.cityrailCoord || CITYRAIL_COORD_WGS84;
+  if (layer && layer.options) {
+    const next = cityrailNormalizeCoordSystem(coord || layer.options.cityrailCoord || layer.options.coordSystem || layer.options.coordinateSystem || CITYRAIL_COORD_WGS84);
+    layer.options.cityrailCoord = next;
+    layer.options.coordSystem = next;
+    layer.options.coordinateSystem = next;
+  }
   return layer;
 }
 function cityrailCurrentDataCenter() {
@@ -15539,16 +15609,41 @@ function cityrailRedrawMapGeometry() {
   try { refreshTransferCorridorsNow(); } catch(e) {}
 }
 function cityrailSetMapCoordSystem(coord, reason) {
-  const next = coord || CITYRAIL_COORD_WGS84;
-  if (cityrailMapCoordState.active === next) return;
-  const center = cityrailCurrentDataCenter();
-  const zoom = map.getZoom();
+  const next = cityrailNormalizeCoordSystem(coord || CITYRAIL_COORD_WGS84);
+  if (cityrailMapCoordState.active === next) return false;
+  return cityrailApplyMapCoordSystem(next, reason, {});
+}
+function cityrailApplyMapCoordSystem(coord, reason, options) {
+  const next = cityrailNormalizeCoordSystem(coord || CITYRAIL_COORD_WGS84);
+  const opts = options || {};
+  const center = opts.center || cityrailCurrentDataCenter();
+  const zoom = Number.isFinite(Number(opts.zoom)) ? Number(opts.zoom) : map.getZoom();
+  const changed = cityrailMapCoordState.active !== next;
   cityrailMapCoordState.active = next;
   const display = cityrailWgsToDisplay(center.lat, center.lng, next);
   if (map.__cityrailRawSetView) map.__cityrailRawSetView.call(map, L.latLng(display.lat, display.lng), zoom, { animate: false });
-  cityrailRedrawMapGeometry();
+  if (changed || opts.forceRedraw) cityrailRedrawMapGeometry();
   document.documentElement.dataset.cityrailMapCoord = next;
   document.documentElement.dataset.cityrailMapCoordReason = reason || '';
+  return changed;
+}
+function cityrailReanchorMapCoordSystem(coord, reason, center, zoom) {
+  return cityrailApplyMapCoordSystem(coord, reason, {
+    center: center || cityrailCurrentDataCenter(),
+    zoom: Number.isFinite(Number(zoom)) ? zoom : map.getZoom(),
+    forceRedraw: true
+  });
+}
+function cityrailBaseLayerCoord(key) {
+  try {
+    const layer = tileLayers && tileLayers[key];
+    return cityrailNormalizeCoordSystem(layer && layer.options && (layer.options.cityrailCoord || layer.options.coordSystem || layer.options.coordinateSystem) || cityrailInferTileCoord(layer && layer._url, layer && layer.options));
+  } catch(e) {
+    return CITYRAIL_COORD_WGS84;
+  }
+}
+function cityrailReanchorMapToBaseLayer(key, reason, center, zoom) {
+  return cityrailReanchorMapCoordSystem(cityrailBaseLayerCoord(key), reason || ('base-layer-anchor-' + (key || 'unknown')), center, zoom);
 }
 function cityrailPatchLeafletMapForCoords() {
   if (map.__cityrailCoordPatched) return;
@@ -15621,6 +15716,9 @@ function cityrailPatchMapLayerAdd() {
   const oldAddLayer = map.addLayer;
   map.addLayer = function(layer) {
     if (layer && layer instanceof L.TileLayer) {
+      if (cityrailIsOpenRailwayOverlayLayer(layer)) {
+        return oldAddLayer.call(this, layer);
+      }
       const coord = layer.options && (layer.options.cityrailCoord || cityrailInferTileCoord(layer._url, layer.options));
       cityrailSetMapCoordSystem(coord || CITYRAIL_COORD_WGS84, 'tileLayer');
     }
@@ -15652,15 +15750,22 @@ function cityrailInitCoordinateAdapter() {
   document.documentElement.dataset.cityrailMapCoord = cityrailMapCoordState.active;
   window.CityRailMapCoordinateAdapter = {
     version: CITYRAIL_MAP_COORD_VERSION,
+    strategy: 'wgs84-data-to-provider-display-projection',
+    references: ['gumblex/leaflet.ChineseCRS', 'hujiulong/gcoord', 'googollee/eviltransform'],
     state: cityrailMapCoordState,
-    toDisplay: (lat, lng, coord) => cityrailWgsToDisplay(Number(lat), Number(lng), coord || cityrailMapCoordState.active),
-    toData: (lat, lng, coord) => cityrailDisplayToWgs(Number(lat), Number(lng), coord || cityrailMapCoordState.active),
+    normalize: cityrailNormalizeCoordSystem,
+    transform: cityrailTransformCoord,
+    toDisplay: (lat, lng, coord) => cityrailWgsToDisplay(Number(lat), Number(lng), cityrailNormalizeCoordSystem(coord || cityrailMapCoordState.active)),
+    toData: (lat, lng, coord) => cityrailDisplayToWgs(Number(lat), Number(lng), cityrailNormalizeCoordSystem(coord || cityrailMapCoordState.active)),
     markData: (latlng) => cityrailMarkCoordKind(latlng, CITYRAIL_COORD_KIND_DATA),
     markDisplay: (latlng) => cityrailMarkCoordKind(latlng, CITYRAIL_COORD_KIND_DISPLAY),
     coordKind: cityrailCoordKind,
     rawMouseEventDataLatLng: cityrailRawMouseEventDataLatLng,
     inferTileCoord: cityrailInferTileCoord,
+    displayCenterForTiles: cityrailGetLeafletDisplayCenterForTiles,
     setActive: cityrailSetMapCoordSystem,
+    reanchor: cityrailReanchorMapCoordSystem,
+    reanchorBaseLayer: cityrailReanchorMapToBaseLayer,
     retagLayer: cityrailTagTileLayer,
     eventLatLng: cityrailEventDataLatLng,
     report: () => ({
@@ -17141,14 +17246,21 @@ function refreshAllStations() {
   cityrailBringStationLayersToFrontNow();
 }
 
-function syncStationNameOnMap(stationOrId, newName) {
+function syncStationNameOnMap(stationOrId, newName, options = {}) {
   const stationId = typeof stationOrId === 'object' && stationOrId ? stationOrId.id : stationOrId;
   const station = typeof stationOrId === 'object' && stationOrId
     ? stationOrId
     : state.stations.find(s => String(s.id) === String(stationId));
-  if (!station) return;
+  if (!station) return null;
   const nextName = String(newName != null ? newName : station.name || '').trim();
-  if (!nextName) return;
+  if (!nextName) return null;
+  if (options && options.manual) {
+    station.__manualName = true;
+    station.__autoNameSource = 'manual';
+    station.__autoRealNameRequired = false;
+    station.__realMetroNameRequired = false;
+    station.__autoRealNamePendingAt = 0;
+  }
   station.name = nextName;
 
   const nameEl = document.getElementById('sd-station-name');
@@ -17187,9 +17299,61 @@ function syncStationNameOnMap(stationOrId, newName) {
 
   try { if (window.CityRailTransferCorridors && typeof window.CityRailTransferCorridors.refresh === 'function') window.CityRailTransferCorridors.refresh(); } catch(e) {}
   try { if (typeof window.renderTransferCorridors === 'function') window.renderTransferCorridors(); } catch(e) {}
+  return nextName;
 }
 window.syncStationNameOnMap = syncStationNameOnMap;
 window.cityrailSyncStationNameOnMap = syncStationNameOnMap;
+
+function cityrailRenameStation(stationOrId, rawName, options = {}) {
+  const station = typeof stationOrId === 'object' && stationOrId
+    ? stationOrId
+    : state.stations.find(s => String(s.id) === String(stationOrId));
+  if (!station) return false;
+  const nextName = String(rawName == null ? '' : rawName).trim();
+  if (!nextName) return false;
+  const oldName = String(station.name || '').trim();
+  station.__manualName = options.manual !== false;
+  if (station.__manualName) {
+    station.__autoNameSource = 'manual';
+    station.__autoRealNameRequired = false;
+    station.__realMetroNameRequired = false;
+    station.__autoRealNamePendingAt = 0;
+  }
+  const sync = typeof window.cityrailSyncStationNameOnMap === 'function'
+    ? window.cityrailSyncStationNameOnMap
+    : syncStationNameOnMap;
+  const applied = sync(station, nextName, Object.assign({}, options, { manual: station.__manualName, exactName: true }));
+  if (!applied && String(station.name || '').trim() !== nextName) station.name = nextName;
+
+  const activeDetailId = stationDetailId || window.stationDetailId;
+  if (String(activeDetailId) === String(station.id)) {
+    const nameEl = document.getElementById('sd-station-name');
+    const input = document.getElementById('sd-edit-name');
+    if (nameEl) nameEl.textContent = station.name || nextName;
+    if (input) input.value = station.name || nextName;
+    try { renderStationRealtimeOD(station.id); } catch(e) {}
+    try { renderStationWaitingSection(station.id, stationDetailLineId || window.stationDetailLineId || null); } catch(e) {}
+    try { cityrailRenderStationPanelUnified(station, { lineId: stationDetailLineId || window.stationDetailLineId || null, phase: 'rename' }); } catch(e) {}
+  }
+
+  try { if (typeof refreshAllStations === 'function') refreshAllStations(); } catch(e) {}
+  try { if (window.CityRailTransferCorridors && typeof window.CityRailTransferCorridors.refresh === 'function') window.CityRailTransferCorridors.refresh(); } catch(e) {}
+  try { if (typeof renderTransferCorridors === 'function') renderTransferCorridors(); } catch(e) {}
+  try { if (typeof cityrailRefreshStationNamePanels === 'function') cityrailRefreshStationNamePanels(); } catch(e) {}
+  try { if (window.CityRailExternalPassengerSourcesV1 && typeof window.CityRailExternalPassengerSourcesV1.render === 'function') window.CityRailExternalPassengerSourcesV1.render('station-rename'); } catch(e) {}
+  try { if (typeof updateControlCenter === 'function') updateControlCenter(); } catch(e) {}
+  try { if (typeof renderCtrlCenter === 'function') renderCtrlCenter(); } catch(e) {}
+  if (options.save !== false && oldName !== String(station.name || '').trim()) {
+    try { if (typeof saveState === 'function') saveState(); } catch(e) {}
+  }
+  try {
+    document.dispatchEvent(new CustomEvent('cityrail:station-renamed', {
+      detail: { stationId: station.id, oldName, newName: station.name || nextName, source: options.source || 'station-rename' }
+    }));
+  } catch(e) {}
+  return true;
+}
+window.cityrailRenameStation = cityrailRenameStation;
 
 function installCityRailStationRenameStyle() {
   if (document.getElementById('cityrail-station-rename-style')) return;
@@ -17329,13 +17493,7 @@ async function cityrailRenameStationFromPanel(stationId, source) {
   if (next == null) return false;
   const newName = String(next).trim();
   if (!newName || newName === oldName) return false;
-  station.__manualName = true;
-  const sync = window.cityrailSyncStationNameOnMap || window.syncStationNameOnMap || (typeof syncStationNameOnMap === 'function' ? syncStationNameOnMap : null);
-  if (typeof sync === 'function') sync(station, newName);
-  else station.name = newName;
-  station.__manualName = true;
-  cityrailRefreshStationNamePanels();
-  try { if (typeof saveState === 'function') saveState(); } catch(e) {}
+  cityrailRenameStation(station, newName, { manual: true, source: source || 'station-panel-dialog' });
   try { if (window.CityRailToast && typeof window.CityRailToast.show === 'function') window.CityRailToast.show('车站名称已更新'); } catch(e) {}
   return true;
 }
@@ -24278,6 +24436,48 @@ function closeMapEditingPanelsForControlCenter() {
   if (stationOverlay) stationOverlay.classList.add('hidden');
 }
 
+function cityrailNormalizeControlCenterScroll(reason) {
+  const overlay = document.getElementById('ctrl-center-overlay');
+  if (!overlay) return false;
+  overlay.dataset.scrollOwner = 'v454-control-center-scroll-authority';
+  overlay.dataset.scrollReason = reason || 'control-center';
+  if (!overlay.dataset.activeTab) {
+    const active = overlay.querySelector('#ctrl-nav .ctrl-nav-item.active');
+    overlay.dataset.activeTab = (active && active.dataset && active.dataset.tab) || 'overview';
+  }
+
+  const surfaces = [
+    ['ctrl-topbar', 'topbar'],
+    ['ctrl-nav', 'navigation'],
+    ['ctrl-main', 'main'],
+    ['ctrl-alerts', 'alerts'],
+    ['cct-line-stats-scroll-wrap', 'line-stats']
+  ];
+  surfaces.forEach(([id, role]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.dataset.controlScrollSurface = role;
+  });
+
+  document.querySelectorAll('#ctrl-center-overlay .cr161-chart-wrap,#ctrl-center-overlay .cr177-side,#ctrl-center-overlay .cr207-table-wrap,#ctrl-center-overlay .cr-daily-list,#ctrl-center-overlay .ctrl-line-stats-scroll-wrap')
+    .forEach((el, index) => {
+      if (!el.dataset.controlScrollSurface) el.dataset.controlScrollSurface = 'section-' + index;
+    });
+  return true;
+}
+window.cityrailNormalizeControlCenterScroll = cityrailNormalizeControlCenterScroll;
+if (!document.__cityrailControlScrollAuthorityBound) {
+  document.__cityrailControlScrollAuthorityBound = true;
+  document.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest && event.target.closest('#ctrl-center-overlay,#btn-ctrl-center,#ctrl-nav .ctrl-nav-item');
+    if (!target) return;
+    requestAnimationFrame(() => cityrailNormalizeControlCenterScroll('interaction'));
+  }, true);
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(() => cityrailNormalizeControlCenterScroll('resize'));
+  }, { passive: true });
+}
+
 function toggleCtrlCenter() {
   const overlay = document.getElementById('ctrl-center-overlay');
   const btn = document.getElementById('btn-ctrl-center');
@@ -24286,6 +24486,7 @@ function toggleCtrlCenter() {
     overlay.classList.remove('hidden');
     btn.classList.add('active');
     renderCtrlCenter();
+    cityrailNormalizeControlCenterScroll('open');
   } else {
     overlay.classList.add('hidden');
     btn.classList.remove('active');
@@ -24314,7 +24515,12 @@ function toggleMetroMap() {
 
 function renderCtrlCenter() {
   const renderer = window.CityRailControlCenterSystem || window.CityRailControlCenterRenderer || window.CityRailControlCenterV146 || window.CityRailControlCenterV142;
-  if (renderer && typeof renderer.render === 'function') return renderer.render();
+  if (renderer && typeof renderer.render === 'function') {
+    const result = renderer.render();
+    cityrailNormalizeControlCenterScroll('render');
+    return result;
+  }
+  cityrailNormalizeControlCenterScroll('render-empty');
 }
 
 // ═══ 上海地铁风格线网图渲染 ═══
@@ -26959,6 +27165,8 @@ function openStationDetail(stationId, lineId) {
 
   stationDetailId = stationId;
   stationDetailLineId = lineId || null;
+  window.stationDetailId = stationDetailId;
+  window.stationDetailLineId = stationDetailLineId;
   document.getElementById('station-detail-overlay').classList.remove('hidden');
 
   // 关闭线路配置面板（互斥）
@@ -27037,6 +27245,8 @@ function closeStationDetail() {
   finishStationDrag(false);
   stationDetailId = null;
   stationDetailLineId = null;
+  window.stationDetailId = null;
+  window.stationDetailLineId = null;
   moveLineId = null;
   const moveBtn = document.getElementById('sd-btn-move');
   if (moveBtn) { moveBtn.classList.remove('active-action'); moveBtn.textContent = '移动车站'; }
@@ -27490,11 +27700,21 @@ function getOpenRailwayOverlay() {
       keepBuffer: CITYRAIL_MAP_ZOOM_PROFILE.overlayKeepBuffer,
       fadeAnimation: false,
       pane: ormPane,
-      className: 'cityrail-openrailway-overlay'
+      className: 'cityrail-openrailway-overlay',
+      cityrailOverlay: 'openrailway',
+      cityrailOpenRailwayOverlay: true,
+      cityrailCoord: CITYRAIL_COORD_WGS84,
+      coordSystem: CITYRAIL_COORD_WGS84,
+      coordinateSystem: CITYRAIL_COORD_WGS84
     });
     cityrailSetTileLayerZ(window.__cityrailOrmOverlay, CITYRAIL_OVERLAY_TILE_Z);
   } else if (window.__cityrailOrmOverlay.options) {
     window.__cityrailOrmOverlay.options.pane = ormPane;
+    window.__cityrailOrmOverlay.options.cityrailOverlay = 'openrailway';
+    window.__cityrailOrmOverlay.options.cityrailOpenRailwayOverlay = true;
+    window.__cityrailOrmOverlay.options.cityrailCoord = CITYRAIL_COORD_WGS84;
+    window.__cityrailOrmOverlay.options.coordSystem = CITYRAIL_COORD_WGS84;
+    window.__cityrailOrmOverlay.options.coordinateSystem = CITYRAIL_COORD_WGS84;
   }
   return window.__cityrailOrmOverlay;
 }
@@ -27513,6 +27733,7 @@ function setOpenRailwayEnabled(on) {
         pane.style.setProperty('pointer-events', 'none', 'important');
       }
     } catch(e) {}
+    cityrailRestoreActiveBaseLayerCoordinate('openrailway-toggle');
   }
   try { localStorage.setItem('cityrail_orm_overlay', on ? '1' : '0'); } catch(e) {}
   const toggle = document.getElementById('st-openrailway');
@@ -28243,9 +28464,8 @@ document.getElementById('sd-name-save').addEventListener('click', () => {
   if (!station) return;
   const newName = document.getElementById('sd-edit-name').value.trim();
   if (!newName) return;
-  syncStationNameOnMap(station, newName);
-  document.getElementById('sd-name-editor').classList.add('hidden');
-  saveState();
+  const renamed = cityrailRenameStation(station, newName, { manual: true, source: 'station-detail-panel' });
+  if (renamed) document.getElementById('sd-name-editor').classList.add('hidden');
 });
 document.getElementById('sd-name-cancel').addEventListener('click', () => {
   document.getElementById('sd-name-editor').classList.add('hidden');
@@ -37574,38 +37794,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     syncCoverageSettingsUI();
   }
 
-  function installStationRenameFix(){
-    let editing=false, editId=null;
-    function currentId(){ return window.stationDetailId || (typeof stationDetailId!=='undefined'?stationDetailId:null); }
-    function openEditor(){
-      const id=currentId(); const st=(S().stations||[]).find(x=>String(x.id)===String(id)); if(!st) return;
-      const ed=$('sd-name-editor'), input=$('sd-edit-name'); if(!ed||!input) return;
-      editing=true; editId=id; st.__manualName=true;
-      input.value=st.name||''; ed.classList.remove('hidden');
-      setTimeout(()=>{ try{ input.focus(); input.select(); }catch(e){} },0);
-    }
-    function save(){
-      const id=editId||currentId(); const st=(S().stations||[]).find(x=>String(x.id)===String(id)); const input=$('sd-edit-name'); if(!st||!input) return;
-      const v=input.value.trim(); if(!v) return; st.__manualName=true;
-      if (typeof window.cityrailSyncStationNameOnMap === 'function') window.cityrailSyncStationNameOnMap(st, v);
-      else { st.name=v; const name=$('sd-station-name'); if(name) name.textContent=v; }
-      const ed=$('sd-name-editor'); if(ed) ed.classList.add('hidden'); editing=false; editId=null;
-      try{ if(typeof window.renderStations==='function') window.renderStations(); else if(typeof renderStations==='function') renderStations(); }catch(e){}
-      try{ if(typeof window.renderTransferCorridors==='function') window.renderTransferCorridors(); }catch(e){}
-      try{ if(typeof window.saveState==='function') window.saveState(); else if(typeof saveState==='function') saveState(); }catch(e){}
-    }
-    function closeEditor(){ const ed=$('sd-name-editor'); if(ed) ed.classList.add('hidden'); editing=false; editId=null; }
-    document.addEventListener('click',function(e){
-      const t=e.target;
-      if(!t||!t.closest) return;
-      if(t.id==='sd-station-name'){ e.preventDefault(); e.stopPropagation(); openEditor(); return; }
-      if(t.id==='sd-name-save'){ e.preventDefault(); e.stopPropagation(); save(); return; }
-      if(t.id==='sd-name-cancel'){ e.preventDefault(); e.stopPropagation(); closeEditor(); return; }
-      if(t.closest('#sd-name-editor')) e.stopPropagation();
-    },true);
-    document.addEventListener('keydown',function(e){ if(e.target&&e.target.id==='sd-edit-name'){ if(e.key==='Enter'){ e.preventDefault(); save(); } if(e.key==='Escape'){ e.preventDefault(); closeEditor(); } } },true);
-  }
-
   function patchStationAndMapRefresh(){
     ['renderStations','refreshAllStations','renderTransferCorridors'].forEach(fn=>{
       try{
@@ -37642,7 +37830,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     installMapsAndZoom();
     installControlCenter();
     installSettingsLayout();
-    installStationRenameFix();
     patchStationAndMapRefresh();
     refreshCoverageLayer(false);
     selfCheck();
@@ -38239,9 +38426,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if($('cityrail-v91-style')) return;
     const st=document.createElement('style'); st.id='cityrail-v91-style';
     st.textContent=`
-      #cct-line-stats-scroll-wrap,.ctrl-line-stats-scroll-wrap{max-height:42vh!important;overflow-y:auto!important;overflow-x:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;min-height:0;}
-      #cct-line-stats-scroll-wrap .ctrl-table,.ctrl-line-stats-scroll-wrap .ctrl-table{min-width:920px;width:100%;}
-      #cct-line-stats-scroll-wrap::-webkit-scrollbar{width:8px;height:8px}#cct-line-stats-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px}
       .cfg-through-panel{margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.045);display:flex;flex-direction:column;gap:8px;}
       .cfg-through-title{font-size:12px;font-weight:800;color:rgba(255,255,255,.9);letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;}
       .cfg-through-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:rgba(255,255,255,.72)}
@@ -38284,8 +38468,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       wrap=document.createElement('div'); wrap.id='cct-line-stats-scroll-wrap'; wrap.className='ctrl-line-stats-scroll-wrap';
       table.parentNode.insertBefore(wrap,table); wrap.appendChild(table);
     }
-    wrap.style.maxHeight='42vh'; wrap.style.overflowY='auto'; wrap.style.overflowX='auto'; wrap.style.webkitOverflowScrolling='touch'; wrap.style.overscrollBehavior='contain';
-    table.style.minWidth='920px';
+    wrap.dataset.controlScrollSurface='line-stats';
+    table.classList.add('cityrail-control-line-table');
+    if (typeof window.cityrailNormalizeControlCenterScroll === 'function') window.cityrailNormalizeControlCenterScroll('line-stats-wrap');
   }
 
 	  function isBranchOf(parent, branch){ return parent&&branch&&String(branch.parentLineId||'')===String(parent.id); }
@@ -42041,11 +42226,19 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 	        return null;
       });
   }
-	  function syncStationNameOnMap(station,name,options){
-	    if(!station) return null;
-	    const exact=!!(options&&options.exactName) || (station.__manualName!==true && (station.__autoNamedV226||station.__transferSameName||options&&options.autoName));
-	    const transferExact = !!(options&&options.transferName) || isTransferNamingTarget(station);
-		    station.name=transferExact ? (cleanTransferStationName(name)||localFallbackStationName(null,station.id)) : (exact?(cleanReverseName(name)||sid(name)||localFallbackStationName(null,station.id)):unique(name,station.id));
+  function syncStationNameOnMap(station,name,options){
+		    if(!station) return null;
+    if(options&&options.manual){
+      station.__manualName=true;
+      station.__autoNameSource='manual';
+      station.__autoRealNameRequired=false;
+      station.__realMetroNameRequired=false;
+      station.__autoRealNamePendingAt=0;
+    }
+		    const manualExact=!!(options&&options.manual)||station.__manualName===true;
+		    const exact=manualExact || !!(options&&options.exactName) || (station.__manualName!==true && (station.__autoNamedV226||station.__transferSameName||options&&options.autoName));
+		    const transferExact = !!(options&&options.transferName) || isTransferNamingTarget(station);
+			    station.name=transferExact ? (cleanTransferStationName(name)||localFallbackStationName(null,station.id)) : (exact?(cleanReverseName(name)||sid(name)||localFallbackStationName(null,station.id)):unique(name,station.id));
     try{
 	      const layers=[];
 	      if(W.stationMarkers&&W.stationMarkers[station.id]) layers.push(W.stationMarkers[station.id]);
@@ -42057,7 +42250,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 	        if(layer.setTooltipContent&&layer.getTooltip&&layer.getTooltip()) layer.setTooltipContent(station.name);
 	        else if(layer.bindTooltip){ layer.unbindTooltip(); layer.bindTooltip(station.name,{permanent:true,direction:'top',offset:[0,-6],className:'station-label'}).openTooltip(); }
 	      }catch(e){} });
-      const panel=D.getElementById('sd-station-name'); if(panel&&sid(W.__v112StationId||W.__cityrailDepthSelectedStationId)===sid(station.id)) panel.textContent=station.name;
+      const activeId=W.stationDetailId||W.__v112StationId||W.__cityrailDepthSelectedStationId||W.__cityrailV102CurrentStationId;
+      const panel=D.getElementById('sd-station-name'); if(panel&&sid(activeId)===sid(station.id)) panel.textContent=station.name;
     }catch(e){}
 	    return station.name;
 	  }
@@ -42979,10 +43173,20 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         keepBuffer:CITYRAIL_MAP_ZOOM_PROFILE.overlayKeepBuffer,
         fadeAnimation:false,
         pane:pane,
-        className:'cityrail-openrailway-overlay'
+        className:'cityrail-openrailway-overlay',
+        cityrailOverlay:'openrailway',
+        cityrailOpenRailwayOverlay:true,
+        cityrailCoord:'wgs84',
+        coordSystem:'wgs84',
+        coordinateSystem:'wgs84'
       });
     } else if(W.__cityrailOrmOverlay.options) {
       W.__cityrailOrmOverlay.options.pane=pane;
+      W.__cityrailOrmOverlay.options.cityrailOverlay='openrailway';
+      W.__cityrailOrmOverlay.options.cityrailOpenRailwayOverlay=true;
+      W.__cityrailOrmOverlay.options.cityrailCoord='wgs84';
+      W.__cityrailOrmOverlay.options.coordSystem='wgs84';
+      W.__cityrailOrmOverlay.options.coordinateSystem='wgs84';
     }
     return W.__cityrailOrmOverlay;
   }
@@ -43004,7 +43208,11 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         if(pane){
           pane.style.setProperty('z-index','680','important');
           pane.style.setProperty('pointer-events','none','important');
+          pane.style.setProperty('display','block','important');
+          pane.style.setProperty('opacity','1','important');
+          pane.style.setProperty('visibility','visible','important');
         }
+        if(typeof W.cityrailRestoreActiveBaseLayerCoordinate==='function') W.cityrailRestoreActiveBaseLayerCoordinate('v205-openrailway-sync');
       }
     }catch(e){}
     try{
@@ -43081,8 +43289,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   }
   W.CityRailCleanDomesticBasemap={version:VERSION,finalize,syncOpenRailwayOverlay,ensureVisibleTiles,ensureMapChoiceLayer,labels:Object.assign({},labels),keys:()=>cleanKeys.slice(),defaultBaseLayer,openRailwayOverlay:true,mapChoiceLicensing:'Basemap tiles are proxied and browser-cached per provider; domestic basemaps use GCJ-02, global basemaps use WGS84.'};
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',()=>finalize('dom-ready'),{once:true}); else finalize('boot');
-  setTimeout(()=>finalize('late-1'),800);
-  setTimeout(()=>finalize('late-2'),2400);
 })();
 
 ;/* CityRail v210: station model hitbox opens station panel. */

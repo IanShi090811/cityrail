@@ -9,7 +9,9 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
-const PORT = Number(process.env.PORT || 3001);
+const DEFAULT_PORT = 8080;
+const rawPort = Number(process.env.PORT);
+const PORT = Number.isInteger(rawPort) && rawPort > 0 && rawPort < 65536 ? rawPort : DEFAULT_PORT;
 const DATA_DIR = path.resolve(process.env.CITYRAIL_DATA_DIR || path.join(__dirname, '.data'));
 const STATIC_INDEX = path.join(ROOT_DIR, 'index.html');
 
