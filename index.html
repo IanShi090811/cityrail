@@ -20,7 +20,7 @@
 <link rel="preload" href="vendor/leaflet/leaflet.js" as="script">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.css" as="style">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.js" as="script">
-<link rel="preload" href="js/cityrail-runtime.js?v=20260714-v454-control-center-scroll-authority" as="script">
+<link rel="preload" href="js/cityrail-runtime.js?v=20260714-v457-gcj-provider-projection-authority" as="script">
 <link rel="canonical" href="https://cityrailgame.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
@@ -1189,77 +1189,6 @@ html.cityrail-light-ui #cityrail-map-credit {
   padding: 8px 16px; font-size: 12px; font-weight: 500;
   color: var(--text-dim); display: none;
 }
-
-/* ===== LINE STATS PANEL ===== */
-#line-stats-overlay {
-  position: fixed; inset: 0; z-index: 2000;
-  background: rgba(0,0,0,0.5);
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-}
-#line-stats-overlay.hidden { display: none; }
-#line-stats-panel {
-  position: relative;
-  background: var(--panel);
-  backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: 20px 24px; max-width: 580px; width: 92%;
-  max-height: 72vh; display: flex; flex-direction: column; overflow: hidden;
-}
-#line-stats-panel h2 {
-  font-size: 17px; font-weight: 600;
-  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
-  color: var(--text);
-}
-#line-stats-close {
-  background: none; border: none; color: var(--text-dim);
-  font-size: 18px; cursor: pointer; padding: 4px; transition: color var(--transition-fast);
-}
-#line-stats-close:hover { color: var(--danger); }
-#line-stats-table-wrap { flex: 1; overflow-y: auto; }
-#line-stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-#line-stats-table th {
-  position: sticky; top: 0; z-index: 1;
-  text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 500;
-  color: var(--text-dim);
-  background: rgba(28,28,30,0.96);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-#line-stats-table th:last-child { text-align: center; width: 36px; padding: 6px 2px; }
-#line-stats-table th:nth-child(2) { text-align: center; width: 90px; }
-#line-stats-table th:nth-child(3) { text-align: center; width: 52px; }
-#line-stats-table th:nth-child(4), #line-stats-table th:nth-child(5) { text-align: right; }
-#line-stats-table th:nth-child(6) { text-align: center; width: 72px; }
-#line-stats-table td {
-  padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); white-space: nowrap;
-}
-#line-stats-table td:last-child { text-align: center; padding: 2px; }
-#line-stats-table td:nth-child(2) { text-align: center; }
-#line-stats-table td:nth-child(3) { text-align: center; }
-#line-stats-table td:nth-child(4), #line-stats-table td:nth-child(5) { text-align: right; }
-#line-stats-table td:nth-child(6) { text-align: center; font-weight: 600; }
-#line-stats-table .line-color-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-.formation-badge {
-  display: inline-block; background: rgba(10,132,255,0.08);
-  border: 1px solid rgba(10,132,255,0.15);
-  border-radius: var(--radius-sm);
-  color: var(--accent); font-size: 10px; font-weight: 500;
-  padding: 2px 8px; cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.formation-badge:hover { background: rgba(10,132,255,0.15); }
-#line-stats-table .intensity-high { color: var(--danger); }
-#line-stats-table .intensity-mid { color: var(--warning); }
-#line-stats-table .intensity-low { color: var(--success); }
-tr.overloaded-row { background: rgba(255,69,58,0.06); }
-.stats-del-btn {
-  color: var(--text-dim); cursor: pointer; font-size: 14px;
-  padding: 2px 6px; background: none; border: none;
-  transition: color var(--transition-fast);
-}
-.stats-del-btn:hover { color: var(--danger); }
 
 /* ===== LINE CONFIG PANEL ===== */
 @keyframes cfg-glow-pulse {
@@ -5233,101 +5162,6 @@ html.cityrail-light-ui .cr-daily-panel h4{border-bottom-color:rgba(15,23,42,.09)
 /* 编号 */
 .ctrl-rank { font-size: 10px; color: rgba(255,255,255,0.2); width: 20px; }
 
-/* ═══ 上海地铁风格线网图 ═══ */
-#metro-map-overlay {
-  position: fixed; inset: 0; z-index: 9998;
-  background: #fff;
-  display: flex; flex-direction: column;
-  font-family: 'PingFang SC', 'Helvetica Neue', 'SF Pro Display', sans-serif;
-  overflow: hidden;
-}
-#metro-map-overlay.hidden { display: none; }
-#metro-map-header {
-  height: 44px; min-height: 44px;
-  display: flex; align-items: center;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-  padding: 0 16px;
-  gap: 12px;
-}
-.metro-map-title {
-  font-size: 14px; font-weight: 600;
-  color: #1d1d1f;
-  letter-spacing: 0.04em;
-}
-.metro-map-subtitle {
-  font-size: 11px; color: #999;
-  margin-left: auto;
-}
-#metro-map-close {
-  background: none;
-  border: 1px solid #ddd;
-  color: #666;
-  padding: 4px 12px;
-  border-radius: 4px;
-  cursor: pointer; font-size: 11px;
-  transition: 0.15s;
-}
-#metro-map-close:hover { background: #f5f5f5; color: #000; }
-#metro-map-canvas-wrap {
-  flex: 1; position: relative;
-  overflow: hidden;
-  background: #fff;
-}
-#metro-svg {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-}
-.metro-line { fill:none; stroke-linecap:round; stroke-linejoin:round; }
-.metro-station { fill:#fff; stroke:#444; stroke-width:1.5; }
-.metro-transfer { fill:#fff; stroke:#111; stroke-width:2.5; }
-.metro-label {
-  font-size:11px; fill:#1f2937; font-weight:500;
-  paint-order:stroke; stroke:rgba(255,255,255,0.92); stroke-width:3px;
-  stroke-linejoin:round;
-}
-.metro-line-tag { font-size:10px; fill:#fff; font-weight:600; }
-
-/* 线网图图例 */
-#metro-map-legend {
-  position: absolute;
-  bottom: 44px; left: 16px;
-  background: rgba(255,255,255,0.95);
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  padding: 8px 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  font-size: 10px;
-  display: flex; flex-wrap: wrap;
-  gap: 4px 10px;
-  max-width: 320px;
-}
-.metro-legend-item {
-  display: flex; align-items: center;
-  gap: 4px;
-}
-.metro-legend-dot {
-  width: 10px; height: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-/* 线网图底部状态 */
-#metro-map-status {
-  height: 28px; min-height: 28px;
-  display: flex; align-items: center;
-  background: #fafafa;
-  border-top: 1px solid #eee;
-  padding: 0 16px;
-  font-size: 10px;
-  color: #999;
-  gap: 16px;
-}
-.metro-status-item { display: flex; align-items: center; gap: 4px; }
-.metro-status-val { color: #333; font-weight: 500; }
-
-
 /* ===== 90-app-shell.css ===== */
 /* CityRail App Shell: shared UI for newly modularized features */
 .cityrail-save-panel-in-settings {
@@ -5494,7 +5328,7 @@ button{
 .leaflet-interactive {
   vector-effect: non-scaling-stroke;
 }
-.ctrl-card, #ctrl-center-overlay, #metro-map-overlay, #settings-overlay, .panel, .glass-panel {
+.ctrl-card, #ctrl-center-overlay, #settings-overlay, .panel, .glass-panel {
   contain: layout paint;
 }
 
@@ -5502,7 +5336,6 @@ button{
 /* ===== 50-smoothness-protect.css ===== */
 /* deeper performance: keep train animation untouched */
 #ctrl-center-overlay.hidden,
-#metro-map-overlay.hidden,
 #settings-overlay.hidden,
 #nav-overlay.hidden {
   content-visibility: auto;
@@ -6920,8 +6753,6 @@ html.cityrail-apple-spatial-ui.cityrail-light-ui{
   --cr416-shadow:0 20px 64px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.72);
 }
 html.cityrail-apple-spatial-ui body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Helvetica Neue",Arial,sans-serif!important;background:var(--cr416-bg)!important;color:var(--cr416-text)!important;}
-html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=background-image],
-html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=cfg-scanline],
 html.cityrail-apple-spatial-ui #nav-panel>div[style*=background-image],
 html.cityrail-apple-spatial-ui #nav-panel>div[style*=cfg-scanline],
 html.cityrail-apple-spatial-ui #nav-panel::before,
@@ -6954,7 +6785,6 @@ html.cityrail-apple-spatial-ui #time-slider,
 html.cityrail-apple-spatial-ui #speed-slider{height:4px!important;background:var(--cr416-fill)!important;border-radius:999px!important;}
 html.cityrail-apple-spatial-ui #settings-overlay,
 html.cityrail-apple-spatial-ui #new-line-dialog-overlay,
-html.cityrail-apple-spatial-ui #line-stats-overlay,
 html.cityrail-apple-spatial-ui #nav-overlay,
 html.cityrail-apple-spatial-ui #vt-overlay{position:fixed!important;inset:0!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
 html.cityrail-apple-spatial-ui #line-config-overlay,
@@ -6963,7 +6793,6 @@ html.cityrail-apple-spatial-ui #line-config-overlay{z-index:2000!important;}
 html.cityrail-apple-spatial-ui #station-detail-overlay{z-index:2100!important;}
 html.cityrail-apple-spatial-ui.cityrail-light-ui #settings-overlay,
 html.cityrail-apple-spatial-ui.cityrail-light-ui #new-line-dialog-overlay,
-html.cityrail-apple-spatial-ui.cityrail-light-ui #line-stats-overlay,
 html.cityrail-apple-spatial-ui.cityrail-light-ui #nav-overlay,
 html.cityrail-apple-spatial-ui.cityrail-light-ui #vt-overlay,
 html.cityrail-apple-spatial-ui.cityrail-light-ui #line-config-overlay,
@@ -6972,7 +6801,6 @@ html.cityrail-apple-spatial-ui #settings-panel,
 html.cityrail-apple-spatial-ui #new-line-dialog,
 html.cityrail-apple-spatial-ui #nav-panel,
 html.cityrail-apple-spatial-ui #vt-panel,
-html.cityrail-apple-spatial-ui #line-stats-panel,
 html.cityrail-apple-spatial-ui .cc-express-dialog,
 html.cityrail-apple-spatial-ui .modal,
 html.cityrail-apple-spatial-ui .workshop-modal-card,
@@ -6982,9 +6810,7 @@ html.cityrail-apple-spatial-ui #settings-panel{width:min(390px,calc(100vw - 36px
 html.cityrail-apple-spatial-ui #new-line-dialog{width:min(920px,calc(100vw - 36px))!important;min-width:0!important;max-height:calc(100dvh - 72px)!important;overflow:auto!important;padding:18px!important;}
 html.cityrail-apple-spatial-ui .new-build-choice{width:100%!important;min-width:0!important;grid-template-columns:repeat(4,minmax(132px,1fr))!important;overflow:visible!important;}
 html.cityrail-apple-spatial-ui .new-build-card{min-height:108px!important;border-radius:var(--cr416-radius)!important;background:var(--cr416-fill)!important;border-color:var(--cr416-border)!important;}
-html.cityrail-apple-spatial-ui #nav-panel,
-html.cityrail-apple-spatial-ui #line-stats-panel{width:min(760px,calc(100vw - 36px))!important;max-height:calc(100dvh - 96px)!important;overflow:hidden!important;padding:18px!important;}
-html.cityrail-apple-spatial-ui #line-stats-panel>div[style*=flex],
+html.cityrail-apple-spatial-ui #nav-panel{width:min(760px,calc(100vw - 36px))!important;max-height:calc(100dvh - 96px)!important;overflow:hidden!important;padding:18px!important;}
 html.cityrail-apple-spatial-ui #nav-panel>div[style*=relative],
 html.cityrail-apple-spatial-ui #nav-panel .nav-panel-body{height:100%!important;overflow:auto!important;min-height:0!important;}
 html.cityrail-apple-spatial-ui h1,html.cityrail-apple-spatial-ui h2,html.cityrail-apple-spatial-ui h3,html.cityrail-apple-spatial-ui h4,
@@ -7018,7 +6844,7 @@ html.cityrail-apple-spatial-ui .cc-express-close,
 html.cityrail-apple-spatial-ui table{border-collapse:separate!important;border-spacing:0!important;}
 html.cityrail-apple-spatial-ui th{font-size:11px!important;font-weight:620!important;color:var(--cr416-secondary)!important;background:var(--cr416-fill)!important;}
 html.cityrail-apple-spatial-ui td{color:var(--cr416-text)!important;border-color:var(--cr416-border)!important;}
-html.cityrail-apple-spatial-ui .ctrl-table th,html.cityrail-apple-spatial-ui .ctrl-table td,html.cityrail-apple-spatial-ui #line-stats-table th,html.cityrail-apple-spatial-ui #line-stats-table td{padding:8px 10px!important;}
+html.cityrail-apple-spatial-ui .ctrl-table th,html.cityrail-apple-spatial-ui .ctrl-table td{padding:8px 10px!important;}
 html.cityrail-apple-spatial-ui #ctrl-center-overlay{background:var(--cr416-bg)!important;color:var(--cr416-text)!important;}
 html.cityrail-apple-spatial-ui #ctrl-topbar{height:58px!important;min-height:58px!important;padding:0 16px!important;background:var(--cr416-surface-strong)!important;border-bottom:1px solid var(--cr416-border)!important;backdrop-filter:var(--cr416-blur)!important;-webkit-backdrop-filter:var(--cr416-blur)!important;}
 html.cityrail-apple-spatial-ui #ctrl-nav{width:60px!important;min-width:60px!important;background:var(--cr416-surface)!important;border-right:1px solid var(--cr416-border)!important;}
@@ -7544,7 +7370,7 @@ html.cityrail-apple-spatial-ui.cityrail-light-ui{
   --cr416-border:rgba(15,23,42,.14);
 }
 html.cityrail-light-ui body,
-html.cityrail-light-ui :is(#topbar,#bottombar,#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#line-stats-panel,#auth-screen,#city-select-screen,#workshop-screen,#ctrl-center-overlay,.modal,.panel,.side-panel,.control-panel,.auth-card,.reg-panel,.ctrl-card,.cityrail-object-panel,.cr-eps-panel,.cityrail-depot-panel){
+html.cityrail-light-ui :is(#topbar,#bottombar,#settings-panel,#new-line-dialog,#nav-panel,#vt-panel,#auth-screen,#city-select-screen,#workshop-screen,#ctrl-center-overlay,.modal,.panel,.side-panel,.control-panel,.auth-card,.reg-panel,.ctrl-card,.cityrail-object-panel,.cr-eps-panel,.cityrail-depot-panel){
   color:var(--cr-readable-text)!important;
   text-shadow:none!important;
 }
@@ -7633,7 +7459,7 @@ html.cityrail-light-ui :is(.sd-bar-track,.ctrl-bar-track){
   background:rgba(15,23,42,.10)!important;
   border-color:var(--cr-object-line)!important;
 }
-html.cityrail-light-ui :is(table,.ctrl-table,#line-stats-table,#sd-od-table) :is(th,td){
+html.cityrail-light-ui :is(table,.ctrl-table,#sd-od-table) :is(th,td){
   color:var(--cr-readable-text-soft)!important;
   border-color:var(--cr-readable-line)!important;
 }
@@ -7656,12 +7482,12 @@ html.cityrail-light-ui[data-cityrail-station-label-tone="mixed-map"] .station-la
   color:#fff!important;
   text-shadow:0 1px 2px rgba(0,0,0,.90),0 0 5px rgba(0,0,0,.78),0 0 12px rgba(0,0,0,.66)!important;
 }
-html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:#fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]),
-html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: #fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]){
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:#fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]),
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: #fff" i]:not(.primary):not(.active):not(.on):not([style*="background:#0a84ff" i]):not([style*="background: #0a84ff" i]){
   color:var(--cr-readable-text)!important;
 }
-html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:rgba(255,255,255" i],
-html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,#line-stats-panel,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: rgba(255,255,255" i]{
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color:rgba(255,255,255" i],
+html.cityrail-light-ui :is(#nav-panel,#settings-panel,#new-line-dialog,.modal,.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-dialog,.cityrail-node-action-popup) [style*="color: rgba(255,255,255" i]{
   color:var(--cr-readable-text-muted)!important;
 }
 html.cityrail-light-ui :is(.cityrail-info-card,.loop-choice-panel,#cityrail-tutorial-task-dock,.cityrail-system-card){
@@ -8144,7 +7970,6 @@ html:not(.cityrail-light-ui) .cityrail-system-card{
 <div id="topbar">
   <button class="tool-btn" id="btn-navigate" title="模拟OD导航，查看客流路径" data-action="btn-navigate">模拟导航</button>
   <button class="tool-btn" id="btn-layer" title="切换缓存底图：CARTO、高德、腾讯、Esri、矢量地图。高德和腾讯使用 GCJ-02，其余底图使用 WGS84。" data-action="btn-layer" data-ui-glyph="▧">CARTO暗色</button>
-  <button class="tool-btn" id="btn-line-stats" title="查看各线路长度、客流量与客流强度" data-action="btn-line-stats">线路统计</button>
   <button class="tool-btn" id="btn-ctrl-center" title="运营控制中心" data-action="btn-ctrl-center">控制中心</button>
   <button class="tool-btn" id="btn-new-line" title="新建线路或车辆段" data-action="btn-new-line">新建</button>
   <button class="tool-btn" id="btn-settings" title="设置" data-action="btn-settings">设置</button>
@@ -8200,38 +8025,6 @@ html:not(.cityrail-light-ui) .cityrail-system-card{
     <div class="vt-btns">
       <button class="vt-btn vt-btn-cancel" id="vt-btn-cancel" data-action="vt-btn-cancel">取消</button>
       <button class="vt-btn vt-btn-confirm" id="vt-btn-confirm" data-action="vt-btn-confirm">确认</button>
-    </div>
-  </div>
-</div>
-
-<!-- LINE STATS PANEL -->
-<div id="line-stats-overlay" class="hidden">
-  <div id="line-stats-panel">
-    <div style="position:absolute;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(79,195,247,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.02) 1px,transparent 1px);background-size:24px 24px;"></div>
-    <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:linear-gradient(to bottom,transparent 0%,transparent 60%,rgba(79,195,247,0.02) 60.5%,transparent 60.7%,transparent 100%);animation:cfg-scanline 6s linear infinite;"></div>
-    <div style="position:relative;z-index:2;display:flex;flex-direction:column;flex:1;min-height:0;">
-    <h2>
-      线路客流统计
-      <button id="line-stats-close" class="panel-close-btn" title="关闭" aria-label="关闭" data-action="line-stats-close">×</button>
-    </h2>
-    <div id="line-stats-table-wrap">
-      <table id="line-stats-table">
-        <thead>
-          <tr>
-            <th>线路</th>
-            <th>车型·编组</th>
-            <th>速度</th>
-            <th>km</th>
-            <th>客流量</th>
-            <th>运能利用率</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="line-stats-tbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:16px">暂无线路数据</td></tr>
-        </tbody>
-      </table>
-    </div>
     </div>
   </div>
 </div>
@@ -8668,10 +8461,10 @@ window.setCityRailActiveCity = function(key){
   };
 })();
 </script>
-<script src="js/cityrail-runtime.js?v=20260714-v454-control-center-scroll-authority"></script>
+<script src="js/cityrail-runtime.js?v=20260714-v457-gcj-provider-projection-authority"></script>
 <script src="js/cityrail-v146-single-control-owner.js?v=20260710-v445-error-observability"></script>
 <script src="js/cityrail-apple-spatial-ui-authority.js?v=20260710-v445-error-observability"></script>
-<script src="js/cityrail-maplibre-pmtiles-authority.js?v=20260713-v452-openrailway-overlay-authority"></script>
+<script src="js/cityrail-maplibre-pmtiles-authority.js?v=20260714-v457-vector-basemap-coordinate-authority"></script>
 <script src="js/cityrail-living-city.js?v=20260710-v445-error-observability"></script>
 <script>
 (function(){

@@ -7589,7 +7589,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   }
   function removeLegacyDecor(){
     D.querySelectorAll('#cityrailControlCenterPlus,.cc-ex-map-tip,.cc-ex-stop-marker').forEach(el=>el.remove());
-    D.querySelectorAll('#line-stats-panel > div[style*="animation"],#nav-panel > div[style*="animation"]').forEach(el=>el.remove());
+    D.querySelectorAll('#nav-panel > div[style*="animation"]').forEach(el=>el.remove());
   }
   function renderControl(force){
     const overlay=byId('ctrl-center-overlay');
@@ -8948,10 +8948,6 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
       linePassengerStats: {},
       lineLengthCache: {}
     };
-    compactState.diagramPos = stations.reduce((acc, s) => {
-      if(s && s.id != null && s.diagramX != null) acc[s.id] = { x: s.diagramX, y: s.diagramY };
-      return acc;
-    }, {});
     return cityrailCompleteOperationalAssetSave({
       schema: root.schema || 'cityrail-save',
       version: root.version || 146,
@@ -9100,10 +9096,6 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
       await uploadSave(await readFile(file));
     }catch(e){ status(e.message || '上传失败'); }
   }
-  async function uploadCurrent(){
-    try{ await uploadSave(buildSnapshot()); }
-    catch(e){ status(e.message || '上传失败'); }
-  }
   async function loadMine(){
     const box = $('workshop-manage-list');
     if(!box) return;
@@ -9157,19 +9149,11 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
   function bind(){
     const btn = $('auth-workshop-btn'); if(btn) btn.addEventListener('click', showWorkshop);
     const back = $('workshop-back-btn'); if(back) back.addEventListener('click', hideWorkshop);
-    const refresh = $('workshop-refresh-btn'); if(refresh) refresh.addEventListener('click', loadList);
     const myBtn = $('workshop-my-btn'); if(myBtn) myBtn.addEventListener('click', () => openMyPanel('upload'));
-    const myClose = $('workshop-my-close'); if(myClose) myClose.addEventListener('click', closeMyPanel);
     const myX = $('workshop-my-x'); if(myX) myX.addEventListener('click', closeMyPanel);
     const avatarInput = $('workshop-avatar-input'); if(avatarInput) avatarInput.addEventListener('change', handleAvatarUpload);
     const fileInput = $('workshop-file-input'); if(fileInput) fileInput.addEventListener('change', syncSelectedFileName);
     const uploadFileBtn = $('workshop-upload-file'); if(uploadFileBtn) uploadFileBtn.addEventListener('click', uploadFile);
-    const uploadCurrentBtn = $('workshop-upload-current'); if(uploadCurrentBtn) uploadCurrentBtn.addEventListener('click', uploadCurrent);
-    const uploadTab = $('workshop-upload-tab'); if(uploadTab) uploadTab.addEventListener('click', () => {
-      if(!isLoggedIn()){ showLoginPrompt(); syncAuthUI('upload'); return; }
-      const list = $('workshop-manage-list'); if(list) list.innerHTML='';
-      syncAuthUI('upload');
-    });
     const manageTab = $('workshop-manage-tab'); if(manageTab) manageTab.addEventListener('click', loadMine);
     const gateLogin = $('workshop-gate-login'); if(gateLogin) gateLogin.addEventListener('click', showLoginPrompt);
     const loginNow = $('workshop-login-now'); if(loginNow) loginNow.addEventListener('click', goLoginFromWorkshop);
@@ -12073,7 +12057,6 @@ const state = {
   simSpeed: 24,
   colorIdx: 0,
   showLabels: true,
-  showLineStats: false,
 
   lineStatsData: [],
   lineLengthCache: {},
@@ -15402,7 +15385,7 @@ window.cityrailReanchorMapToBaseLayer = cityrailReanchorMapToBaseLayer;
 // CityRail's canonical state is WGS84. Mainland China web basemaps such as
 // AMap are rendered in GCJ-02, so Leaflet display coordinates are adapted at
 // the map boundary instead of shifting user-built geometry by a fixed offset.
-const CITYRAIL_MAP_COORD_VERSION = 'v453-gcj-provider-projection-authority';
+const CITYRAIL_MAP_COORD_VERSION = 'v457-gcj-provider-projection-authority';
 const CITYRAIL_COORD_WGS84 = 'wgs84';
 const CITYRAIL_COORD_GCJ02 = 'gcj02';
 const CITYRAIL_COORD_BD09 = 'bd09';
@@ -15597,6 +15580,11 @@ function cityrailCurrentDataCenter() {
   const c = map.__cityrailRawGetCenter ? map.__cityrailRawGetCenter() : map.getCenter();
   return map.__cityrailRawGetCenter ? cityrailFromLeafletDisplayLatLng(c) : cityrailFromLeafletLatLng(c);
 }
+function cityrailCurrentDisplayCenter() {
+  const c = cityrailCurrentDataCenter();
+  const out = cityrailWgsToDisplay(c.lat, c.lng, cityrailMapCoordState.active);
+  return cityrailDisplayLatLng(out.lat, out.lng);
+}
 function cityrailRedrawMapGeometry() {
   if (cityrailIsMapViewTransforming()) {
     cityrailDeferLineGeometryRedraw('cityrailRedrawMapGeometry', cityrailRedrawMapGeometry, this, arguments);
@@ -15768,6 +15756,10 @@ function cityrailInitCoordinateAdapter() {
     reanchorBaseLayer: cityrailReanchorMapToBaseLayer,
     retagLayer: cityrailTagTileLayer,
     eventLatLng: cityrailEventDataLatLng,
+    dataCenter: () => cityrailCurrentDataCenter(),
+    displayCenter: () => cityrailCurrentDisplayCenter(),
+    activeCoord: () => cityrailMapCoordState.active,
+    baseLayerCoord: cityrailBaseLayerCoord,
     report: () => ({
       version: CITYRAIL_MAP_COORD_VERSION,
       active: cityrailMapCoordState.active,
@@ -19690,9 +19682,6 @@ function runSimulation() {
   state._maxStationFlow = Math.max(1, ...Object.values(flowMap));
   state.segmentFlowsCache = segmentFlows;
 
-  if (state.showLineStats) renderLineStats();
-
-
 }
 
 function getFlowColor(ratio) {
@@ -21113,7 +21102,6 @@ function trainAnimationFrame(nowTime) {
   if (!mapBusy && nowTime - window._lastPanelRefresh >= 1400) {
     window._lastPanelRefresh = nowTime;
     renderCtrlCenter();
-    if (window._metroMapRendered) renderMetroMap();
   }
 
   // 暂停时重置时间基准（列车可能被清空再重建但不停帧）
@@ -23112,7 +23100,7 @@ function renderAllTrainMarkers() {
   }
 }
 
-// ==================== LINE STATS ====================
+// ==================== LINE METRICS ====================
 function computeLineLengths() {
   state.lines.forEach(line => {
     if (state.lineLengthCache[line.id] !== undefined) return; // already cached
@@ -23227,56 +23215,6 @@ try {
   window.cityrailFastLineLengthKm = cityrailFastLineLengthKm;
   window.cityrailEnsureLineLengthCache = cityrailEnsureLineLengthCache;
 } catch(e) {}
-
-function toggleLineStats() {
-  state.showLineStats = !state.showLineStats;
-  const overlay = document.getElementById('line-stats-overlay');
-  const btn = document.getElementById('btn-line-stats');
-  if (state.showLineStats) {
-    overlay.classList.remove('hidden');
-    btn.classList.add('active');
-    renderLineStats();
-  } else {
-    overlay.classList.add('hidden');
-    btn.classList.remove('active');
-  }
-}
-
-function renderLineStats() {
-  const tbody = document.getElementById('line-stats-tbody');
-  if (state.lineStatsData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:16px">暂无线路数据</td></tr>';
-    return;
-  }
-  const maxIntensity = Math.max(1, ...state.lineStatsData.map(d => d.intensity));
-  tbody.innerHTML = state.lineStatsData.map(d => {
-    const capUtil = d.bidirCap > 0 ? (d.demandFlow / d.bidirCap * 100) : 0;
-    let capClass = '';
-    if (capUtil >= 100) capClass = 'intensity-high';
-    else if (capUtil >= 70) capClass = 'intensity-mid';
-    const capLabel = capUtil >= 100
-      ? '⚠️ ' + Math.round(capUtil) + '%'
-      : Math.round(capUtil) + '%';
-    const intensityClass = d.intensity > maxIntensity * 0.7 ? 'intensity-high'
-      : d.intensity > maxIntensity * 0.35 ? 'intensity-mid' : 'intensity-low';
-    const trainTypeLabel = (TRAIN_TYPES[d.trainType]?.name || d.trainType || 'A型车');
-    const trainDesc = d.trainType + d.cars + '节';
-    return `<tr>
-      <td><span class="line-color-dot" style="background:${d.color}"></span>${d.name}</td>
-      <td><span class="formation-badge" onclick="event.stopPropagation();openLineConfig('${d.id}')" title="点击配置车型/编组/速度">${trainDesc}</span></td>
-      <td>${d.speed || 80}km/h</td>
-      <td>${d.length.toFixed(1)}</td>
-      <td>${formatNumber(d.flow)}</td>
-      <td class="${capClass}" title="需求/运能: ${formatNumber(d.demandFlow)} / ${formatNumber(d.bidirCap)}">${capLabel}</td>
-      <td><button class="stats-del-btn" onclick="event.stopPropagation();deleteLineWithStations('${d.id}')" title="删除线路及站点">×</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function cycleFormation(lineId) {
-  // Legacy compat — redirect to config panel
-  openLineConfig(lineId);
-}
 
 // ==================== LINE CONFIG PANEL ====================
 function cfgLineFlowEsc(value) {
@@ -24152,7 +24090,6 @@ function saveLineConfig() {
     }
 
     renderAllTrainMarkers();
-    if (state.showLineStats) renderLineStats();
     saveState();
     runSimulation();
   }, 0);
@@ -24418,7 +24355,6 @@ function deleteLineWithStations(lineId) {
     updateUI();
     saveState();
     cityrailRefreshTrainsAfterTopologyEdit('deleteLineWithStations');
-    if (state.showLineStats) runSimulation();
   }, 0);
 }
 
@@ -24491,823 +24427,6 @@ function toggleCtrlCenter() {
     overlay.classList.add('hidden');
     btn.classList.remove('active');
   }
-}
-
-// ═══ 线网图切换 ═══
-let _metroMapRendered = false;
-function toggleMetroMap() {
-  const overlay = document.getElementById('metro-map-overlay');
-  const btn = document.getElementById('btn-metro-map');
-  if (overlay.classList.contains('hidden')) {
-    overlay.classList.remove('hidden');
-    btn.classList.add('active');
-    // 延迟一帧使 canvas 尺寸正确
-    requestAnimationFrame(() => {
-      _metroMapRendered = true;
-      renderMetroMap();
-    });
-  } else {
-    overlay.classList.add('hidden');
-    btn.classList.remove('active');
-    _metroMapRendered = false;
-  }
-}
-
-function renderCtrlCenter() {
-  const renderer = window.CityRailControlCenterSystem || window.CityRailControlCenterRenderer || window.CityRailControlCenterV146 || window.CityRailControlCenterV142;
-  if (renderer && typeof renderer.render === 'function') {
-    const result = renderer.render();
-    cityrailNormalizeControlCenterScroll('render');
-    return result;
-  }
-  cityrailNormalizeControlCenterScroll('render-empty');
-}
-
-// ═══ 上海地铁风格线网图渲染 ═══
-// ═══ 几何化线网图布局引擎 ═══
-// 将真实坐标转换为45°吸附的示意图坐标
-
-// ════════════════════════════════════════════════════════════════
-// 改进的线网图引擎：拓扑优先布局 + 惩罚优化器 + 8方向标签 + SVG渲染
-// ════════════════════════════════════════════════════════════════
-// 改进版：拓扑优先 + 骨架锚点 + 分区站距 + 标签避让 + 人工微调
-// ════════════════════════════════════════════════════════════════
-
-const DIAGRAM_GAP_BASE = 64;    // 基础站距(px)
-const DIAGRAM_GAP_CENTER = 80;  // 中心区站距(px)
-const DIAGRAM_GAP_CITY = 55;    // 普通城区站距(px)
-const DIAGRAM_GAP_SUBURB = 35;  // 郊区站距(px)
-const DIAGRAM_OFFSET = 5;       // 共线平行偏移(px)
-
-// SH 中心区边界 (根据真实上海地铁范围定义)
-const SH_CENTER_EAST = 121.52;
-const SH_CENTER_WEST = 121.46;
-const SH_CENTER_NORTH = 31.25;
-const SH_CENTER_SOUTH = 31.20;
-const SH_CITY_EAST  = 121.60;
-const SH_CITY_WEST  = 121.38;
-const SH_CITY_NORTH = 31.32;
-const SH_CITY_SOUTH = 31.15;
-
-function gapForStation(s) {
-  if (!s) return DIAGRAM_GAP_BASE;
-  if (s.lng >= SH_CENTER_WEST && s.lng <= SH_CENTER_EAST &&
-      s.lat >= SH_CENTER_SOUTH && s.lat <= SH_CENTER_NORTH) return DIAGRAM_GAP_CENTER;
-  if (s.lng >= SH_CITY_WEST && s.lng <= SH_CITY_EAST &&
-      s.lat >= SH_CITY_SOUTH && s.lat <= SH_CITY_NORTH) return DIAGRAM_GAP_CITY;
-  return DIAGRAM_GAP_SUBURB;
-}
-
-// ── 八方向吸附 ──
-function snap8(rad) { return Math.round(rad / (Math.PI / 4)) * (Math.PI / 4); }
-
-function dir8(fx, fy, tx, ty) {
-  var a = snap8(Math.atan2(ty - fy, tx - fx));
-  return { x: Math.round(Math.cos(a)), y: Math.round(Math.sin(a)) };
-}
-
-// 由真实经纬度推断主方向（EW=0, NS=1, NE=2, NW=3）
-function mainDirectionOfLine(line) {
-  var sts = state.stations;
-  var ids = line.stationIds;
-  if (ids.length < 2) return 0;
-  var first = sts.find(function(s){ return s.id === ids[0]; });
-  var last  = sts.find(function(s){ return s.id === ids[ids.length - 1]; });
-  if (!first || !last) return 0;
-  var dx = Math.abs(first.lng - last.lng);
-  var dy = Math.abs(first.lat - last.lat);
-  // 东西跨度 > 南北 → 水平向；否则→垂直向
-  if (dx > dy) {
-    // 检测是否为东北-西南走向（45度）
-    var ratio = dx / (dy || 0.01);
-    if (ratio < 1.8 && ratio > 0.55) return 2; // NE-SW
-    return 0; // EW
-  } else {
-    var ratio = dy / (dx || 0.01);
-    if (ratio < 1.8 && ratio > 0.55) return 3; // NW-SE
-    return 1; // NS
-  }
-}
-
-// ── 根据主方向给出主力向向量 ──
-function mainDirVec(dir) {
-  switch (dir) {
-    case 0: return { x: 1, y: 0 };   // 水平
-    case 1: return { x: 0, y: 1 };   // 垂直
-    case 2: return { x: 1, y: 0.5 }; // 45°（先近似为水平+垂直合成，渲染时用45度）
-    case 3: return { x: 0.5, y: 1 };
-    default: return { x: 1, y: 0 };
-  }
-}
-
-// 换乘站数量 → 锚点优先级评分
-function anchorScore(s, stnLn) {
-  var n = (stnLn[s.id] || []).length;
-  return n * 10 + (s.name.length <= 4 ? 5 : 0);
-}
-
-// ── 步骤1: 拓扑优先 + 骨架锚点 + 分区站距 ──
-function layoutMetroDiagram(forceRelayout) {
-  var sts = state.stations, lns = state.lines;
-  if (!sts.length || !lns.length) return false;
-
-  if (forceRelayout) sts.forEach(function(s){ s.diagramX = null; s.diagramY = null; });
-
-  // 标记换乘
-  var stnLn = {}; sts.forEach(function(s){ stnLn[s.id] = []; s.isTransfer = false; });
-  lns.forEach(function(l){ l.stationIds.forEach(function(sid){ if (stnLn[sid]) stnLn[sid].push(l.id); }); });
-  sts.forEach(function(s){ s.isTransfer = stnLn[s.id].length > 1; });
-
-  // 1. 确定骨架锚点：同时属于>=2条线的换乘站，且在中心区
-  var candidates = sts.filter(function(s){
-    return s.isTransfer && s.lng >= SH_CENTER_WEST - 0.04 && s.lng <= SH_CENTER_EAST + 0.04 &&
-           s.lat >= SH_CENTER_SOUTH - 0.04 && s.lat <= SH_CENTER_NORTH + 0.04;
-  });
-  candidates.sort(function(a,b){ return anchorScore(b, stnLn) - anchorScore(a, stnLn); });
-  var skeletonCount = Math.min(candidates.length, 12);
-  var skeleton = candidates.slice(0, skeletonCount);
-
-  // 如果骨架少于3个，用所有换乘站替代
-  if (skeleton.length < 3) {
-    skeleton = sts.filter(function(s){ return s.isTransfer; }).slice(0, 12);
-  }
-
-  // 2. 将骨架锚点放在一块清晰的网格上
-  // 先找出最中心的几个，作为"网格原点"
-  var gridGap = DIAGRAM_GAP_CENTER * 1.5;
-  if (skeleton.length > 0) {
-    // 布局骨架锚点：根据真实坐标的相对位置放入网格
-    var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-    skeleton.forEach(function(s){
-      if (s.lat < minLat) minLat = s.lat;
-      if (s.lat > maxLat) maxLat = s.lat;
-      if (s.lng < minLng) minLng = s.lng;
-      if (s.lng > maxLng) maxLng = s.lng;
-    });
-    var rangeLng = maxLng - minLng || 1;
-    var rangeLat = maxLat - minLat || 1;
-
-    skeleton.forEach(function(s){
-      // 映射到网格坐标（奇数列优先留空给垂直线路）
-      var col = Math.round((s.lng - minLng) / rangeLng * (skeletonCount * 0.6));
-      col = Math.max(0, Math.min(col, Math.ceil(skeleton.length / 2) + 1));
-      var row = Math.round((s.lat - minLat) / rangeLat * skeletonCount * 0.5);
-      row = Math.max(0, Math.min(row, Math.ceil(skeleton.length / 2)));
-      s.diagramX = (col - skeletonCount * 0.3) * gridGap;
-      s.diagramY = (row - skeletonCount * 0.25) * gridGap;
-    });
-  }
-
-  // 3. 按主方向布置各线路
-  var sorted = lns.slice().sort(function(a,b){ return b.stationIds.length - a.stationIds.length; });
-  var lineDirs = {};
-  sorted.forEach(function(l){ lineDirs[l.id] = mainDirectionOfLine(l); });
-
-  // 从真实坐标获取八方向向量
-  function v8(sa, sb) {
-    var a = sts.find(function(s){ return s.id === sa; });
-    var b = sts.find(function(s){ return s.id === sb; });
-    return a && b ? dir8(a.lng, a.lat, b.lng, b.lat) : { x:1, y:0 };
-  }
-
-  function getGap(sa, sb) {
-    var a = sts.find(function(s){ return s.id === sa; });
-    var b = sts.find(function(s){ return s.id === sb; });
-    var ga = gapForStation(a), gb = gapForStation(b);
-    return Math.round((ga + gb) / 2);
-  }
-
-  sorted.forEach(function(line) {
-    var ids = line.stationIds;
-    var mDir = lineDirs[line.id];
-    var mVec = mainDirVec(mDir);
-
-    // 找已放置的站（换乘锚点）
-    var anchors = [];
-    for (var i = 0; i < ids.length; i++) {
-      var s = sts.find(function(x){ return x.id === ids[i]; });
-      if (s && s.diagramX != null) anchors.push(i);
-    }
-
-    if (anchors.length === 0) {
-      // 全站未放置 → 按主方向布置
-      var s0 = sts.find(function(s){ return s.id === ids[0]; });
-      var gap = getGap(ids[0], ids.length > 1 ? ids[1] : ids[0]);
-      s0.diagramX = 0; s0.diagramY = 0;
-      for (var i = 1; i < ids.length; i++) {
-        var cur = sts.find(function(s){ return s.id === ids[i]; });
-        if (!cur || cur.diagramX != null) continue;
-        var g = getGap(ids[i-1], ids[i]);
-        var prev = sts.find(function(s){ return s.id === ids[i-1]; });
-        cur.diagramX = prev.diagramX + mVec.x * g;
-        cur.diagramY = prev.diagramY + mVec.y * g;
-      }
-      return;
-    }
-
-    // 有锚点：从每个锚点向两端延伸，交替使用主方向和八方向
-    anchors.sort(function(a,b){ return a - b; });
-
-    // 对每两个锚点之间的段，使用锚点间插值
-    for (var seg = 0; seg <= anchors.length; seg++) {
-      var leftIdx  = seg === 0 ? -1 : anchors[seg - 1];
-      var rightIdx = seg < anchors.length ? anchors[seg] : ids.length;
-
-      // 左侧延伸（如果 leftIdx 是第一个锚点或没有）
-      if (seg === 0 && leftIdx === -1) {
-        // 从 anchors[0] 向左
-        var anchorS = sts.find(function(x){ return x.id === ids[anchors[0]]; });
-        for (var j = anchors[0] - 1; j >= 0; j--) {
-          var cur = sts.find(function(x){ return x.id === ids[j]; });
-          if (!cur || cur.diagramX != null) continue;
-          var nxt = sts.find(function(x){ return x.id === ids[j + 1]; });
-          if (!nxt) continue;
-          var g = getGap(ids[j], ids[j + 1]);
-          var v = j + 1 === anchors[0] ? v8(ids[j], ids[j+1]) : mVec;
-          cur.diagramX = nxt.diagramX - v.x * g;
-          cur.diagramY = nxt.diagramY - v.y * g;
-        }
-      }
-
-      // 右侧延伸
-      if (seg === anchors.length && rightIdx === ids.length) {
-        var anchorS = sts.find(function(x){ return x.id === ids[anchors[anchors.length - 1]]; });
-        for (var j = anchors[anchors.length - 1] + 1; j < ids.length; j++) {
-          var cur = sts.find(function(x){ return x.id === ids[j]; });
-          if (!cur || cur.diagramX != null) continue;
-          var prev = sts.find(function(x){ return x.id === ids[j - 1]; });
-          if (!prev) continue;
-          var g = getGap(ids[j - 1], ids[j]);
-          var v = j - 1 === anchors[anchors.length - 1] ? v8(ids[j-1], ids[j]) : mVec;
-          cur.diagramX = prev.diagramX + v.x * g;
-          cur.diagramY = prev.diagramY + v.y * g;
-        }
-      }
-
-      // 两锚点之间的中间站：线性插值
-      if (leftIdx >= 0 && rightIdx < ids.length && rightIdx - leftIdx > 1) {
-        var sL = sts.find(function(x){ return x.id === ids[leftIdx]; });
-        var sR = sts.find(function(x){ return x.id === ids[rightIdx]; });
-        if (sL && sR && sL.diagramX != null && sR.diagramX != null) {
-          var dx = sR.diagramX - sL.diagramX;
-          var dy = sR.diagramY - sL.diagramY;
-          var nStations = rightIdx - leftIdx;
-          for (var k = 1; k < nStations; k++) {
-            var cur = sts.find(function(x){ return x.id === ids[leftIdx + k]; });
-            if (!cur || cur.diagramX != null) continue;
-            var t = k / nStations;
-            cur.diagramX = sL.diagramX + dx * t;
-            cur.diagramY = sL.diagramY + dy * t;
-          }
-        }
-      }
-    }
-  });
-
-  // 4. 执行优化器
-  optimizeDiagramLayout(150);
-
-  // 5. 居中
-  var xs = [], ys = [];
-  sts.forEach(function(s){ if (s.diagramX != null){ xs.push(s.diagramX); ys.push(s.diagramY); } });
-  if (!xs.length) return false;
-  var cx = (Math.min.apply(null,xs) + Math.max.apply(null,xs)) / 2;
-  var cy = (Math.min.apply(null,ys) + Math.max.apply(null,ys)) / 2;
-  sts.forEach(function(s){ if (s.diagramX != null){ s.diagramX -= cx; s.diagramY -= cy; } });
-  return true;
-}
-
-// ── 步骤2: 分区感知惩罚优化器 ──
-function optimizeDiagramLayout(iter) {
-  iter = iter || 80;
-  var sts = state.stations, lns = state.lines;
-  var stnLn = {}; sts.forEach(function(s){ stnLn[s.id] = []; });
-  lns.forEach(function(l){ l.stationIds.forEach(function(sid){ if (stnLn[sid]) stnLn[sid].push(l.id); }); });
-
-  // 预计算线段
-  var segs = [];
-  lns.forEach(function(line){
-    for (var i = 0; i < line.stationIds.length - 1; i++) {
-      segs.push({ lId: line.id, a: line.stationIds[i], b: line.stationIds[i+1] });
-    }
-  });
-
-  // 缓存各站的 gap
-  var stationGaps = {};
-  sts.forEach(function(s){ stationGaps[s.id] = gapForStation(s); });
-
-  for (var it = 0; it < iter; it++) {
-    var forces = {};
-    sts.forEach(function(s){ if (s.diagramX != null && !s.isTransfer) forces[s.id] = { fx:0, fy:0 }; });
-
-    // Overlap 惩罚（分区感知）
-    for (var i = 0; i < sts.length; i++) {
-      var a = sts[i]; if (a.diagramX == null) continue;
-      for (var j = i + 1; j < sts.length; j++) {
-        var b = sts[j]; if (b.diagramX == null) continue;
-        var dx = b.diagramX - a.diagramX, dy = b.diagramY - a.diagramY;
-        var dist = Math.sqrt(dx*dx + dy*dy) || 0.1;
-        var avgGap = (stationGaps[a.id] + stationGaps[b.id]) / 2;
-        var minD = (a.isTransfer || b.isTransfer) ? avgGap * 0.7 : avgGap * 0.45;
-        if (dist < minD) {
-          var push = (minD - dist) * 0.2;
-          var ux = dx/dist, uy = dy/dist;
-          if (!a.isTransfer && forces[a.id]) { forces[a.id].fx -= ux * push; forces[a.id].fy -= uy * push; }
-          if (!b.isTransfer && forces[b.id]) { forces[b.id].fx += ux * push; forces[b.id].fy += uy * push; }
-        }
-      }
-    }
-
-    // Bend 惩罚 + 方向一致性
-    lns.forEach(function(line) {
-      for (var k = 1; k < line.stationIds.length - 1; k++) {
-        var p0 = sts.find(function(s){ return s.id === line.stationIds[k-1]; });
-        var p1 = sts.find(function(s){ return s.id === line.stationIds[k]; });
-        var p2 = sts.find(function(s){ return s.id === line.stationIds[k+1]; });
-        if (!p0 || !p1 || !p2 || p0.diagramX == null || p1.diagramX == null || p2.diagramX == null) continue;
-        if (p1.isTransfer) continue;
-        var v1 = { x: p1.diagramX - p0.diagramX, y: p1.diagramY - p0.diagramY };
-        var v2 = { x: p2.diagramX - p1.diagramX, y: p2.diagramY - p1.diagramY };
-        var l1 = Math.sqrt(v1.x*v1.x + v1.y*v1.y) || 1;
-        var l2 = Math.sqrt(v2.x*v2.x + v2.y*v2.y) || 1;
-        var dot = (v1.x*v2.x + v1.y*v2.y) / (l1*l2);
-        if (dot < 0.9 && forces[p1.id]) {
-          var mx = (p0.diagramX + p2.diagramX) / 2 - p1.diagramX;
-          var my = (p0.diagramY + p2.diagramY) / 2 - p1.diagramY;
-          var factor = 0.12 + (1 - dot) * 0.08; // 弯折越厉害拉力越大
-          forces[p1.id].fx += mx * factor;
-          forces[p1.id].fy += my * factor;
-        }
-      }
-    });
-
-    // 交叉惩罚
-    for (var si = 0; si < segs.length; si++) {
-      for (var sj = si + 1; sj < segs.length; sj++) {
-        if (segs[si].lId === segs[sj].lId) continue;
-        var s1a = sts.find(function(s){ return s.id === segs[si].a; });
-        var s1b = sts.find(function(s){ return s.id === segs[si].b; });
-        var s2a = sts.find(function(s){ return s.id === segs[sj].a; });
-        var s2b = sts.find(function(s){ return s.id === segs[sj].b; });
-        if (!s1a || !s1b || !s2a || !s2b) continue;
-        if (s1a.diagramX == null || s1b.diagramX == null || s2a.diagramX == null || s2b.diagramX == null) continue;
-
-        // 真正的线段交叉检测
-        var x1 = s1a.diagramX, y1 = s1a.diagramY, x2 = s1b.diagramX, y2 = s1b.diagramY;
-        var x3 = s2a.diagramX, y3 = s2a.diagramY, x4 = s2b.diagramX, y4 = s2b.diagramY;
-        var d = (x2-x1)*(y4-y3) - (y2-y1)*(x4-x3);
-        if (d === 0) continue;
-        var t = ((x3-x1)*(y4-y3) - (y3-y1)*(x4-x3)) / d;
-        var u = ((x3-x1)*(y2-y1) - (y3-y1)*(x2-x1)) / d;
-        if (t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99) {
-          // 在交叉点处施加推开力
-          var crossX = x1 + t*(x2-x1);
-          var crossY = y1 + t*(y2-y1);
-          var pushStr = 3;
-          forEachWithCheck([s1a, s1b, s2a, s2b], function(s) {
-            if (!s.isTransfer && forces[s.id]) {
-              var dx = s.diagramX - crossX, dy = s.diagramY - crossY;
-              var d2 = Math.sqrt(dx*dx + dy*dy) || 1;
-              forces[s.id].fx += (dx/d2) * pushStr;
-              forces[s.id].fy += (dy/d2) * pushStr;
-            }
-          });
-        }
-      }
-    }
-
-    // 应用力
-    for (var sid in forces) {
-      var s = sts.find(function(x){ return x.id === sid; });
-      if (s) {
-        // 阻尼
-        var damp = 0.6;
-        s.diagramX += forces[sid].fx * damp;
-        s.diagramY += forces[sid].fy * damp;
-      }
-    }
-  }
-
-  // 吸附到半格（分区感知）
-  sts.forEach(function(s) {
-    if (!s.isTransfer && s.diagramX != null) {
-      var half = stationGaps[s.id] / 2;
-      s.diagramX = Math.round(s.diagramX / half) * half;
-      s.diagramY = Math.round(s.diagramY / half) * half;
-    }
-  });
-}
-
-function forEachWithCheck(arr, fn) {
-  for (var i = 0; i < arr.length; i++) { fn(arr[i], i); }
-}
-
-// ── 步骤3: 增强标签系统 ──
-function computeLabelPositions() {
-  var sts = state.stations, lns = state.lines;
-  if (!sts.length) return;
-
-  var stnLn = {}; sts.forEach(function(s){ stnLn[s.id] = []; });
-  lns.forEach(function(l){ l.stationIds.forEach(function(sid){ if (stnLn[sid]) stnLn[sid].push(l.id); }); });
-
-  // 8个候选方向（偏移量根据站距动态调整）
-  var dirs = [
-    { dx: 0, dy: -1, label: 'up' },
-    { dx: 0.71, dy: -0.71, label: 'up-right' },
-    { dx: 1, dy: 0, label: 'right' },
-    { dx: 0.71, dy: 0.71, label: 'down-right' },
-    { dx: 0, dy: 1, label: 'down' },
-    { dx: -0.71, dy: 0.71, label: 'down-left' },
-    { dx: -1, dy: 0, label: 'left' },
-    { dx: -0.71, dy: -0.71, label: 'up-left' },
-  ];
-
-  var placedLabels = [];
-
-  sts.forEach(function(s) {
-    if (s.diagramX == null) return;
-    var baseSize = s.isTransfer ? 11 : 9;
-    var fontSize = s.name.length > 4 ? baseSize - 1 : baseSize;
-    var tw = s.name.length * (fontSize * 0.7);
-    var gap = gapForStation(s);
-    // 候选偏移距离：根据站距调整
-    var offsetDist = Math.max(14, gap * 0.28);
-
-    var bestPos = null;
-    var bestScore = -999999;
-
-    dirs.forEach(function(d) {
-      var lx = s.diagramX + d.dx * offsetDist;
-      var ly = s.diagramY + d.dy * offsetDist;
-
-      var score = 0;
-
-      // 1. 距离车站
-      score += 5;
-
-      // 2. 避开其他标签（带边距）
-      var labelOverlap = false;
-      for (var pi = 0; pi < placedLabels.length; pi++) {
-        var p = placedLabels[pi];
-        var mg = 6;
-        if (Math.abs(lx - p.lx) < (tw + p.tw) / 2 + mg &&
-            Math.abs(ly - p.ly) < fontSize + mg) {
-          labelOverlap = true;
-          score -= 40;
-          break;
-        }
-      }
-
-      // 3. 避开线路
-      var onLine = false;
-      for (var li = 0; li < lns.length && !onLine; li++) {
-        var ids = lns[li].stationIds;
-        for (var ni = 0; ni < ids.length - 1; ni++) {
-          var a = sts.find(function(x){ return x.id === ids[ni]; });
-          var b = sts.find(function(x){ return x.id === ids[ni+1]; });
-          if (!a || !b || a.diagramX == null || b.diagramX == null) continue;
-          var ddx = b.diagramX - a.diagramX, ddy = b.diagramY - a.diagramY;
-          var len2 = ddx*ddx + ddy*ddy;
-          if (len2 === 0) continue;
-          var t = Math.max(0, Math.min(1, ((lx - a.diagramX)*ddx + (ly - a.diagramY)*ddy) / len2));
-          var px = a.diagramX + t * ddx, py = a.diagramY + t * ddy;
-          var distToLine = Math.sqrt((lx - px)*(lx - px) + (ly - py)*(ly - py));
-          if (distToLine < 8) { onLine = true; score -= 25; break; }
-        }
-      }
-
-      // 4. 避开车站圆点
-      for (var si = 0; si < sts.length; si++) {
-        var other = sts[si];
-        if (other.id === s.id || other.diagramX == null) continue;
-        var ddx = lx - other.diagramX, ddy = ly - other.diagramY;
-        var dist2 = Math.sqrt(ddx*ddx + ddy*ddy);
-        if (dist2 < 12) { score -= 15; break; }
-      }
-
-      // 5. 方向偏好：上/右优先，避免左下
-      if (d.label === 'up' || d.label === 'right') score += 10;
-      if (d.label === 'up-right') score += 6;
-      if (d.label === 'down-left' || d.label === 'left') score -= 3;
-
-      if (score > bestScore) { bestScore = score; bestPos = { lx: lx, ly: ly, tw: tw, fontSize: fontSize }; }
-    });
-
-    if (bestPos) {
-      placedLabels.push({ id: s.id, lx: bestPos.lx, ly: bestPos.ly, tw: bestPos.tw, fontSize: bestPos.fontSize });
-      s._labelPos = bestPos;
-    } else {
-      s._labelPos = { lx: s.diagramX, ly: s.diagramY - offsetDist, tw: tw, fontSize: fontSize };
-    }
-  });
-}
-
-// ── 步骤4: SVG渲染 ──
-var _svgView = { x: 0, y: 0, s: 1 };
-var _svgTarget = { x: 0, y: 0, s: 1 };
-var _svgDragging = false, _svgDragLast = null;
-var _svgDragSt = null;
-
-function fitSvgView(svg) {
-  var xs = [], ys = [];
-  state.stations.forEach(function(s){ if (s.diagramX != null){ xs.push(s.diagramX); ys.push(s.diagramY); } });
-  if (!xs.length) return;
-  var mnX = Math.min.apply(null,xs), mxX = Math.max.apply(null,xs);
-  var mnY = Math.min.apply(null,ys), mxY = Math.max.apply(null,ys);
-  var w = svg.clientWidth, h = svg.clientHeight;
-  var sc = Math.min((w - 160) / Math.max(mxX - mnX, 1), (h - 160) / Math.max(mxY - mnY, 1)) * 0.85;
-  var cx = (mnX + mxX) / 2, cy = (mnY + mxY) / 2;
-  _svgTarget.s = Math.min(sc, 2);
-  _svgTarget.x = w / 2 - cx * _svgTarget.s;
-  _svgTarget.y = h / 2 - cy * _svgTarget.s;
-}
-
-function renderMetroMap() {
-  var overlay = document.getElementById('metro-map-overlay');
-  if (overlay.classList.contains('hidden')) return;
-
-  var svg = document.getElementById('metro-svg');
-  var g = document.getElementById('metro-svg-canvas');
-  var lns = state.lines, sts = state.stations;
-  if (!lns.length || !sts.length) return;
-
-  // 布局 + 标签
-  var needsLayout = sts.some(function(s){ return s.diagramX == null; });
-  var verKey = lns.length + '_' + sts.length + '_' + lns.reduce(function(a,l){ return a + l.stationIds.length; }, 0);
-  if (needsLayout) {
-    // 先尝试恢复手动保存的位置
-    var restored = restoreDiagramPositions();
-    if (restored) {
-      var stillMissing = sts.some(function(s){ return s.diagramX == null; });
-      if (!stillMissing) {
-        // 手动布局已完整恢复，跳过自动布局
-        computeLabelPositions();
-        // 直接进入渲染（跳过下面的布局逻辑）
-        needsLayout = false;
-      }
-    }
-    if (needsLayout) {
-      layoutMetroDiagram(!window._layoutVer || window._layoutVer !== verKey);
-    }
-  }
-  window._layoutVer = verKey;
-  computeLabelPositions();
-
-  // 换乘映射
-  var stnLn = {}; sts.forEach(function(s){ stnLn[s.id] = []; });
-  lns.forEach(function(l){ l.stationIds.forEach(function(sid){ if (stnLn[sid]) stnLn[sid].push(l.id); }); });
-
-  g.innerHTML = '';
-  var stnMap = {}; sts.forEach(function(s){ stnMap[s.id] = s; });
-
-  // ── 画线路 ──
-  lns.forEach(function(line) {
-    var pts = [];
-    line.stationIds.forEach(function(sid) {
-      var s = stnMap[sid];
-      if (s && s.diagramX != null) pts.push({ x: s.diagramX, y: s.diagramY, sid: sid });
-    });
-    if (pts.length < 2) return;
-
-    // 平行偏移（换乘站处按线路序偏移）
-    var offPts = pts.map(function(p, i) {
-      var here = stnLn[p.sid] || [];
-      if (here.length < 2) return p;
-      var li = here.indexOf(line.id);
-      var off = (li - (here.length - 1) / 2) * DIAGRAM_OFFSET;
-      var dx = 0, dy = 0;
-      var idx = line.stationIds.indexOf(p.sid);
-      if (idx > 0) { var pp = stnMap[line.stationIds[idx-1]]; if (pp) { dx += p.x - pp.diagramX; dy += p.y - pp.diagramY; } }
-      if (idx < line.stationIds.length - 1) { var np = stnMap[line.stationIds[idx+1]]; if (np) { dx += np.diagramX - p.x; dy += np.diagramY - p.y; } }
-      var len = Math.sqrt(dx*dx + dy*dy) || 1;
-      return { x: p.x + (-dy/len)*off, y: p.y + (dx/len)*off };
-    });
-
-    var d = 'M ' + offPts[0].x + ' ' + offPts[0].y;
-    for (var i = 1; i < offPts.length; i++) d += ' L ' + offPts[i].x + ' ' + offPts[i].y;
-
-    // 弱光底层
-    var bg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    bg.setAttribute('d', d);
-    bg.setAttribute('stroke', line.color);
-    bg.setAttribute('stroke-width', '8');
-    bg.setAttribute('class', 'metro-line');
-    bg.setAttribute('opacity', '0.1');
-    g.appendChild(bg);
-
-    // 主线
-    var main = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    main.setAttribute('d', d);
-    main.setAttribute('stroke', line.color);
-    main.setAttribute('stroke-width', '3');
-    main.setAttribute('class', 'metro-line');
-    g.appendChild(main);
-
-    // 线路标签（两端）
-    [offPts[0], offPts[offPts.length-1]].forEach(function(p) {
-      var tag = createLineTag(p.x, p.y, line.name, line.color, pts);
-      g.appendChild(tag);
-    });
-  });
-
-  // ── 画车站 ──
-  sts.forEach(function(s) {
-    if (s.diagramX == null) return;
-    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.setAttribute('cx', s.diagramX);
-    c.setAttribute('cy', s.diagramY);
-    if (s.isTransfer) {
-      c.setAttribute('r', '5');
-      c.setAttribute('fill', '#fff');
-      c.setAttribute('stroke', stnLn[s.id] && lns.find(function(l){return l.id===stnLn[s.id][0];}) ? lns.find(function(l){return l.id===stnLn[s.id][0];}).color : '#999');
-      c.setAttribute('stroke-width', '2.5');
-    } else {
-      var col = stnLn[s.id] && lns.find(function(l){return l.id===stnLn[s.id][0];}) ? lns.find(function(l){return l.id===stnLn[s.id][0];}).color : '#999';
-      c.setAttribute('r', '2.5');
-      c.setAttribute('fill', col);
-      c.setAttribute('stroke', 'none');
-    }
-    c.style.cursor = 'pointer';
-    c.dataset.sid = s.id;
-    g.appendChild(c);
-  });
-
-  // ── 画站名（使用计算好的位置） ──
-  sts.forEach(function(s) {
-    if (s.diagramX == null || !s._labelPos) return;
-    var lp = s._labelPos;
-    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    t.setAttribute('x', lp.lx);
-    t.setAttribute('y', lp.ly);
-    t.setAttribute('font-size', lp.fontSize + 'px');
-    t.setAttribute('class', 'metro-label');
-    t.textContent = s.name;
-    t.style.cursor = 'pointer';
-    t.dataset.sid = s.id;
-    g.appendChild(t);
-  });
-
-  // ── 图例 ──
-  var legend = document.getElementById('metro-map-legend');
-  var gnames = {};
-  lns.forEach(function(l){ var g = getLineGroupName(l.name); if (!gnames[g]) gnames[g] = []; gnames[g].push(l); });
-  var gkeys = Object.keys(gnames);
-  legend.innerHTML = gkeys.map(function(g){
-    var ls = gnames[g], colors = [...new Set(ls.map(function(l){ return l.color; }))];
-    return '<div class="metro-legend-item"><span class="metro-legend-dot" style="background:'+colors[0]+'"></span><span style="color:#333;font-size:10px;">'+(ls.length>1?g+'('+ls.length+')':g)+'</span></div>';
-  }).join('');
-
-  // ── 状态 ──
-  document.getElementById('mm-line-count').textContent = gkeys.length;
-  document.getElementById('mm-station-count').textContent = sts.length;
-  document.getElementById('mm-transfer-count').textContent = sts.filter(function(s){ return s.isTransfer; }).length;
-  var tl = 0;
-  lns.forEach(function(l){ tl += state.lineLengthCache[l.id] || 0; });
-  document.getElementById('mm-total-length').textContent = tl.toFixed(1);
-  var hr = state.simulationHour;
-  document.getElementById('metro-map-time').textContent = formatTime(hr);
-
-  if (!window._svgInited) { fitSvgView(svg); _svgView.x = _svgTarget.x; _svgView.y = _svgTarget.y; _svgView.s = _svgTarget.s; window._svgInited = true; }
-}
-
-function createLineTag(x, y, name, color, allPts) {
-  var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  var tx = 0, ty = -18;
-  if (allPts.length >= 2) {
-    var ref = (y === allPts[0].y && x === allPts[0].x) ? allPts[1] : allPts[allPts.length-2];
-    if (ref) { var a = Math.atan2(y - ref.y, x - ref.x); tx = Math.sin(a) * 18; ty = -Math.cos(a) * 18; }
-  }
-  var lx = x + tx, ly = y + ty;
-  var rw = name.length * 7 + 10, rh = 18, rx = lx - rw/2, ry = ly - rh/2;
-  var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  rect.setAttribute('x', rx); rect.setAttribute('y', ry); rect.setAttribute('rx', '5');
-  rect.setAttribute('width', rw); rect.setAttribute('height', rh); rect.setAttribute('fill', color);
-  g.appendChild(rect);
-  var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  text.setAttribute('x', lx); text.setAttribute('y', ly + 5); text.setAttribute('text-anchor', 'middle');
-  text.setAttribute('class', 'metro-line-tag'); text.textContent = name;
-  g.appendChild(text);
-  return g;
-}
-
-// ═══ SVG 丝滑缩放动画 ═══
-function animateSvgView() {
-  var svg = document.getElementById('metro-svg'), g = document.getElementById('metro-svg-canvas');
-  if (!svg || !g) { requestAnimationFrame(animateSvgView); return; }
-  _svgView.x += (_svgTarget.x - _svgView.x) * 0.18;
-  _svgView.y += (_svgTarget.y - _svgView.y) * 0.18;
-  _svgView.s += (_svgTarget.s - _svgView.s) * 0.18;
-  g.setAttribute('transform', 'translate(' + _svgView.x + ',' + _svgView.y + ') scale(' + _svgView.s + ')');
-  requestAnimationFrame(animateSvgView);
-}
-animateSvgView();
-
-// ═══ 缩放拖拽事件 ═══
-(function initSvgEvents() {
-  var svg = document.getElementById('metro-svg');
-  if (!svg) return;
-
-  svg.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    var rect = svg.getBoundingClientRect();
-    var mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    var f = e.deltaY < 0 ? 1.12 : 0.88;
-    var ns = Math.max(0.25, Math.min(6, _svgTarget.s * f));
-    var wx = (mx - _svgTarget.x) / _svgTarget.s, wy = (my - _svgTarget.y) / _svgTarget.s;
-    _svgTarget.s = ns; _svgTarget.x = mx - wx * ns; _svgTarget.y = my - wy * ns;
-  }, { passive: false });
-
-  svg.addEventListener('mousedown', function(e) {
-    if (e.button !== 0) return;
-    var target = e.target;
-    if (target && (target.tagName === 'circle' || target.tagName === 'text') && target.dataset && target.dataset.sid) {
-      _svgDragSt = state.stations.find(function(s){ return s.id === target.dataset.sid; });
-      if (_svgDragSt) { svg.style.cursor = 'grabbing'; e.preventDefault(); return; }
-    }
-    _svgDragging = true; _svgDragLast = { x: e.clientX, y: e.clientY }; svg.style.cursor = 'grabbing';
-  });
-
-  window.addEventListener('mousemove', function(e) {
-    if (_svgDragSt) {
-      var rect = svg.getBoundingClientRect();
-      var dx = ((e.clientX - rect.left) - _svgTarget.x) / _svgTarget.s;
-      var dy = ((e.clientY - rect.top) - _svgTarget.y) / _svgTarget.s;
-      _svgDragSt.diagramX = dx; _svgDragSt.diagramY = dy; e.preventDefault(); return;
-    }
-    if (!_svgDragging || !_svgDragLast) return;
-    _svgTarget.x += e.clientX - _svgDragLast.x; _svgTarget.y += e.clientY - _svgDragLast.y;
-    _svgDragLast = { x: e.clientX, y: e.clientY };
-  });
-
-  window.addEventListener('mouseup', function() {
-    if (_svgDragSt) { _svgDragSt = null; svg.style.cursor = 'grab'; saveState(); return; }
-    _svgDragging = false; _svgDragLast = null;
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'r' || e.key === 'R') {
-      var overlay = document.getElementById('metro-map-overlay');
-      if (overlay.classList.contains('hidden')) return;
-      if (e.shiftKey) {
-        // Shift+R: 清除保存的布局并重新布局
-        clearDiagramPositions();
-        state.stations.forEach(function(s){ s.diagramX = null; s.diagramY = null; });
-        delete window._layoutVer;
-        window._svgInited = false;
-        renderMetroMap();
-        return;
-      }
-      fitSvgView(svg);
-    }
-  });
-})();
-
-// ═══ 导出 SVG ═══
-function exportMetroSVG() {
-  var svg = document.getElementById('metro-svg');
-  fitSvgView(svg);
-  _svgView.x = _svgTarget.x; _svgView.y = _svgTarget.y; _svgView.s = _svgTarget.s;
-  document.getElementById('metro-svg-canvas').setAttribute('transform', 'translate(' + _svgView.x + ',' + _svgView.y + ') scale(' + _svgView.s + ')');
-  setTimeout(function() {
-    var blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' });
-    var url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = 'cityrail-metro-diagram.svg'; a.click(); URL.revokeObjectURL(url);
-  }, 100);
-}
-// ═══ 保存/恢复 diagram 位置（人工微调持久化）════
-function saveDiagramPositions() {
-  var sts = state.stations;
-  var pos = {};
-  sts.forEach(function(s){ if (s.diagramX != null) pos[s.id] = { x: s.diagramX, y: s.diagramY }; });
-  try { localStorage.setItem('cityrail_diagram_pos', JSON.stringify(pos)); } catch(e) {}
-  // 反馈提示
-  var btn = document.querySelector('[onclick="saveDiagramPositions()"]');
-  if (btn) { btn.textContent = '✓ 已保存'; var t = btn.textContent; setTimeout(function(){ btn.textContent = '保存布局'; }, 2000); }
-}
-
-function restoreDiagramPositions() {
-  try {
-    var raw = localStorage.getItem('cityrail_diagram_pos');
-    if (!raw) return false;
-    var pos = JSON.parse(raw);
-    var sts = state.stations;
-    var count = 0;
-    sts.forEach(function(s){ if (pos[s.id]) { s.diagramX = pos[s.id].x; s.diagramY = pos[s.id].y; count++; } });
-    return count > 0;
-  } catch(e) { return false; }
-}
-
-function clearDiagramPositions() {
-  localStorage.removeItem('cityrail_diagram_pos');
-}
-
-function qs(id) { return document.getElementById(id.replace(/^#/, '')); }
-
-function getLineGroupName(name) {
-  // Group main line and its branch(es) as one line
-  // e.g. "5号线(支线)" → "5号线", "10号线(支线)" → "10号线"
-  const m = name.match(/^(.+?)\(.+\)$/);
-  return m ? m[1] : name;
 }
 
 // ==================== UI UPDATE ====================
@@ -25657,8 +24776,6 @@ function cityrailSaveSnapshot() {
     playerLineConfigs: state.playerLineConfigs || {},
     colorIdx: state.colorIdx,
     virtualTransfers: state.virtualTransfers,
-    // 同时保存 diagram 位置（确保微调效果持久化）
-    diagramPos: state.stations.reduce(function(acc, s){ if (s.diagramX != null){ acc[s.id] = { x: s.diagramX, y: s.diagramY }; } return acc; }, {}),
   }, cityrailCoordStorageMeta()), state);
 }
 function cityrailValidSavePayload(data) {
@@ -26030,8 +25147,6 @@ function saveState() {
     try {
 	    const data = cityrailSaveSnapshot();
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      // 也单独保存到 diagram pos key
-      if (state.stations.some(function(s){ return s.diagramX != null; })) saveDiagramPositions();
     } catch (e) {
       console.warn('保存失败:', e);
     }
@@ -26075,13 +25190,6 @@ function loadSaveAndRender() {
     state.transferConfig = cityrailPlainSaveObject(data.transferConfig);
     state.__cityrailTransferPolicyVersion = cityrailTransferPolicyVersionOf(data);
     try { cityrailNormalizeVirtualTransferDefaults(state, 'loadSaveAndRender'); } catch(e) {}
-
-    // Restore saved diagram positions if available in save data
-    if (data.diagramPos) {
-      try {
-        localStorage.setItem('cityrail_diagram_pos', JSON.stringify(data.diagramPos));
-      } catch(e) {}
-    }
 
     // Backward compatibility: migrate old formation → new trainType/cars/speed
     state.lines.forEach(l => {
@@ -26393,7 +25501,7 @@ cityrailSyncSpeedLabel(state.simSpeed || (document.getElementById('speed-slider'
     'register-screen','login-screen','city-select-screen','payment-screen','payment-success-screen'
   ];
   const overlayIds = [
-    'settings-overlay','vt-overlay','line-stats-overlay','line-config-overlay',
+    'settings-overlay','vt-overlay','line-config-overlay',
     'station-detail-overlay','ctrl-center-overlay','new-line-dialog-overlay','nav-overlay'
   ];
   const appRootIds = ['app-logo','city-badge','topbar','bottombar','map'];
@@ -26490,17 +25598,6 @@ document.addEventListener('keydown', (e) => {
           return;
         }
       }
-      if (state.showLineStats) {
-        state.showLineStats = false;
-        document.getElementById('line-stats-overlay').classList.add('hidden');
-        document.getElementById('btn-line-stats').classList.remove('active');
-      }
-      const mmOverlay = document.getElementById('metro-map-overlay');
-      if (mmOverlay && !mmOverlay.classList.contains('hidden')) {
-        toggleMetroMap();
-        e.preventDefault();
-        return;
-      }
       const ccOverlay = document.getElementById('ctrl-center-overlay');
       if (ccOverlay && !ccOverlay.classList.contains('hidden')) {
         toggleCtrlCenter();
@@ -26518,21 +25615,6 @@ document.addEventListener('keydown', (e) => {
     default: return;
   }
   updateUI();
-});
-
-// Line stats panel
-document.getElementById('btn-line-stats').addEventListener('click', toggleLineStats);
-document.getElementById('line-stats-close').addEventListener('click', () => {
-  state.showLineStats = false;
-  document.getElementById('line-stats-overlay').classList.add('hidden');
-  document.getElementById('btn-line-stats').classList.remove('active');
-});
-document.getElementById('line-stats-overlay').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) {
-    state.showLineStats = false;
-    document.getElementById('line-stats-overlay').classList.add('hidden');
-    document.getElementById('btn-line-stats').classList.remove('active');
-  }
 });
 
 // ==================== STATION DETAIL ====================
@@ -27570,7 +26652,6 @@ document.getElementById('cfg-name-save').addEventListener('click', () => {
   }
   saveState();
   updateUI();
-  if (state.showLineStats) renderLineStats();
 });
 document.getElementById('cfg-name-cancel').addEventListener('click', () => {
   document.getElementById('cfg-name-editor').classList.add('hidden');
@@ -27625,10 +26706,6 @@ map.on('click', (e) => {
 // ═══ 控制中心按钮 ═══
 document.getElementById('btn-ctrl-center')?.addEventListener('click', toggleCtrlCenter);
 document.getElementById('ctrl-close-btn')?.addEventListener('click', toggleCtrlCenter);
-// ═══ 线网图按钮 ═══
-document.getElementById('btn-metro-map')?.addEventListener('click', toggleMetroMap);
-document.getElementById('metro-map-close')?.addEventListener('click', toggleMetroMap);
-
 // ===== SETTINGS OVERLAY =====
 const btnSettings = document.getElementById('btn-settings');
 const settingsOverlay = document.getElementById('settings-overlay');
@@ -29672,11 +28749,11 @@ document.getElementById('nav-btn-clear').addEventListener('click', () => {
     D.documentElement.classList.toggle('cityrail-nav-panel-open',!!on);
   }
   function closePeerOverlays(){
-    ['settings-overlay','ctrl-center-overlay','new-line-dialog-overlay','line-stats-overlay','vt-overlay'].forEach(id=>{
+    ['settings-overlay','ctrl-center-overlay','new-line-dialog-overlay','vt-overlay'].forEach(id=>{
       const el=byId(id);
       if(el) el.classList.add('hidden');
     });
-    ['btn-settings','btn-ctrl-center','btn-new-line','btn-line-stats'].forEach(id=>{
+    ['btn-settings','btn-ctrl-center','btn-new-line'].forEach(id=>{
       const btn=byId(id);
       if(btn) btn.classList.remove('active');
     });
@@ -30692,7 +29769,6 @@ updateSettingsUI();
 
 // 线网图窗口自适应
 window.addEventListener('resize', () => {
-  if (window._metroMapRendered) renderMetroMap();
 });
 
 ;
@@ -35301,7 +34377,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     var st = window.state;
     if(!st) return;
     var t = normalizeHour(st.simulationHour);
-    var ids = ['time-label','cct-time','metro-map-time'];
+    var ids = ['time-label','cct-time'];
     for(var i=0;i<ids.length;i++){
       var el = document.getElementById(ids[i]);
       if(el) el.textContent = t;
@@ -37648,7 +36724,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if($('cityrail-v80-style')) return;
     const style=document.createElement('style'); style.id='cityrail-v80-style';
     style.textContent=`
-      #btn-line-stats,#line-stats-overlay{display:none!important;visibility:hidden!important;pointer-events:none!important;}
       #cct-line-stats-body,#cct-line-stats-body *{transition:none!important;animation:none!important;}
       #cct-line-stats-body td,#cct-line-stats-body th{font-variant-numeric:tabular-nums;white-space:nowrap;}
       #cct-line-stats-body .cc-express-open{min-width:72px;text-align:center;}
@@ -37826,7 +36901,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 
   function boot(){
     installCss();
-    try{ const b=$('btn-line-stats'); if(b) b.remove(); const o=$('line-stats-overlay'); if(o) o.remove(); }catch(e){}
     installMapsAndZoom();
     installControlCenter();
     installSettingsLayout();
@@ -38001,7 +37075,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 	    };
 	    if(typeof window.cityrailBuildSaveCoordMeta==='function') Object.assign(saved,window.cityrailBuildSaveCoordMeta());
 	    else saved.coordSpace='wgs84';
-	    saved.diagramPos=(saved.stations||[]).reduce((acc,s)=>{ if(s&&s.diagramX!=null) acc[s.id]={x:s.diagramX,y:s.diagramY}; return acc; },{});
 	    return sanitize(cityrailCompleteOperationalAssetSave({schema:'cityrail-save',version:81,createdAt:new Date().toISOString(),state:saved,config:{CITYRAIL_OPERATION_CONFIG:window.CITYRAIL_OPERATION_CONFIG||null,SH_REALISM_CONFIG:window.SH_REALISM_CONFIG||null}}, st));
 	  }
   function extractState(obj){
@@ -38053,7 +37126,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     window.state=st;
     try{ if(window.CityRail&&CityRail.state&&CityRail.state.bind) CityRail.state.bind(st); }catch(e){}
     if(obj&&obj.config&&obj.config.CITYRAIL_OPERATION_CONFIG) window.CITYRAIL_OPERATION_CONFIG=obj.config.CITYRAIL_OPERATION_CONFIG;
-    try{ if(next.diagramPos) localStorage.setItem('cityrail_diagram_pos',JSON.stringify(next.diagramPos)); }catch(e){}
     try{ if(window.CityRailPassengerDemandService&&typeof CityRailPassengerDemandService.prepare==='function') CityRailPassengerDemandService.prepare('applySnapshot'); }catch(e){ console.warn(PREFIX,'客流运行时恢复失败',e); }
     rebuildAfterLoad();
     try{ window.dispatchEvent(new CustomEvent('cityrail-save-loaded',{detail:{snapshot:obj,state:st}})); }catch(e){}
@@ -40971,7 +40043,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     delete t._overtakeBehindEtaV29;
   }
   function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){delete t._dispatchTurnbackNext; delete t._dispatchTurnbackPlan; clearDispatchRuntimeHolds(t); t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(['holding_short','dwelling','dispatch_turning_back'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='turnback'){t._dispatchTurnbackNext=true;t._dispatchCommand='turnback';delete t._dispatchHold;delete t._dispatchSkipNext;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.speed=0;t.dwellRemaining=Math.min(Math.max(num(t.dwellRemaining,6),6),12);}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dispatch_turning_back'){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); markAtsDirty('dispatch-command'); renderAts(true); noteAtsRendered(); return true; }
-  function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','#line-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
+  function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
   function stopOld(){ ['__cityrailAtsTimer','__cityrailV116AtsTimer','__cityrailV121AtsTimer','__cityrailV124AtsTimer','__cityrailV130Timer','__cityrailV131Timer','__cityrailV132Timer','__cityrailV133Timer','__cityrailV134Observer','__cityrailV102ControlTimer','__cityrailV101ControlTimer','__cityrailV100ControlTimer','__cityrailV99ControlTimer'].forEach(k=>{try{if(W[k]){clearInterval(W[k]);clearTimeout(W[k]);if(W[k].disconnect)W[k].disconnect();W[k]=null;}}catch(e){}}); }
 
   function syncExpressRuntime(){
@@ -41603,7 +40675,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     try{ W[name]=globalThis[name]=wrapped; }catch(e){ W[name]=wrapped; }
   }
   function wrapRenderers(){
-    const names=['refreshStationDetail','renderMetroMap','renderLineOpsPanel','renderStationPanels'];
+    const names=['refreshStationDetail','renderLineOpsPanel','renderStationPanels'];
     if(!W.__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__) names.push('renderCtrlCenter','updateControlCenter','renderControlLineOps','renderLineStats');
     names.forEach(n=>wrapRenderFunction(n));
   }
@@ -44219,7 +43291,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     'refreshCoverageLayer',
     'renderCoverageLayer',
     'renderDemandHeatLayer',
-    'renderMetroMap',
     'cityrailRedrawMapGeometry'
   ]);
   const globalRenderNames=[
@@ -44237,7 +43308,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     'refreshCoverageLayer',
     'renderCoverageLayer',
     'renderDemandHeatLayer',
-    'renderMetroMap',
     'cityrailRedrawMapGeometry'
   ];
   const dataMutatorNames=[

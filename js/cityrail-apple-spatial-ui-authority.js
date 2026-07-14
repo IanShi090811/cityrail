@@ -6,7 +6,6 @@
   const toolbarGlyphs={
     'btn-navigate':'⇄',
     'btn-layer':'▧',
-    'btn-line-stats':'▥',
     'btn-ctrl-center':'⌘',
     'btn-living-city':'∿',
     'btn-line-config':'⌁',
@@ -20,13 +19,11 @@
     'btn-new-line':4,
     'btn-line-config':5,
     'btn-living-city':6,
-    'btn-line-stats':7,
     'btn-settings':8
   };
   const toolbarLabels={
     'btn-navigate':'模拟导航',
     'btn-layer':'切换底图',
-    'btn-line-stats':'线路统计',
     'btn-ctrl-center':'控制中心',
     'btn-living-city':'城市脉动',
     'btn-line-config':'线路配置',
@@ -72,7 +69,6 @@
       ['new-line-dialog','新建'],
       ['nav-panel','模拟导航'],
       ['vt-panel','换乘设置'],
-      ['line-stats-panel','线路统计'],
       ['line-config-panel','线路配置'],
       ['station-detail-panel','站点详情']
     ].forEach(([id,label])=>{

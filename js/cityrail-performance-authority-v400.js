@@ -969,7 +969,6 @@
       '#payment-screen:not(.hidden)',
       '#payment-success-screen:not(.hidden)',
       '#station-stats-overlay:not(.hidden)',
-      '#line-stats-overlay:not(.hidden)',
       '.modal:not(.hidden)'
     ];
     return !!D.querySelector(blockers.join(','));

@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const W=window,D=document,VERSION='v446-vector-basemap-isolation';
+  const W=window,D=document,VERSION='v457-vector-basemap-coordinate-authority';
   if(W.__cityrailMaplibrePmtilesAuthority) return;
   W.__cityrailMaplibrePmtilesAuthority=true;
 
@@ -95,6 +95,39 @@
   function defs(){
     return Object.assign({[VECTOR_KEY]:vectorDef()},rasterDefs());
   }
+  function coordForKey(key){
+    const def=defs()[canonicalKey(key)] || {};
+    return String(def.coord || (def.options && (def.options.cityrailCoord || def.options.coordSystem || def.options.coordinateSystem)) || 'wgs84').toLowerCase();
+  }
+  function dataAnchor(){
+    const adapter=W.CityRailMapCoordinateAdapter;
+    let center=null;
+    try{ center=adapter&&typeof adapter.dataCenter==='function' ? adapter.dataCenter() : (W.map&&W.map.getCenter&&W.map.getCenter()); }catch(e){ center=null; }
+    let zoom=11;
+    try{ zoom=Number(W.map&&W.map.getZoom&&W.map.getZoom())||zoom; }catch(e){}
+    let point=null;
+    try{ if(center&&W.map&&W.map.latLngToContainerPoint) point=W.map.latLngToContainerPoint([center.lat,center.lng]); }catch(e){ point=null; }
+    return {center,zoom,point};
+  }
+  function preserveAnchorPoint(anchor){
+    if(!anchor||!anchor.center||!anchor.point||!W.map||!W.map.latLngToContainerPoint||!W.map.panBy) return false;
+    try{
+      const after=W.map.latLngToContainerPoint([anchor.center.lat,anchor.center.lng]);
+      const dx=after.x-anchor.point.x;
+      const dy=after.y-anchor.point.y;
+      if(Math.abs(dx)>0.01||Math.abs(dy)>0.01) W.map.panBy([dx,dy],{animate:false});
+      return true;
+    }catch(e){ return false; }
+  }
+  function reanchorAfterLayer(key,reason,anchor){
+    const adapter=W.CityRailMapCoordinateAdapter;
+    if(!adapter||typeof adapter.reanchor!=='function'||!anchor||!anchor.center) return false;
+    try{
+      adapter.reanchor(coordForKey(key),'base-layer-'+canonicalKey(key)+'-'+(reason||VERSION),anchor.center,anchor.zoom);
+      preserveAnchorPoint(anchor);
+      return true;
+    }catch(e){ return false; }
+  }
   function installStyle(){
     if(D.getElementById('cityrail-maplibre-pmtiles-style')) return;
     const style=D.createElement('style');
@@ -146,7 +179,8 @@
     const fallback={center:[121.4737,31.2304],zoom:11};
     try{
       if(!W.map||typeof W.map.getCenter!=='function') return fallback;
-      const c=W.map.getCenter();
+      const adapter=W.CityRailMapCoordinateAdapter;
+      const c=adapter&&typeof adapter.dataCenter==='function' ? adapter.dataCenter() : W.map.getCenter();
       return {center:[Number(c.lng)||fallback.center[0],Number(c.lat)||fallback.center[1]],zoom:Number(W.map.getZoom&&W.map.getZoom())||fallback.zoom};
     }catch(e){ return fallback; }
   }
@@ -310,6 +344,7 @@
     try{ if(typeof W.cityrailSyncMapCredit==='function') W.cityrailSyncMapCredit(W.__cityrailPreferredMapLayerKey); }catch(e){}
   }
   function activateVector(reason){
+    const anchor=dataAnchor();
     state.vectorLocked=true;
     W.__cityrailVectorBaseLayerLocked=true;
     W.__cityrailUserSelectedBaseLayer=true;
@@ -319,7 +354,11 @@
     D.documentElement.dataset.cityrailBaseLayerReason=reason||VERSION;
     try{
       if(W.CityRailMapCoordinateAdapter&&typeof W.CityRailMapCoordinateAdapter.setActive==='function'){
-        W.CityRailMapCoordinateAdapter.setActive('wgs84','vector-basemap-'+(reason||VERSION));
+        if(typeof W.CityRailMapCoordinateAdapter.reanchor==='function') {
+          W.CityRailMapCoordinateAdapter.reanchor('wgs84','vector-basemap-'+(reason||VERSION),anchor.center,anchor.zoom);
+          preserveAnchorPoint(anchor);
+        }
+        else W.CityRailMapCoordinateAdapter.setActive('wgs84','vector-basemap-'+(reason||VERSION));
       }else{
         D.documentElement.dataset.cityrailMapCoord='wgs84';
       }
@@ -361,6 +400,7 @@
   function setLayer(key,reason){
     const next=canonicalKey(key);
     if(next===VECTOR_KEY) return activateVector(reason||'set-vector');
+    const anchor=dataAnchor();
     if((state.vectorLocked||W.__cityrailVectorBaseLayerLocked||canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer)===VECTOR_KEY) && automaticReason(reason)){
       state.active=true;
       state.vectorLocked=true;
@@ -374,8 +414,10 @@
     if(state.previousSetter&&state.previousSetter!==W.cityrailSetBaseMapLayer){
       const result=state.previousSetter(next,reason||VERSION);
       syncChoiceState(next);
+      reanchorAfterLayer(next,reason||VERSION,anchor);
       return result;
     }
+    reanchorAfterLayer(next,reason||VERSION,anchor);
     return true;
   }
   function nextLayer(){

@@ -2195,7 +2195,7 @@
       btn.__livingCityBound = true;
       btn.addEventListener('click', e => {
         e.preventDefault();
-        ['settings-overlay','nav-overlay','ctrl-center-overlay','new-line-dialog-overlay','line-stats-overlay'].forEach(id => {
+        ['settings-overlay','nav-overlay','ctrl-center-overlay','new-line-dialog-overlay'].forEach(id => {
           const el = byId(id);
           if (el) el.classList.add('hidden');
 	        });
