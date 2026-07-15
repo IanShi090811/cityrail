@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v482-expanded-china-network';
+  const VERSION = 'v484-real-network-branches';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
@@ -87,7 +87,7 @@
   }
   function apiUrl(bbox){
     const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260715-v482-expanded-china-network';
+    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v484-real-network-branches';
   }
   function setText(id, text){
     const el = byId(id);
@@ -130,14 +130,20 @@
   }
   function routeServiceName(route){
     const fromName = normalizeRouteServiceName(route && route.name);
-    if (fromName) return fromName;
-    const ref = sid(route && route.ref).trim();
-    if (ref) {
-      const numeric = ref.match(/^0*(\d+[A-Za-z]?)$/);
-      if (numeric) return numeric[1].toUpperCase() + '号线';
-      return /线$/u.test(ref) ? ref : ref + '线';
+    let base = fromName;
+    if (!base) {
+      const ref = sid(route && route.ref).trim();
+      if (ref) {
+        const numeric = ref.match(/^0*(\d+[A-Za-z]?)$/);
+        base = numeric ? numeric[1].toUpperCase() + '号线' : (/线$/u.test(ref) ? ref : ref + '线');
+      }
     }
-    return '真实线网线路';
+    if (!base) base = '真实线网线路';
+    if (route && route.variantRole === 'branch') {
+      const suffix = Math.max(1, Math.round(num(route.branchIndex, 1))) > 1 ? '支线' + Math.round(num(route.branchIndex, 1)) : '支线';
+      return /支线\d*$/u.test(base) ? base : base + suffix;
+    }
+    return base;
   }
   function installStyle(){
     if (byId('cityrail-real-network-importer-style')) return;
@@ -291,8 +297,8 @@
       <label class="cr-rni-line" style="--line-color:${esc(route.color || '#0a84ff')}">
         <input type="checkbox" data-rni-route value="${index}" ${index < MAX_IMPORT_ROUTES ? 'checked' : ''}>
         <span class="cr-rni-swatch"></span>
-        <span><span class="cr-rni-name">${esc(routeServiceName(route))}</span><span class="cr-rni-meta">${esc(route.network || route.route || 'OSM')} · ${esc(route.ref || ('#' + route.relationId))}</span></span>
-        <span class="cr-rni-badge">${(route.stations || []).length}站${routeIsLoop(route) ? ' · 环线' : ''}</span>
+        <span><span class="cr-rni-name">${esc(routeServiceName(route))}</span><span class="cr-rni-meta">${esc(route.network || route.route || 'OSM')} · ${esc(route.ref || ('#' + route.relationId))}${route.variantRole === 'branch' && route.branchJunctionName ? ' · 接入 ' + esc(route.branchJunctionName) : ''}</span></span>
+        <span class="cr-rni-badge">${(route.stations || []).length}站${route.variantRole === 'branch' ? ' · 支线' : (route.variantRole === 'section' ? ' · 区段' : '')}${routeIsLoop(route) ? ' · 环线' : ''}</span>
       </label>`).join('');
     list.querySelectorAll('[data-rni-route]').forEach(input => input.addEventListener('change', () => {
       renderKpis();
@@ -462,9 +468,22 @@
       peakHeadwayMin: 2,
       _headwayManual:false,
       pathMode:'ordered',
-      requiresRealDepot:true,
-      sourceImport: { type:'osm-overpass', relationId:route.relationId, ref:route.ref || '', network:route.network || '', originalName:route.name || '', isLoop:routeIsLoop(route), loopReason:route.loopReason || '', importedAt:Date.now(), version:VERSION },
-    };
+	      requiresRealDepot:true,
+	      sourceImport: { type:'osm-overpass', relationId:route.relationId, ref:route.ref || '', network:route.network || '', originalName:route.name || '', variantRole:route.variantRole || 'main', branchBaseKey:route.branchBaseKey || route.key || '', branchIndex:Math.max(0, Math.round(num(route.branchIndex, 0))), branchJunctionName:route.branchJunctionName || '', isLoop:routeIsLoop(route), loopReason:route.loopReason || '', importedAt:Date.now(), version:VERSION },
+	    };
+	    if (route && route.variantRole === 'branch') {
+	      line.branchTransferPenalty = 2;
+	      line.realNetworkBranchRole = 'branch';
+	      line.realNetworkBranchBaseKey = route.branchBaseKey || route.key || '';
+	      line.realNetworkBranchIndex = Math.max(1, Math.round(num(route.branchIndex, 1)));
+	    } else if (route && route.variantRole === 'section') {
+	      line.realNetworkBranchRole = 'section';
+	      line.realNetworkBranchBaseKey = route.branchBaseKey || route.key || '';
+	      line.realNetworkBranchIndex = Math.max(1, Math.round(num(route.branchIndex, 1)));
+	    } else if (route && route.branchGroupSize > 1) {
+	      line.realNetworkBranchRole = 'main';
+	      line.realNetworkBranchBaseKey = route.branchBaseKey || route.key || '';
+	    }
     applyLoopOperation(line, route);
     try { if (typeof W.cityrailNormalizeLineIdentity === 'function') W.cityrailNormalizeLineIdentity(line, 'real-network-import'); } catch(e) {}
     return line;
@@ -549,6 +568,93 @@
         }
       }
       bestByLinePair.forEach(row => { if (ensureVirtualTransfer(row)) created++; });
+	    });
+	    return created;
+	  }
+  function linkImportedBranchFamilies(importedRows){
+    const groups = new Map();
+    importedRows.forEach(row => {
+      const key = sid(row && row.route && (row.route.branchBaseKey || row.route.key));
+      if (!key) return;
+      const list = groups.get(key) || [];
+      list.push(row);
+      groups.set(key, list);
+    });
+    let linked = 0;
+    groups.forEach(list => {
+      if (list.length < 2) return;
+      list.sort((a, b) => Math.round(num(a && a.route && a.route.branchIndex, 0)) - Math.round(num(b && b.route && b.route.branchIndex, 0)));
+      const main = list.find(row => sid(row && row.route && row.route.variantRole) !== 'branch') || list[0];
+      if (!main || !main.line) return;
+      main.line.realNetworkBranchRole = 'main';
+      main.line.realNetworkBranchBaseKey = sid(main.route && (main.route.branchBaseKey || main.route.key));
+      list.forEach(row => {
+        if (!row || !row.line || row === main) return;
+        row.line.parentLineId = main.line.id;
+        row.line.branchTransferPenalty = Math.min(2, num(row.line.branchTransferPenalty, 2) || 2);
+        row.line.realNetworkBranchRole = 'branch';
+        row.line.realNetworkBranchBaseKey = main.line.realNetworkBranchBaseKey;
+        row.line.realNetworkBranchParentRelationId = main.route && main.route.relationId;
+        if (row.route && row.route.branchJunctionName) row.line.realNetworkBranchJunctionName = row.route.branchJunctionName;
+        linked++;
+      });
+    });
+    return linked;
+  }
+  function nearestBranchTransferPair(mainRow, branchRow){
+    const mainStations = (mainRow && mainRow.stationRows || []).map(item => item.station).filter(Boolean);
+    const branchStations = (branchRow && branchRow.stationRows || []).map(item => item.station).filter(Boolean);
+    let best = null;
+    mainStations.forEach(mainStation => {
+      branchStations.forEach(branchStation => {
+        const distanceM = meters(mainStation, branchStation);
+        if (Number.isFinite(distanceM) && (!best || distanceM < best.distanceM)) best = { mainStation, branchStation, distanceM };
+      });
+    });
+    return best && best.distanceM <= 800 ? best : null;
+  }
+  function createBranchTransfers(importedRows){
+    const groups = new Map();
+    importedRows.forEach(row => {
+      const key = sid(row && row.route && (row.route.branchBaseKey || row.route.key));
+      if (!key) return;
+      const list = groups.get(key) || [];
+      list.push(row);
+      groups.set(key, list);
+    });
+    let created = 0;
+    groups.forEach(list => {
+      if (list.length < 2) return;
+      list.sort((a, b) => Math.round(num(a && a.route && a.route.branchIndex, 0)) - Math.round(num(b && b.route && b.route.branchIndex, 0)));
+      const main = list.find(row => sid(row && row.route && row.route.variantRole) !== 'branch') || list[0];
+      if (!main || !main.line) return;
+      list.forEach(row => {
+        if (!row || !row.line || row === main || sid(row.route && row.route.variantRole) !== 'branch') return;
+        const pair = nearestBranchTransferPair(main, row);
+        if (!pair || !pair.mainStation || !pair.branchStation) return;
+        if (sid(pair.mainStation.id) === sid(pair.branchStation.id)) return;
+        if (hasVirtualTransfer(pair.mainStation.id, pair.branchStation.id, main.line.id, row.line.id)) return;
+        W.state.virtualTransfers = Array.isArray(W.state.virtualTransfers) ? W.state.virtualTransfers : [];
+        pair.mainStation.__transferSameName = true;
+        pair.branchStation.__transferSameName = true;
+        pair.mainStation.__transferSameNameSourceId = pair.branchStation.id;
+        pair.branchStation.__transferSameNameSourceId = pair.mainStation.id;
+        pair.mainStation.__transferSameNameReason = 'real-network-branch-transfer';
+        pair.branchStation.__transferSameNameReason = 'real-network-branch-transfer';
+        W.state.virtualTransfers.push({
+          stationA:pair.mainStation.id,
+          stationB:pair.branchStation.id,
+          lineAId:main.line.id,
+          lineBId:row.line.id,
+          type:'branch_junction',
+          penaltyMin:2,
+          distanceM:Math.round(pair.distanceM),
+          source:'osm-real-network-branch-transfer',
+          transferKey:sid(row.route && (row.route.branchBaseKey || row.route.key)),
+          updatedAt:Date.now()
+        });
+        created++;
+      });
     });
     return created;
   }
@@ -584,15 +690,17 @@
       importedRows.push({ route, line, stationRows });
       imported++;
       try { if (typeof W.renderLine === 'function') W.renderLine(line); else if (typeof renderLine === 'function') renderLine(line); } catch(e) {}
-    });
-    const transfers = createPlatformTransfers(importedRows);
+	    });
+	    const branches = linkImportedBranchFamilies(importedRows);
+	    const branchTransfers = createBranchTransfers(importedRows);
+	    const transfers = createPlatformTransfers(importedRows);
     try { if (typeof W.refreshAllStations === 'function') W.refreshAllStations(); else if (typeof refreshAllStations === 'function') refreshAllStations(); } catch(e) {}
     try { if (typeof W.invalidateFlowCache === 'function') W.invalidateFlowCache(); else if (typeof invalidateFlowCache === 'function') invalidateFlowCache(); } catch(e) {}
     try { if (typeof W.updateUI === 'function') W.updateUI(); else if (typeof updateUI === 'function') updateUI(); } catch(e) {}
     try { if (typeof W.saveState === 'function') W.saveState(); else if (typeof saveState === 'function') saveState(); } catch(e) {}
     clearPreview();
-    setStatus('已导入 ' + imported + ' 条线路，创建 ' + transfers + ' 组换乘' + (skipped ? '，跳过 ' + skipped + ' 条' : ''));
-  }
+	    setStatus('已导入 ' + imported + ' 条线路，识别 ' + branches + ' 条支线，创建 ' + (transfers + branchTransfers) + ' 组换乘' + (skipped ? '，跳过 ' + skipped + ' 条' : ''));
+	  }
   function installEvents(){
     if (D.__cityrailRealNetworkImporterEvents) return;
     D.__cityrailRealNetworkImporterEvents = true;

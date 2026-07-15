@@ -8,9 +8,10 @@ const USER_AGENT = 'CityRailGame/1.0 (+https://cityrailgame.com)';
 const ROUTE_RE = /^(subway|light_rail|monorail)$/i;
 const STOP_ROLE_RE = /stop|platform|station|halt/i;
 const STOP_TAG_RE = /station|stop_position|platform|halt/i;
+const NON_OPERATING_RE = /已停运|停运|暫停|暂停|未开通|未開通|规划|規劃|建设中|建設中|under construction|planned|proposed|abandoned|disused|closed/i;
 const MAX_BBOX_SPAN = 1.9;
-const MAX_ROUTES = 42;
-const MAX_RELATIONS_TO_FETCH = 18;
+const MAX_ROUTES = 80;
+const MAX_RELATIONS_TO_FETCH = 80;
 const RELATION_BATCH_SIZE = 3;
 const RELATION_BATCH_CONCURRENCY = 2;
 const MAX_SEGMENT_WAYPOINTS = 18;
@@ -372,6 +373,68 @@ function routeKey(tags, name) {
   return [network, ref || baseName].filter(Boolean).join('|') || baseName;
 }
 
+function stationNameKeys(route) {
+  return (Array.isArray(route && route.stations) ? route.stations : [])
+    .map(st => cleanName(st && st.name))
+    .filter(Boolean);
+}
+
+function routeTerminalKey(route) {
+  const keys = stationNameKeys(route);
+  if (keys.length < 2) return keys.join('|');
+  return [keys[0], keys[keys.length - 1]].sort().join('|');
+}
+
+function sequenceKey(keys) {
+  return (keys || []).join('>');
+}
+
+function routeOverlapRatio(aKeys, bKeys) {
+  const a = new Set(aKeys || []);
+  const b = new Set(bKeys || []);
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  a.forEach(key => { if (b.has(key)) shared++; });
+  return shared / Math.min(a.size, b.size);
+}
+
+function stationSubsetOf(aKeys, bKeys) {
+  const b = new Set(bKeys || []);
+  return !!(aKeys && aKeys.length) && aKeys.every(key => b.has(key));
+}
+
+function sameRouteVariant(a, b) {
+  const aKeys = stationNameKeys(a);
+  const bKeys = stationNameKeys(b);
+  if (aKeys.length < 2 || bKeys.length < 2) return false;
+  const aSeq = sequenceKey(aKeys);
+  const bSeq = sequenceKey(bKeys);
+  if (aSeq === bSeq || aSeq === sequenceKey(bKeys.slice().reverse())) return true;
+  if (stationSubsetOf(aKeys, bKeys) || stationSubsetOf(bKeys, aKeys)) return true;
+  return routeTerminalKey(a) === routeTerminalKey(b) && routeOverlapRatio(aKeys, bKeys) >= 0.86;
+}
+
+function branchJunctionName(main, branch) {
+  const mainKeys = new Set(stationNameKeys(main));
+  const stations = Array.isArray(branch && branch.stations) ? branch.stations : [];
+  const shared = stations.filter(st => mainKeys.has(cleanName(st && st.name)));
+  if (!shared.length) return '';
+  return String((shared[shared.length - 1] && shared[shared.length - 1].name) || '').trim();
+}
+
+function branchJunctionByDistance(main, branch) {
+  const mainStations = Array.isArray(main && main.stations) ? main.stations : [];
+  const branchStations = Array.isArray(branch && branch.stations) ? branch.stations : [];
+  let best = null;
+  mainStations.forEach(mainStation => {
+    branchStations.forEach(branchStation => {
+      const distanceM = meters(mainStation, branchStation);
+      if (Number.isFinite(distanceM) && (!best || distanceM < best.distanceM)) best = { mainStation, branchStation, distanceM };
+    });
+  });
+  return best && best.distanceM <= 800 ? best : null;
+}
+
 function routeNameLooksLoop(tags, name) {
   const raw = [
     name,
@@ -380,6 +443,16 @@ function routeNameLooksLoop(tags, name) {
     tags && tags.description,
   ].filter(Boolean).join(' ');
   return /环线|環線|环状|環状|循環|circle|circular|loop|ring|ringbahn/i.test(raw);
+}
+
+function routeLooksOperating(route) {
+  const raw = [
+    route && route.name,
+    route && route.ref,
+    route && route.network,
+    route && route.route,
+  ].filter(Boolean).join(' ');
+  return !NON_OPERATING_RE.test(raw);
 }
 
 function closedRoutePointDistance(points) {
@@ -455,12 +528,13 @@ export function parseRelation(relation, maps) {
     const closing = compactSegmentWaypoints(routeSegmentPoints(routePoints, from.routeIndex, closingStop.routeIndex, true), from, to);
     closing.forEach((p, order) => waypoints.push({ lat: p.lat, lng: p.lng, segIdx: serviceStops.length - 1, order }));
   }
-  return {
-    relationId: relation.id,
-    key: routeKey(tags, name),
-    name,
-    ref: tags.ref || '',
-    network: tags.network || '',
+	  return {
+	    relationId: relation.id,
+	    key: routeKey(tags, name),
+	    branchBaseKey: routeKey(tags, name),
+	    name,
+	    ref: tags.ref || '',
+	    network: tags.network || '',
     route: tags.route || '',
     color: normalizeColor(tags.colour || tags.color),
     isLoop,
@@ -483,18 +557,40 @@ export function parseRelation(relation, maps) {
 
 export function chooseBestRoutes(routes) {
   const grouped = new Map();
-  for (const route of routes) {
+  for (const route of routes.filter(routeLooksOperating)) {
     const key = route.key || String(route.relationId);
     const list = grouped.get(key) || [];
     list.push(route);
     grouped.set(key, list);
   }
-  return Array.from(grouped.values()).map(list => list.sort((a, b) =>
-    b.stations.length - a.stations.length
-    || b.waypoints.length - a.waypoints.length
-    || String(a.name).localeCompare(String(b.name), 'zh-CN', { numeric: true })
-  )[0]).sort((a, b) =>
+  const selected = [];
+  Array.from(grouped.values()).forEach(list => {
+    const variants = [];
+    list.sort((a, b) =>
+      b.stations.length - a.stations.length
+      || b.waypoints.length - a.waypoints.length
+      || String(a.name).localeCompare(String(b.name), 'zh-CN', { numeric: true })
+    ).forEach(route => {
+      if (!variants.some(existing => sameRouteVariant(existing, route))) variants.push(route);
+    });
+	    variants.forEach((route, index) => {
+	      const namedJunction = index === 0 ? '' : branchJunctionName(variants[0], route);
+	      const distanceJunction = index === 0 ? null : branchJunctionByDistance(variants[0], route);
+	      const hasJunction = !!(namedJunction || distanceJunction);
+	      route.branchBaseKey = route.key || String(route.relationId);
+	      route.variantRole = index === 0 ? 'main' : (hasJunction ? 'branch' : 'section');
+	      route.branchIndex = index;
+	      route.branchGroupSize = variants.length;
+	      route.branchJunctionName = index === 0 ? '' : (namedJunction || (distanceJunction && distanceJunction.mainStation && distanceJunction.mainStation.name) || '');
+	      route.branchJunctionDistanceM = distanceJunction ? Math.round(distanceJunction.distanceM) : null;
+	      route.key = variants.length > 1 ? `${route.branchBaseKey}|variant:${index}` : route.branchBaseKey;
+	      selected.push(route);
+	    });
+  });
+  return selected.sort((a, b) =>
     String(a.ref || a.name).localeCompare(String(b.ref || b.name), 'zh-CN', { numeric: true, sensitivity: 'base' })
+    || (a.branchBaseKey || '').localeCompare(b.branchBaseKey || '', 'zh-CN', { numeric: true, sensitivity: 'base' })
+    || (a.branchIndex || 0) - (b.branchIndex || 0)
   ).slice(0, MAX_ROUTES);
 }
 
@@ -537,18 +633,17 @@ function relationSortKey(relation) {
 }
 
 function uniqueRouteRelations(elements, maxRelations = MAX_RELATIONS_TO_FETCH) {
-  const grouped = new Map();
-  for (const el of Array.isArray(elements) ? elements : []) {
-    if (!el || el.type !== 'relation' || !ROUTE_RE.test(String(el.tags && el.tags.route || ''))) continue;
-    const tags = el.tags || {};
-    const name = displayName(tags, tags.ref ? `线路 ${tags.ref}` : String(el.id));
-    const key = routeKey(tags, name) || String(el.id);
-    const list = grouped.get(key) || [];
-    list.push(el);
-    grouped.set(key, list);
+  const seen = new Set();
+  const relations = [];
+	  for (const el of Array.isArray(elements) ? elements : []) {
+	    if (!el || el.type !== 'relation' || !ROUTE_RE.test(String(el.tags && el.tags.route || ''))) continue;
+	    if (NON_OPERATING_RE.test(Object.values(el.tags || {}).join(' '))) continue;
+	    const key = String(el.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    relations.push(el);
   }
-  return Array.from(grouped.values())
-    .map(list => list.sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))[0])
+  return relations
     .sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))
     .slice(0, maxRelations);
 }
