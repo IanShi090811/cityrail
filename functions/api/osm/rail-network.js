@@ -466,6 +466,10 @@ export async function onRequestGet(context) {
       },
     }, 200, 300);
   } catch (err) {
-    return jsonResponse({ ok: false, error: String(err && err.message || err || 'rail network unavailable') }, 502, 60);
+    return jsonResponse({
+      ok: false,
+      error: 'rail network unavailable',
+      detail: String(err && err.message || err || 'overpass request failed'),
+    }, 503, 60);
   }
 }
