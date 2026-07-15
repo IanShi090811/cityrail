@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v486-urban-rail-route-scope';
+  const VERSION = 'v487-rail-graph-route-geometry';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
@@ -87,7 +87,7 @@
   }
   function apiUrl(bbox){
     const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v486-urban-rail-route-scope';
+    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v487-rail-graph-route-geometry';
   }
   function setText(id, text){
     const el = byId(id);

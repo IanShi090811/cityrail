@@ -10,7 +10,7 @@ const URBAN_ROUTE_RE = /^(subway|light_rail|monorail|tram)$/i;
 const REGIONAL_URBAN_RAIL_RE = /地铁|軌道交通|轨道交通|市域|市郊|城际|城際|城郊|通勤|机场线|机场快线|空港|快线|捷运|磁浮|磁悬浮|云巴|有轨|tram|metro|subway|mrt|lrt|urban rail|commuter|suburban|intercity|airport|express|rapid transit|regional rail|\b[SR]\s*\d+\b/i;
 const NON_URBAN_RAIL_RE = /货运|货物|货线|货车|货运铁路|专用线|支线货运|高速铁路|高铁|客运专线|普速铁路|干线铁路|national rail|freight|cargo|high[-\s]?speed|bullet train|mainline|main line|long[-\s]?distance/i;
 const STOP_ROLE_RE = /stop|platform|station|halt/i;
-const STOP_TAG_RE = /station|stop_position|platform|halt/i;
+const STOP_TAG_RE = /station|stop_position|platform|halt|tram_stop/i;
 const NON_OPERATING_RE = /已停运|停运|暫停|暂停|未开通|未開通|规划|規劃|建设中|建設中|under construction|planned|proposed|abandoned|disused|closed/i;
 const MAX_BBOX_SPAN = 1.9;
 const MAX_ROUTES = 80;
@@ -187,6 +187,20 @@ function displayName(tags, fallback) {
   return String(t['name:zh'] || t['name:zh-Hans'] || t.name || t['name:en'] || t.ref || fallback || '').trim();
 }
 
+function stationDisplayName(tags) {
+  const t = tags || {};
+  return String(t['name:zh'] || t['name:zh-Hans'] || t.name || t['name:en'] || '').trim();
+}
+
+function isGenericPlatformName(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return true;
+  if (/^(?:\d+(?:[-~–—]\d+)?|[一二三四五六七八九十]+)(?:号|號)?(?:站台|月台|platform)?$/i.test(raw)) return true;
+  if (/(?:^|[\s/／、,，])(?:[A-Z]?\d+(?:[-~–—]\d+)?|[一二三四五六七八九十]+)(?:号|號)?(?:站台|月台)(?:$|[\s/／、,，])/i.test(raw)) return true;
+  if (/^(?:站台|月台|platform)\b/i.test(raw)) return true;
+  return false;
+}
+
 export function cleanName(name) {
   return String(name || '')
     .replace(/\s+/g, '')
@@ -275,23 +289,6 @@ function wayGeometry(way) {
     .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 
-function concatWays(members, ways) {
-  const out = [];
-  for (const member of members) {
-    if (!member || member.type !== 'way' || STOP_ROLE_RE.test(String(member.role || ''))) continue;
-    const ptsRaw = wayGeometry(ways.get(member.ref));
-    if (ptsRaw.length < 2) continue;
-    let pts = ptsRaw;
-    if (out.length) {
-      const last = out[out.length - 1];
-      if (meters(last, pts[pts.length - 1]) < meters(last, pts[0])) pts = pts.slice().reverse();
-      if (meters(last, pts[0]) < 8) pts = pts.slice(1);
-    }
-    pts.forEach(p => out.push(p));
-  }
-  return thinNearbyPoints(out, 8);
-}
-
 function stationCandidate(member, maps) {
   if (!member) return null;
   let el = null;
@@ -306,8 +303,8 @@ function stationCandidate(member, maps) {
     || STOP_TAG_RE.test(String(tags.station || ''));
   if (!isStop) return null;
   const point = pointFromElement(el);
-  const name = displayName(tags, member.ref);
-  if (!point || !name) return null;
+  const name = stationDisplayName(tags);
+  if (!point || !name || isGenericPlatformName(name)) return null;
   return { osmType: member.type, osmId: member.ref, role, name, lat: point.lat, lng: point.lng };
 }
 
@@ -331,34 +328,239 @@ function mergeStopCandidates(stops) {
   return out;
 }
 
-function nearestIndex(points, target) {
-  let best = 0;
-  let bestDist = Infinity;
-  for (let i = 0; i < points.length; i++) {
-    const d = meters(points[i], target);
-    if (d < bestDist) {
-      bestDist = d;
-      best = i;
-    }
-  }
-  return best;
-}
-
-function orientRoute(points, stops) {
-  if (!points.length || stops.length < 2) return points;
-  const idxs = stops.map(st => nearestIndex(points, st));
-  let asc = 0;
-  let desc = 0;
-  for (let i = 1; i < idxs.length; i++) idxs[i] >= idxs[i - 1] ? asc++ : desc++;
-  return desc > asc ? points.slice().reverse() : points;
-}
-
 function thinNearbyPoints(points, minMeters) {
   const out = [];
   for (const p of points) {
     if (!out.length || meters(out[out.length - 1], p) >= minMeters) out.push(p);
   }
   return out;
+}
+
+const MAX_STOP_GRAPH_SNAP_M = 1800;
+
+function graphPointKey(point) {
+  return `${Math.round(num(point && point.lat, 0) * 1e7)}:${Math.round(num(point && point.lng, 0) * 1e7)}`;
+}
+
+function buildWayGraph(members, ways) {
+  const nodes = [];
+  const indexByKey = new Map();
+  function nodeIndex(point) {
+    const key = graphPointKey(point);
+    let index = indexByKey.get(key);
+    if (index != null) return index;
+    index = nodes.length;
+    indexByKey.set(key, index);
+    nodes.push({ lat: point.lat, lng: point.lng, edges: [] });
+    return index;
+  }
+  for (const member of Array.isArray(members) ? members : []) {
+    if (!member || member.type !== 'way' || STOP_ROLE_RE.test(String(member.role || ''))) continue;
+    const pts = thinNearbyPoints(wayGeometry(ways.get(member.ref)), 3);
+    if (pts.length < 2) continue;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = nodeIndex(pts[i]);
+      const b = nodeIndex(pts[i + 1]);
+      if (a === b) continue;
+      const weight = meters(nodes[a], nodes[b]);
+      if (!Number.isFinite(weight) || weight <= 0) continue;
+      nodes[a].edges.push({ to: b, weight });
+      nodes[b].edges.push({ to: a, weight });
+    }
+  }
+  assignGraphComponents(nodes);
+  return nodes;
+}
+
+function assignGraphComponents(graph) {
+  let component = 0;
+  for (let i = 0; i < graph.length; i++) {
+    if (graph[i].component != null) continue;
+    const queue = [i];
+    graph[i].component = component;
+    for (let cursor = 0; cursor < queue.length; cursor++) {
+      const node = graph[queue[cursor]];
+      for (const edge of node.edges || []) {
+        const next = graph[edge.to];
+        if (!next || next.component != null) continue;
+        next.component = component;
+        queue.push(edge.to);
+      }
+    }
+    component++;
+  }
+}
+
+function graphComponentIds(graph) {
+  return Array.from(new Set((graph || []).map(node => node && node.component).filter(id => id != null)));
+}
+
+function nearestGraphNode(graph, target, component = null) {
+  let index = -1;
+  let distanceM = Infinity;
+  for (let i = 0; i < graph.length; i++) {
+    if (component != null && graph[i].component !== component) continue;
+    const d = meters(graph[i], target);
+    if (d < distanceM) {
+      distanceM = d;
+      index = i;
+    }
+  }
+  return { index, distanceM };
+}
+
+function routeAnchorsForStops(graph, stops) {
+  let best = null;
+  for (const component of graphComponentIds(graph)) {
+    const anchors = stops.map(stop => nearestGraphNode(graph, stop, component));
+    if (anchors.some(anchor => anchor.index < 0 || anchor.distanceM > MAX_STOP_GRAPH_SNAP_M)) continue;
+    const score = anchors.reduce((sum, anchor) => sum + anchor.distanceM, 0);
+    if (!best || score < best.score) best = { anchors, score, component };
+  }
+  if (best) return best.anchors;
+  return stops.map(stop => nearestGraphNode(graph, stop));
+}
+
+function heapPush(heap, item) {
+  heap.push(item);
+  let i = heap.length - 1;
+  while (i > 0) {
+    const p = (i - 1) >> 1;
+    if (heap[p].cost <= item.cost) break;
+    heap[i] = heap[p];
+    i = p;
+  }
+  heap[i] = item;
+}
+
+function heapPop(heap) {
+  if (!heap.length) return null;
+  const top = heap[0];
+  const last = heap.pop();
+  if (heap.length && last) {
+    let i = 0;
+    while (true) {
+      let child = i * 2 + 1;
+      if (child >= heap.length) break;
+      if (child + 1 < heap.length && heap[child + 1].cost < heap[child].cost) child++;
+      if (heap[child].cost >= last.cost) break;
+      heap[i] = heap[child];
+      i = child;
+    }
+    heap[i] = last;
+  }
+  return top;
+}
+
+function shortestGraphPath(graph, from, to) {
+  if (!Array.isArray(graph) || from < 0 || to < 0 || from >= graph.length || to >= graph.length) return null;
+  if (from === to) return [from];
+  const dist = new Array(graph.length).fill(Infinity);
+  const prev = new Array(graph.length).fill(-1);
+  const heap = [];
+  dist[from] = 0;
+  heapPush(heap, { node: from, cost: 0 });
+  while (heap.length) {
+    const current = heapPop(heap);
+    if (!current || current.cost !== dist[current.node]) continue;
+    if (current.node === to) break;
+    for (const edge of graph[current.node].edges || []) {
+      const next = current.cost + edge.weight;
+      if (next >= dist[edge.to]) continue;
+      dist[edge.to] = next;
+      prev[edge.to] = current.node;
+      heapPush(heap, { node: edge.to, cost: next });
+    }
+  }
+  if (!Number.isFinite(dist[to])) return null;
+  const path = [];
+  for (let node = to; node >= 0; node = prev[node]) {
+    path.push(node);
+    if (node === from) break;
+  }
+  return path[path.length - 1] === from ? path.reverse() : null;
+}
+
+function nearestPathPointIndex(points, target) {
+  let index = -1;
+  let distanceM = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    const d = meters(points[i], target);
+    if (d < distanceM) {
+      distanceM = d;
+      index = i;
+    }
+  }
+  return { index, distanceM };
+}
+
+function terminalRoutePath(graph, anchors, stops, tags) {
+  const fromIndex = terminalStopIndex(stops, terminalName(tags, 'from'));
+  const toIndex = terminalStopIndex(stops, terminalName(tags, 'to'));
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return null;
+  const path = shortestGraphPath(graph, anchors[fromIndex].index, anchors[toIndex].index);
+  if (!path || path.length < 2) return null;
+  const points = path.map(nodeIndex => ({ lat: graph[nodeIndex].lat, lng: graph[nodeIndex].lng }));
+  const projected = [];
+  for (let stopIndex = 0; stopIndex < stops.length; stopIndex++) {
+    const stop = stops[stopIndex];
+    const snap = nearestPathPointIndex(points, stop);
+    if (snap.index < 0 || snap.distanceM > MAX_STOP_GRAPH_SNAP_M) continue;
+    projected.push({ stop, routeIndex: snap.index, distanceM: snap.distanceM, anchorIndex: anchors[stopIndex].index });
+  }
+  if (projected.length < 2) return null;
+  projected.sort((a, b) => a.routeIndex - b.routeIndex || a.distanceM - b.distanceM);
+  stops.splice(0, stops.length, ...projected.map(item => item.stop));
+  projected.forEach((item, index) => {
+    stops[index]._graphRouteIndex = item.routeIndex;
+    stops[index]._graphAnchorIndex = item.anchorIndex;
+    stops[index]._graphSnapDistanceM = item.distanceM;
+  });
+  function pathBetweenStops(fromStop, toStop) {
+    const from = Math.round(num(fromStop && fromStop._graphRouteIndex, -1));
+    const to = Math.round(num(toStop && toStop._graphRouteIndex, -1));
+    if (from < 0 || to < 0 || from >= points.length || to >= points.length) return [];
+    if (to >= from) return points.slice(from, to + 1);
+    return points.slice(to, from + 1).reverse();
+  }
+  return { points, pathBetweenStops };
+}
+
+function buildRouteGeometry(members, ways, stops, tags = {}) {
+  const graph = buildWayGraph(members, ways);
+  if (graph.length < 2 || !Array.isArray(stops) || stops.length < 2) return null;
+  const anchors = routeAnchorsForStops(graph, stops);
+  if (anchors.some(anchor => anchor.index < 0 || anchor.distanceM > MAX_STOP_GRAPH_SNAP_M)) return null;
+  anchors.forEach((anchor, index) => {
+    stops[index]._graphAnchorIndex = anchor.index;
+    stops[index]._graphSnapDistanceM = anchor.distanceM;
+  });
+  const terminalGeometry = terminalRoutePath(graph, anchors, stops, tags);
+  if (terminalGeometry) return terminalGeometry;
+  const points = [];
+  function appendPath(fromStopIndex, toStopIndex) {
+    const path = shortestGraphPath(graph, anchors[fromStopIndex].index, anchors[toStopIndex].index);
+    if (!path || path.length < 2) return false;
+    const startIndex = points.length;
+    const slice = points.length && graphPointKey(points[points.length - 1]) === graphPointKey(graph[path[0]])
+      ? path.slice(1)
+      : path;
+    slice.forEach(nodeIndex => points.push({ lat: graph[nodeIndex].lat, lng: graph[nodeIndex].lng }));
+    if (stops[fromStopIndex]._graphRouteIndex == null) stops[fromStopIndex]._graphRouteIndex = startIndex;
+    stops[toStopIndex]._graphRouteIndex = points.length - 1;
+    return true;
+  }
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (!appendPath(i, i + 1)) return null;
+  }
+  function pathBetweenStops(fromStop, toStop) {
+    const fromIndex = Math.round(num(fromStop && fromStop._graphAnchorIndex, -1));
+    const toIndex = Math.round(num(toStop && toStop._graphAnchorIndex, -1));
+    if (fromIndex < 0 || toIndex < 0) return [];
+    const path = shortestGraphPath(graph, fromIndex, toIndex);
+    return path ? path.map(nodeIndex => ({ lat: graph[nodeIndex].lat, lng: graph[nodeIndex].lng })) : [];
+  }
+  return { points, pathBetweenStops };
 }
 
 function perpendicularDistanceM(point, start, end) {
@@ -488,6 +690,24 @@ function routeNameLooksLoop(tags, name) {
   return /环线|環線|环状|環状|循環|circle|circular|loop|ring|ringbahn/i.test(raw);
 }
 
+function terminalName(tags, key) {
+  const value = tags && tags[key];
+  return String(value || '').replace(/\s+/g, '').trim();
+}
+
+function terminalStopIndex(stops, terminal) {
+  const key = cleanName(terminal);
+  if (!key) return -1;
+  let loose = -1;
+  for (let i = 0; i < stops.length; i++) {
+    const stopKey = cleanName(stops[i] && stops[i].name);
+    if (!stopKey) continue;
+    if (stopKey === key) return i;
+    if (loose < 0 && (stopKey.includes(key) || key.includes(stopKey))) loose = i;
+  }
+  return loose;
+}
+
 function routeLooksOperating(route) {
   const raw = [
     route && route.name,
@@ -515,15 +735,6 @@ function closedRoutePointDistance(points) {
   return meters(points[0], points[points.length - 1]);
 }
 
-function routeSegmentPoints(points, fromIdx, toIdx, circular) {
-  if (!Array.isArray(points) || points.length < 2) return [];
-  const from = Math.max(0, Math.min(points.length - 1, Math.round(num(fromIdx, 0))));
-  const to = Math.max(0, Math.min(points.length - 1, Math.round(num(toIdx, 0))));
-  if (to > from) return points.slice(from + 1, to);
-  if (!circular || to === from) return [];
-  return points.slice(from + 1).concat(points.slice(0, to));
-}
-
 function compactSegmentWaypoints(points, fromStop, toStop) {
   const seg = points.filter(p => meters(p, fromStop) >= MIN_POINT_DISTANCE_M && meters(p, toStop) >= MIN_POINT_DISTANCE_M);
   return capPoints(simplifyPoints(seg, SIMPLIFY_TOLERANCE_M), MAX_SEGMENT_WAYPOINTS);
@@ -535,22 +746,22 @@ export function parseRelation(relation, maps) {
   if (!isUrbanRailRouteTags(tags, name)) return null;
   const members = Array.isArray(relation.members) ? relation.members : [];
   let stops = mergeStopCandidates(members.map(member => stationCandidate(member, maps)).filter(Boolean));
-  let routePoints = concatWays(members, maps.ways);
-  if (stops.length < 2 || routePoints.length < 2) return null;
-  routePoints = orientRoute(routePoints, stops);
+  const geometry = buildRouteGeometry(members, maps.ways, stops, tags);
+  if (stops.length < 2 || !geometry || !Array.isArray(geometry.points) || geometry.points.length < 2) return null;
+  const routePoints = geometry.points;
   stops = stops.map(stop => {
-    const routeIndex = nearestIndex(routePoints, stop);
+    const routeIndex = Math.round(num(stop._graphRouteIndex, -1));
     const snapped = routePoints[routeIndex];
-    const useSnapped = snapped && meters(stop, snapped) <= 650;
+    if (!snapped) return null;
     return {
       ...stop,
       rawLat: stop.lat,
       rawLng: stop.lng,
-      lat: useSnapped ? snapped.lat : stop.lat,
-      lng: useSnapped ? snapped.lng : stop.lng,
+      lat: snapped.lat,
+      lng: snapped.lng,
       routeIndex,
     };
-  }).sort((a, b) => a.routeIndex - b.routeIndex);
+  }).filter(Boolean).sort((a, b) => a.routeIndex - b.routeIndex);
   stops = stops.filter((stop, index, arr) => {
     if (index === 0) return true;
     const prev = arr[index - 1];
@@ -580,16 +791,16 @@ export function parseRelation(relation, maps) {
     const from = serviceStops[serviceStops.length - 1];
     const to = serviceStops[0];
     const closingStop = repeatedTerminal ? lastStop : to;
-    const closing = compactSegmentWaypoints(routeSegmentPoints(routePoints, from.routeIndex, closingStop.routeIndex, true), from, to);
+    const closing = compactSegmentWaypoints(geometry.pathBetweenStops(from, closingStop), from, to);
     closing.forEach((p, order) => waypoints.push({ lat: p.lat, lng: p.lng, segIdx: serviceStops.length - 1, order }));
   }
-	  return {
-	    relationId: relation.id,
-	    key: routeKey(tags, name),
-	    branchBaseKey: routeKey(tags, name),
-	    name,
-	    ref: isTrainServiceRef(tags) ? '' : (tags.ref || ''),
-	    network: tags.network || '',
+  return {
+    relationId: relation.id,
+    key: routeKey(tags, name),
+    branchBaseKey: routeKey(tags, name),
+    name,
+    ref: isTrainServiceRef(tags) ? '' : (tags.ref || ''),
+    network: tags.network || '',
     route: tags.route || '',
     routeCategory: routeCategory(tags, name),
     color: normalizeColor(tags.colour || tags.color),
