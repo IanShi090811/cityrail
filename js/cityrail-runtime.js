@@ -978,6 +978,138 @@ cityrailApplyPassengerShapeProfiles();
   window.cityrailShowChangelog=window.CityRailHelp.showChangelog;
 })();
 
+;/* CityRail v479 real-network importer lazy entry. */
+(function(){
+  'use strict';
+  const W = window, D = document;
+  const VERSION = 'v479-real-network-importer-loader';
+  if (W.CityRailRealNetworkImporterLoader && W.CityRailRealNetworkImporterLoader.version === VERSION) return;
+  let loading = null;
+  function byId(id){ return D.getElementById(id); }
+  function applyBuildChoiceLayout(choice){
+    const el = choice || byId('new-build-choice');
+    if (!el) return;
+    const compact = W.innerWidth <= 760;
+    el.style.setProperty('grid-template-columns', compact ? 'repeat(5,minmax(84px,1fr))' : 'repeat(5,minmax(112px,1fr))', 'important');
+    el.style.setProperty('width', compact ? '100%' : 'min(1040px,calc(100vw - 112px))', 'important');
+    el.style.setProperty('min-width', '0', 'important');
+    el.style.setProperty('overflow', 'visible', 'important');
+  }
+  function ensureBuildEntry(){
+    const choice = byId('new-build-choice');
+    if (!choice) return false;
+    choice.classList.add('cr-rni-build-choice');
+    if (byId('new-build-real-network')) {
+      applyBuildChoiceLayout(choice);
+      return true;
+    }
+    const btn = D.createElement('button');
+    btn.type = 'button';
+    btn.id = 'new-build-real-network';
+    btn.dataset.action = 'new-build-real-network';
+    btn.innerHTML = '<span class="new-build-icon" aria-hidden="true">◎</span><strong>真实线网</strong><small>复刻真实线路、车站、节点</small>';
+    choice.appendChild(btn);
+    applyBuildChoiceLayout(choice);
+    return true;
+  }
+  function ensureStyle(){
+    if (byId('cityrail-real-network-loader-style')) return;
+    const style = D.createElement('style');
+    style.id = 'cityrail-real-network-loader-style';
+    style.textContent = `
+      #new-build-choice.cr-rni-build-choice,
+      #new-build-choice.cr-rni-build-choice.cr269-has-connector{
+        grid-template-columns:repeat(5,minmax(112px,1fr))!important;
+        width:min(1040px,calc(100vw - 112px))!important;
+        min-width:0!important;
+        overflow:visible!important;
+      }
+      #new-build-real-network{
+        display:grid!important;
+        grid-template-rows:auto auto auto!important;
+        align-content:center!important;
+        justify-items:center!important;
+        row-gap:8px!important;
+        text-align:center!important;
+        min-width:0!important;
+      }
+      #new-build-real-network .new-build-icon{
+        display:flex!important;
+        background:rgba(10,132,255,.18);
+        color:#8cc8ff;
+      }
+      #new-build-real-network strong{
+        display:block!important;
+        font-size:16px;
+        font-weight:780;
+        line-height:1.1;
+        white-space:nowrap;
+      }
+      #new-build-real-network small{
+        display:block!important;
+        max-width:132px!important;
+        text-align:center!important;
+        line-height:1.28!important;
+        white-space:normal!important;
+      }
+      @media(max-width:760px){
+        #new-build-choice.cr-rni-build-choice,
+        #new-build-choice.cr-rni-build-choice.cr269-has-connector{
+          grid-template-columns:repeat(5,minmax(84px,1fr))!important;
+          width:100%!important;
+        }
+      }
+    `;
+    D.head.appendChild(style);
+  }
+  function loadImporter(){
+    if (W.CityRailRealNetworkImporter && typeof W.CityRailRealNetworkImporter.open === 'function') return Promise.resolve(W.CityRailRealNetworkImporter);
+    if (loading) return loading;
+    loading = new Promise((resolve, reject) => {
+      const script = D.createElement('script');
+      script.src = 'js/cityrail-real-network-importer.js?v=20260715-v479-real-network-loop-import';
+      script.async = true;
+      script.onload = () => W.CityRailRealNetworkImporter ? resolve(W.CityRailRealNetworkImporter) : reject(new Error('现实线网模块未注册'));
+      script.onerror = () => reject(new Error('现实线网模块加载失败'));
+      D.head.appendChild(script);
+    });
+    return loading;
+  }
+  function openImporter(){
+    loadImporter()
+      .then(api => {
+        if (api && typeof api.boot === 'function') api.boot('lazy-open');
+        if (api && typeof api.open === 'function') api.open();
+      })
+      .catch(err => {
+        try { alert((err && err.message) || err || '现实线网模块加载失败'); } catch(e) {}
+      });
+  }
+  function installEvents(){
+    if (D.__cityrailRealNetworkImporterLoaderEvents) return;
+    D.__cityrailRealNetworkImporterLoaderEvents = true;
+    D.addEventListener('click', ev => {
+      const card = ev.target && ev.target.closest && ev.target.closest('#new-build-real-network');
+      if (!card) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      openImporter();
+    }, true);
+    try { W.addEventListener('resize', () => applyBuildChoiceLayout(), { passive:true }); } catch(e) {}
+  }
+  function boot(reason){
+    ensureStyle();
+    ensureBuildEntry();
+    installEvents();
+  }
+  W.CityRailRealNetworkImporterLoader = { version:VERSION, boot, open:openImporter, load:loadImporter };
+  if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', () => boot('dom'), { once:true }); else boot('immediate');
+  ['cityrail-save-loaded','cityrail:runtime-integrity'].forEach(name => {
+    try { W.addEventListener(name, () => W.setTimeout(() => boot(name), 0)); } catch(e) {}
+  });
+  [300,1200,3000].forEach(ms => W.setTimeout(() => boot('timer-' + ms), ms));
+})();
+
 ;/* CityRail v445: analytics, error observability and unified UI refresh scheduling. */
 (function(){
   'use strict';
@@ -2114,7 +2246,7 @@ cityrailApplyPassengerShapeProfiles();
 	    if (!Number.isFinite(Number(c.headwayMin))) c.headwayMin = 10;
 	    c.headwayMin = Math.max(2, Math.min(60, Math.round(Number(c.headwayMin) || 10)));
 	    return c;
-	  }
+  }
   function throughEnabled(line){
     const c = cfg(line);
     return !!(isConnector(line) && c.throughEnabled);
@@ -2751,6 +2883,33 @@ cityrailApplyPassengerShapeProfiles();
     if(authorityLoopCache && authorityLoopCache.headway) authorityLoopCache.headway.set(cacheKey, result);
     return result;
   }
+  function trackProfile(line){
+    try {
+      if(W.cityrailLineTrackProfile && typeof W.cityrailLineTrackProfile === 'function') return W.cityrailLineTrackProfile(line);
+    } catch(e) {}
+    return { key:'double', tracks:2, operation:'directional-pair', headwayMultiplier:1, minimumHeadwaySec:30, dispatchSpacingMultiplier:1, fleetFactor:1 };
+  }
+  function trackAdjustedIntervalSec(line, intervalSec, options = {}){
+    const base = Math.max(30, num(intervalSec, headwaySec(line)));
+    const profile = trackProfile(line);
+    if(profile.key === 'single') return Math.max(num(profile.minimumHeadwaySec, 300), base * num(profile.headwayMultiplier, 1.8));
+    return Math.max(num(profile.minimumHeadwaySec, 60), base * num(profile.headwayMultiplier, 1));
+  }
+  function trackFleetFactor(line, options = {}){
+    const profile = trackProfile(line);
+    return Math.max(0.2, num(profile.fleetFactor, 1));
+  }
+  function trackDispatchSpacingSec(line, intervalSec, options = {}){
+    const profile = trackProfile(line);
+    const raw = Math.max(30, num(intervalSec, headwaySec(line)));
+    const base = options && options.trackAdjusted ? raw : trackAdjustedIntervalSec(line, raw, options);
+    return Math.max(30, base * Math.max(0.2, num(profile.dispatchSpacingMultiplier, 1)));
+  }
+  function trackDispatchSlotKey(line, slotKey, dir, options = {}){
+    const profile = trackProfile(line);
+    if(profile.key === 'single') return [sid(line && line.id), 'single-track-token'].join('|');
+    return slotKey;
+  }
   function serviceStopIndexes(line, options = {}){
     const ids = Array.isArray(line && line.stationIds) ? line.stationIds : [];
     if(!ids.length) return [];
@@ -2774,6 +2933,7 @@ cityrailApplyPassengerShapeProfiles();
     const loop = isLoop(line);
     const singleLoop = loop && isSingleDirectionLoop(line);
     const serviceType = sid(options.serviceType || 'local');
+    const track = trackProfile(line);
     const stopIndexes = serviceStopIndexes(line, options);
     let distanceKm = 0;
     try { if(typeof getLineDistance === 'function') distanceKm = Math.max(0, num(getLineDistance(line), 0)); } catch(e) {}
@@ -2818,6 +2978,9 @@ cityrailApplyPassengerShapeProfiles();
       terminalTurnbackSec:turnback,
       oneWaySec,
       roundTripSec:roundTrip,
+      trackMode:track.key,
+      trackCount:track.tracks,
+      trackOperation:track.operation,
       loop,
       singleDirectionLoop:singleLoop
     };
@@ -2837,8 +3000,9 @@ cityrailApplyPassengerShapeProfiles();
   }
   function intervalFleet(line, intervalSec, factor = 1, options = {}){
     const rt = roundTripSec(line, options);
-    const hw = Math.max(30, num(intervalSec, headwaySec(line)));
-    return Math.max(1, Math.ceil((rt / hw) * factor));
+    const raw = Math.max(30, num(intervalSec, headwaySec(line)));
+    const hw = options && options.trackAdjusted ? raw : trackAdjustedIntervalSec(line, raw, options);
+    return Math.max(1, Math.ceil((rt / hw) * factor * trackFleetFactor(line, options)));
   }
   function depotAwareMinimumFleet(line, intervalSec){
     if(!line || isConnectorLine(line) || isLoop(line)) return 0;
@@ -2848,7 +3012,7 @@ cityrailApplyPassengerShapeProfiles();
     if(options.length !== 1) return 0;
     const entryIdx = Math.max(0, Math.min(ids.length - 1, Math.round(num(options[0].entryIdx, 0))));
     if(entryIdx <= 0 || entryIdx >= ids.length - 1) return 0;
-    const hw = Math.max(30, num(intervalSec, headwaySec(line)));
+    const hw = trackAdjustedIntervalSec(line, intervalSec, { serviceKind:'local', serviceType:'local' });
     return Math.max(2,
       Math.ceil(directionCycleSec(line, entryIdx, 0) / hw) +
       Math.ceil(directionCycleSec(line, entryIdx, 1) / hw)
@@ -2862,6 +3026,7 @@ cityrailApplyPassengerShapeProfiles();
     return Math.max(base, depotAwareMinimumFleet(line, headwaySec(line)));
   }
   function expressServiceEnabled(line){
+    try { if(W.cityrailLineIsSingleTrack && W.cityrailLineIsSingleTrack(line)) return false; } catch(e) {}
     return !!(line && (line.expressEnabled || (line.expressService && line.expressService.enabled)));
   }
   function expressEvery(line){
@@ -2924,7 +3089,7 @@ cityrailApplyPassengerShapeProfiles();
     return { express, branch, main, connector, total:express + branch + main + connector };
   }
   function normalDispatchIntervalSec(line){
-    return Math.max(30, headwaySec(line));
+    return trackAdjustedIntervalSec(line, headwaySec(line), { serviceKind:'local', serviceType:'local' });
   }
   function lineDepotHardCapacity(line){
     if(!line || isConnectorLine(line)) return 0;
@@ -3160,7 +3325,8 @@ cityrailApplyPassengerShapeProfiles();
     return Math.max(hw, count * hw);
   }
   function buildNormalDispatchPlan(line){
-    const hw = headwaySec(line);
+    const hw = trackAdjustedIntervalSec(line, headwaySec(line), { serviceKind:'local', serviceType:'local' });
+    const track = trackProfile(line);
     const requiredFleet = targetFleet(line);
     const storage = storageFleetCount(line);
     const depotOptions = depotOptionsForPlan(line);
@@ -3259,6 +3425,9 @@ cityrailApplyPassengerShapeProfiles();
       nonLocalTarget,
       nonLocalDepotReserve,
       storage,
+      trackMode:track.key,
+      trackCount:track.tracks,
+      trackOperation:track.operation,
       directionTargets,
       depotRows,
       slotRows,
@@ -3266,6 +3435,8 @@ cityrailApplyPassengerShapeProfiles();
         sid(line && line.id),
         Math.round(hw),
         Math.round(roundTripSec(line)),
+        track.key,
+        track.operation,
         requiredFleet,
         fleetTarget,
         effectiveDepotBudget,
@@ -3293,21 +3464,22 @@ cityrailApplyPassengerShapeProfiles();
       sid(options.serviceType || 'local')
     ].join('|');
   }
-  function tooCloseToLastDispatch(line, slotKey, intervalSec, nowSec){
+  function tooCloseToLastDispatch(line, slotKey, intervalSec, nowSec, dir, options = {}){
     if(!line) return false;
     line._v300LastDispatchSec = line._v300LastDispatchSec || Object.create(null);
-    const last = num(line._v300LastDispatchSec[slotKey], NaN);
+    const key = trackDispatchSlotKey(line, slotKey, dir, options);
+    const last = num(line._v300LastDispatchSec[key], NaN);
     if(!Number.isFinite(last)) return false;
     if(last > nowSec + 1){
-      delete line._v300LastDispatchSec[slotKey];
+      delete line._v300LastDispatchSec[key];
       return false;
     }
-    return nowSec - last < Math.max(30, intervalSec) - 1;
+    return nowSec - last < trackDispatchSpacingSec(line, intervalSec, options) - 1;
   }
-  function recordSlotDispatch(line, slotKey, nowSec){
+  function recordSlotDispatch(line, slotKey, nowSec, dir, options = {}){
     if(!line) return;
     line._v300LastDispatchSec = line._v300LastDispatchSec || Object.create(null);
-    line._v300LastDispatchSec[slotKey] = nowSec;
+    line._v300LastDispatchSec[trackDispatchSlotKey(line, slotKey, dir, options)] = nowSec;
   }
   function trainEffectiveDirection(train){
     if(train && train._v300TerminalHeadwayHold && train._v300TerminalHeadwayDirection != null) return Number(train._v300TerminalHeadwayDirection) === 1 ? 1 : 0;
@@ -3620,10 +3792,11 @@ cityrailApplyPassengerShapeProfiles();
   function normalizeSchedule(line, nowSec){
     const hw = headwaySec(line);
     const normalInterval = normalDispatchIntervalSec(line);
+    const track = trackProfile(line);
     const p = period(num(S().simulationHour, 0));
     const single = isLoop(line) && isSingleDirectionLoop(line);
     const dayKey = Math.max(0, Math.floor(num(S().__cityrailServiceDay, 0)));
-    const signature = [dayKey, p, Math.round(hw), Math.round(normalInterval), SERVICE_FLEET_FACTOR, RESERVE_FLEET_FACTOR, Math.round(roundTripSec(line)), line.stationIds && line.stationIds.length, !!single].join('|');
+    const signature = [dayKey, p, Math.round(hw), Math.round(normalInterval), track.key, track.operation, SERVICE_FLEET_FACTOR, RESERVE_FLEET_FACTOR, Math.round(roundTripSec(line)), line.stationIds && line.stationIds.length, !!single].join('|');
     let sched = line._v300Schedule;
     if(!sched || sched.signature !== signature){
       const first = num(line.firstTrain, 6) * 3600;
@@ -3680,14 +3853,14 @@ cityrailApplyPassengerShapeProfiles();
       return false;
     }
     if(nowSec < due) return false;
-    if(tooCloseToLastDispatch(line, slotKey, interval, nowSec)){
+    if(tooCloseToLastDispatch(line, slotKey, interval, nowSec, dir, options)){
       sched[key] = Math.max(due, num(line._v300LastDispatchSec && line._v300LastDispatchSec[slotKey], nowSec) + interval);
       report.blocked++;
       report.lastBlocked = { lineId:line.id, lineName:line.name, direction:dir, reason:'slot-too-close', serviceKind:options.serviceKind || 'local', serviceType:options.serviceType || 'local', at:Date.now(), hour:num(S().simulationHour, 0) };
       return false;
     }
     const ok = dispatchTrain(line, dir, reason, options);
-    if(ok) recordSlotDispatch(line, slotKey, nowSec);
+    if(ok) recordSlotDispatch(line, slotKey, nowSec, dir, options);
     while(due <= nowSec) due += interval;
     sched[key] = due;
     return ok;
@@ -4227,7 +4400,7 @@ cityrailApplyPassengerShapeProfiles();
 	      const used = new Set(rowServiceTrains(line, row).map(train => sid(train._v309SlotKey)).filter(Boolean));
       const openSlot = slots.find(slot => !used.has(slot.key)) || slots[Math.max(0, Math.min(slots.length - 1, rowState.dispatched % Math.max(1, slots.length)))];
       const normalSlotKey = dispatchSlotKey('v309-normal-' + row.rowKey, row.dir, { serviceKind:'local', serviceType:'local' });
-      if(tooCloseToLastDispatch(line, normalSlotKey, plan.headwaySec, nowSec)){
+      if(tooCloseToLastDispatch(line, normalSlotKey, plan.headwaySec, nowSec, row.dir, { serviceKind:'local', serviceType:'local', trackAdjusted:true })){
         rowState.nextSec = Math.max(num(rowState.nextSec, nowSec), num(line._v300LastDispatchSec && line._v300LastDispatchSec[normalSlotKey], nowSec) + plan.headwaySec);
         report.blocked++;
         report.lastBlocked = { lineId:line.id, lineName:line.name, direction:row.dir, reason:'normal-row-too-close', serviceKind:'local', serviceType:'local', at:Date.now(), hour:num(S().simulationHour, 0) };
@@ -4235,7 +4408,7 @@ cityrailApplyPassengerShapeProfiles();
       }
       const train = dispatchTrain(line, row.dir, 'v309_uniform_headway_slot', { serviceKind:'local', serviceType:'local', depotId:row.depotId });
       if(train){
-        recordSlotDispatch(line, normalSlotKey, nowSec);
+        recordSlotDispatch(line, normalSlotKey, nowSec, row.dir, { serviceKind:'local', serviceType:'local', trackAdjusted:true });
         rowState.dispatched++;
         const scheduledSec = rowState.nextSec;
         assignTrainToSlot(line, plan, row, train, openSlot, scheduledSec);
@@ -4247,29 +4420,29 @@ cityrailApplyPassengerShapeProfiles();
   }
   function expressIntervalSec(line){
     const every = Math.max(2, num(line.expressEvery || (line.expressService && line.expressService.every) || 4, 4));
-    return Math.max(60, headwaySec(line) * every);
+    return trackAdjustedIntervalSec(line, Math.max(60, headwaySec(line) * every), { serviceType:'express', serviceKind:line && line.throughOperationEnabled ? 'main' : 'local' });
   }
   function dispatchExpressDue(line, nowSec){
     if(!line || !expressServiceEnabled(line)) return;
     const interval = expressIntervalSec(line);
-    const target = intervalFleet(line, interval, 1, { serviceType:'express' });
+    const target = intervalFleet(line, interval, 1, { serviceType:'express', trackAdjusted:true });
     const active = accountableLineTrains(line, null, 'express').length;
     if(active > target) requestServicePlannedRetire(line, active - target, 'v309_express_target_reduce', { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local' });
     const targets = splitTarget(target, isLoop(line) && isSingleDirectionLoop(line));
     noteUnderfilledSchedule(line, targets, { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local', fwdKey:'expressFwdNext', bwdKey:'expressBwdNext' });
-    dispatchIfDue(line, 0, 'expressFwdNext', interval, nowSec, 'v300_express_fwd', { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local', targetByDir:targets });
-    if(!(isLoop(line) && isSingleDirectionLoop(line))) dispatchIfDue(line, 1, 'expressBwdNext', interval, nowSec, 'v300_express_bwd', { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local', targetByDir:targets });
+    dispatchIfDue(line, 0, 'expressFwdNext', interval, nowSec, 'v300_express_fwd', { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local', targetByDir:targets, trackAdjusted:true });
+    if(!(isLoop(line) && isSingleDirectionLoop(line))) dispatchIfDue(line, 1, 'expressBwdNext', interval, nowSec, 'v300_express_bwd', { serviceType:'express', serviceKind:line.throughOperationEnabled ? 'main' : 'local', targetByDir:targets, trackAdjusted:true });
   }
   function dispatchBranchDue(line, nowSec){
     if(!line || !line.throughOperationEnabled || !line.throughBranchLineId) return;
-    const interval = Math.max(60, headwaySec(line) * Math.max(1, num(line.throughBranchEvery || line.branchEvery || 2, 2)));
-    const target = intervalFleet(line, interval, 1, { serviceKind:'branch' });
+    const interval = trackAdjustedIntervalSec(line, Math.max(60, headwaySec(line) * Math.max(1, num(line.throughBranchEvery || line.branchEvery || 2, 2))), { serviceKind:'branch', serviceType:'local' });
+    const target = intervalFleet(line, interval, 1, { serviceKind:'branch', trackAdjusted:true });
     const active = accountableLineTrains(line, 'branch').length;
     if(active > target) requestServicePlannedRetire(line, active - target, 'v309_branch_target_reduce', { serviceKind:'branch' });
     const targets = splitTarget(target, isLoop(line) && isSingleDirectionLoop(line));
     noteUnderfilledSchedule(line, targets, { serviceKind:'branch', fwdKey:'branchFwdNext', bwdKey:'branchBwdNext' });
-    dispatchIfDue(line, 0, 'branchFwdNext', interval, nowSec, 'v300_branch_through_fwd', { serviceKind:'branch', targetByDir:targets });
-    if(!(isLoop(line) && isSingleDirectionLoop(line))) dispatchIfDue(line, 1, 'branchBwdNext', interval, nowSec, 'v300_branch_through_bwd', { serviceKind:'branch', targetByDir:targets });
+    dispatchIfDue(line, 0, 'branchFwdNext', interval, nowSec, 'v300_branch_through_fwd', { serviceKind:'branch', targetByDir:targets, trackAdjusted:true });
+    if(!(isLoop(line) && isSingleDirectionLoop(line))) dispatchIfDue(line, 1, 'branchBwdNext', interval, nowSec, 'v300_branch_through_bwd', { serviceKind:'branch', targetByDir:targets, trackAdjusted:true });
   }
   function adjustAuthorityLine(line){
     if(!line || isConnectorLine(line) || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return;
@@ -10396,6 +10569,83 @@ const LINE_SERVICE_DEFAULTS = Object.freeze({
   peakHeadwayMin: 2
 });
 
+const LINE_TRACK_MODE_DEFAULT = 'double';
+const LINE_TRACK_MODES = Object.freeze({
+  single: Object.freeze({
+    key: 'single',
+    label: '单线',
+    tracks: 1,
+    operation: 'bidirectional-token-with-station-meets',
+    headwayMultiplier: 1,
+    minimumHeadwaySec: 300,
+    dispatchSpacingMultiplier: 1,
+    fleetFactor: 1
+  }),
+  double: Object.freeze({
+    key: 'double',
+    label: '双线',
+    tracks: 2,
+    operation: 'directional-pair',
+    headwayMultiplier: 1,
+    minimumHeadwaySec: 30,
+    dispatchSpacingMultiplier: 1,
+    fleetFactor: 1
+  })
+});
+
+function normalizeLineTrackModeValue(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'single' || raw === '1' || raw === 'one' || raw === '单线') return 'single';
+  return LINE_TRACK_MODE_DEFAULT;
+}
+
+function normalizeLineTrackMode(line) {
+  if (!line) return LINE_TRACK_MODE_DEFAULT;
+  const next = normalizeLineTrackModeValue(line.trackMode || line.trackLayout || line.trackType || line.trackCount);
+  if (line.trackMode !== next) line.trackMode = next;
+  const profile = LINE_TRACK_MODES[next];
+  line.trackCount = profile.tracks;
+  line.trackOperation = profile.operation;
+  return next;
+}
+
+function cityrailLineTrackMode(line) {
+  return normalizeLineTrackMode(line);
+}
+
+function cityrailLineTrackProfile(line) {
+  return LINE_TRACK_MODES[normalizeLineTrackMode(line)] || LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT];
+}
+
+function cityrailLineIsSingleTrack(line) {
+  return cityrailLineTrackMode(line) === 'single';
+}
+
+function cityrailNormalizeSingleTrackOperation(line, reason) {
+  if (!line || !cityrailLineIsSingleTrack(line)) return false;
+  let changed = false;
+  if (line.expressEnabled) { line.expressEnabled = false; changed = true; }
+  if (Array.isArray(line.overtakeStationIds) && line.overtakeStationIds.length) {
+    line.overtakeStationIds = [];
+    changed = true;
+  }
+  const cfg = line.expressService && typeof line.expressService === 'object' ? line.expressService : null;
+  if (cfg) {
+    if (cfg.enabled) { cfg.enabled = false; changed = true; }
+    if (cfg.overtakeMode && cfg.overtakeMode !== 'none') { cfg.overtakeMode = 'none'; changed = true; }
+    if (Array.isArray(cfg.overtakeStations) && cfg.overtakeStations.length) { cfg.overtakeStations = []; changed = true; }
+    if (!Array.isArray(cfg.expressStops)) { cfg.expressStops = []; changed = true; }
+  }
+  if (changed) {
+    line._singleTrackServiceConstraint = {
+      reason: reason || 'single-track-operation',
+      at: Date.now()
+    };
+    line._topologyVersion = (Number(line._topologyVersion) || 0) + 1;
+  }
+  return changed;
+}
+
 function normalizeServiceHour(value, fallback, maxHour = 24) {
   const n = Number(value);
   const safe = Number.isFinite(n) ? n : fallback;
@@ -10477,6 +10727,12 @@ function cityrailApplyDefaultHeadwayPolicy(line) {
 function normalizeLineServiceConfig(line) {
   if (!line) return false;
   let changed = false;
+  const prevTrackMode = line.trackMode;
+  const prevTrackCount = line.trackCount;
+  const prevTrackOperation = line.trackOperation;
+  normalizeLineTrackMode(line);
+  if (line.trackMode !== prevTrackMode || line.trackCount !== prevTrackCount || line.trackOperation !== prevTrackOperation) changed = true;
+  if (cityrailNormalizeSingleTrackOperation(line, 'normalize-line-service-config')) changed = true;
   function put(key, value) {
     if (line[key] !== value) {
       line[key] = value;
@@ -10513,6 +10769,11 @@ if (typeof window !== 'undefined') {
   window.cityrailNormalizeLineServiceConfig = normalizeLineServiceConfig;
   window.cityrailNormalizeAllLineServiceConfig = normalizeAllLineServiceConfig;
   window.cityrailLineHasManualHeadwayConfig = cityrailLineHasManualHeadwayConfig;
+  window.CITYRAIL_LINE_TRACK_MODES = LINE_TRACK_MODES;
+  window.cityrailLineTrackMode = cityrailLineTrackMode;
+  window.cityrailLineTrackProfile = cityrailLineTrackProfile;
+  window.cityrailLineIsSingleTrack = cityrailLineIsSingleTrack;
+  window.cityrailNormalizeSingleTrackOperation = cityrailNormalizeSingleTrackOperation;
 }
 
 function cityrailPlainArray(value) {
@@ -10691,12 +10952,16 @@ function cityrailBuildLinePlayerConfig(line) {
   normalizeLineTrainType(line);
   normalizeLineServiceConfig(line);
   const express = cityrailNormalizeExpressPlayerConfig(line);
+  const trackMode = cityrailLineTrackMode(line);
   return {
     version: 1,
     lineId: String(line.id || ''),
     trainType: normalizeTrainType(line.trainType),
     cars: Math.max(1, Math.round(Number(line.cars || 6) || 6)),
     speed: Math.max(20, Math.round(Number(line.speed || 80) || 80)),
+    trackMode,
+    trackCount: LINE_TRACK_MODES[trackMode].tracks,
+    trackOperation: LINE_TRACK_MODES[trackMode].operation,
     firstTrain: line.firstTrain,
     lastTrain: line.lastTrain,
     headways: {
@@ -10718,6 +10983,7 @@ function cityrailApplyLinePlayerConfig(line) {
   if (cfg.trainType != null) line.trainType = cfg.trainType;
   if (cfg.cars != null) line.cars = Number(cfg.cars);
   if (cfg.speed != null) line.speed = Number(cfg.speed);
+  if (cfg.trackMode != null || cfg.trackCount != null || cfg.trackOperation != null) line.trackMode = normalizeLineTrackModeValue(cfg.trackMode || cfg.trackCount || cfg.trackOperation);
   if (cfg.firstTrain != null) line.firstTrain = Number(cfg.firstTrain);
   if (cfg.lastTrain != null) line.lastTrain = Number(cfg.lastTrain);
   if (cfg.headways && typeof cfg.headways === 'object') {
@@ -18215,6 +18481,9 @@ function createLine(stationIds) {
     trainType,
     cars,
     speed,
+    trackMode: LINE_TRACK_MODE_DEFAULT,
+    trackCount: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].tracks,
+    trackOperation: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].operation,
     firstTrain: 6,
     lastTrain: 22,
     offPeakHeadwayMin: LINE_SERVICE_DEFAULTS.offPeakHeadwayMin,
@@ -18347,7 +18616,7 @@ function cityrailLineColorById(lineId, fallback) {
     const line = state && Array.isArray(state.lines) ? state.lines.find(l => String(l && l.id) === id) : null;
     return line && line.color || fallback || '#0a84ff';
   } catch(e) {
-    return fallback || '#0a84ff';
+    return fallback === null ? null : (fallback || '#0a84ff');
   }
 }
 
@@ -19740,6 +20009,30 @@ function cityrailFixedDwellSeconds(line) {
   return Math.max(1, Number(getDwellBase(line)) || 25);
 }
 
+function cityrailSingleTrackMinimumHeadwaySec(line) {
+  if (!line || typeof cityrailLineIsSingleTrack !== 'function' || !cityrailLineIsSingleTrack(line)) return 0;
+  const ids = Array.isArray(line.stationIds) ? line.stationIds : [];
+  const sections = Math.max(1, ids.length - 1);
+  let roundTrip = 0;
+  try { roundTrip = Math.max(600, Number(getRoundTripSeconds(line)) || 0); } catch(e) {}
+  if (!roundTrip) {
+    const dist = Math.max(0.1, Number(getLineDistance(line)) || 0.1);
+    const speed = Math.max(20, Number(getTrainMaxSpeed(line)) || Number(line.speed) || 80);
+    const dwell = Math.max(10, Number(getDwellBase(line)) || 25);
+    roundTrip = (dist / speed) * 7200 + ids.length * dwell * 2;
+  }
+  return Math.max(300, Math.ceil(roundTrip / sections));
+}
+
+function cityrailSingleTrackMinimumHeadwayMin(line) {
+  return cityrailSingleTrackMinimumHeadwaySec(line) / 60;
+}
+
+try {
+  window.cityrailSingleTrackMinimumHeadwaySec = cityrailSingleTrackMinimumHeadwaySec;
+  window.cityrailSingleTrackMinimumHeadwayMin = cityrailSingleTrackMinimumHeadwayMin;
+} catch(e) {}
+
 // Get current headway in seconds based on time of day
 function getCurrentHeadway(line) {
   const hour = state.simulationHour;
@@ -19748,7 +20041,8 @@ function getCurrentHeadway(line) {
   let min = line.normalHeadwayMin || LINE_SERVICE_DEFAULTS.normalHeadwayMin;
   if (isPeak) min = line.peakHeadwayMin || LINE_SERVICE_DEFAULTS.peakHeadwayMin;
   else if (!isNormal) min = line.offPeakHeadwayMin || LINE_SERVICE_DEFAULTS.offPeakHeadwayMin;
-  return Math.max(1, min) * 60;
+  const playerHeadway = Math.max(1, min) * 60;
+  return Math.max(playerHeadway, cityrailSingleTrackMinimumHeadwaySec(line));
 }
 
 // 获取当前时段名称：'peak' / 'normal' / 'offpeak'
@@ -21282,17 +21576,64 @@ function cityrailTrainStationOccId(train, line, stationIdx) {
   return ids[idx] != null ? String(ids[idx]) : String(stationIdx);
 }
 
-function cityrailTrainOccKeyFromStationIds(lineId, direction, stationIds, stationIdx) {
+function cityrailStationPlatformDirection(lineOrIds, direction, stationIdx, train) {
+  const dir = Number(direction) === 1 ? 1 : 0;
+  const ids = Array.isArray(lineOrIds)
+    ? lineOrIds
+    : (Array.isArray(lineOrIds && lineOrIds.stationIds) ? lineOrIds.stationIds : []);
+  if (!ids.length) return dir;
+  const idx = Math.max(0, Math.min(ids.length - 1, Math.round(Number(stationIdx) || 0)));
+  const explicit = Number(train && train._cityrailTerminalPlatformDirection);
+  if ((explicit === 0 || explicit === 1) && ids.length >= 2 && (idx === 0 || idx === ids.length - 1)) return explicit;
+  const trainState = String(train && train.state || '');
+  if (ids.length >= 2 && (idx === 0 || idx === ids.length - 1) && /turning_back|dispatch_turning_back/.test(trainState)) {
+    return idx === 0 ? 0 : 1;
+  }
+  return dir;
+}
+
+function cityrailTrainOccKeyFromStationIds(lineId, direction, stationIds, stationIdx, train) {
   const ids = Array.isArray(stationIds) ? stationIds : [];
   const idx = Math.max(0, Math.min(Math.max(0, ids.length - 1), Math.round(Number(stationIdx) || 0)));
   const stationKey = ids[idx] != null ? String(ids[idx]) : String(stationIdx);
-  return String(lineId) + '|' + (Number(direction) === 1 ? 1 : 0) + '|' + stationKey;
+  const platformDir = cityrailStationPlatformDirection(ids, direction, idx, train);
+  return String(lineId) + '|' + platformDir + '|' + stationKey;
 }
 
 function cityrailTrainOccKey(lineOrId, direction, stationIdx, train) {
   let stationKey = String(stationIdx);
+  let platformDir = Number(direction) === 1 ? 1 : 0;
   if (lineOrId && typeof lineOrId === 'object') stationKey = cityrailTrainStationOccId(train, lineOrId, stationIdx);
-  return String(lineOrId && typeof lineOrId === 'object' ? lineOrId.id : lineOrId) + '|' + (Number(direction) === 1 ? 1 : 0) + '|' + stationKey;
+  if (lineOrId && typeof lineOrId === 'object') platformDir = cityrailStationPlatformDirection(lineOrId, direction, stationIdx, train);
+  return String(lineOrId && typeof lineOrId === 'object' ? lineOrId.id : lineOrId) + '|' + platformDir + '|' + stationKey;
+}
+
+function cityrailIsStationPlatformOccupied(line, platformDirection, stationIdx, excludeTrainId) {
+  if (!line || !Array.isArray(line.stationIds) || !line.stationIds.length) return false;
+  const lineId = String(line.id);
+  const idx = Math.max(0, Math.min(line.stationIds.length - 1, Math.round(Number(stationIdx) || 0)));
+  const wantedDir = Number(platformDirection) === 1 ? 1 : 0;
+  const stationId = line.stationIds[idx];
+  const excluded = String(excludeTrainId == null ? '' : excludeTrainId);
+  return (state.trains || []).some(t => {
+    if (!t || String(t.id) === excluded) return false;
+    if (String(t.lineId) !== lineId) return false;
+    if (Math.round(Number(t.nextStationIdx) || 0) !== idx) return false;
+    const trainState = String(t.state || '');
+    if (trainState === 'dwelling' || trainState === 'turning_back' || trainState === 'dispatch_turning_back' || trainState === 'decelerating') {
+      return cityrailStationPlatformDirection(line, t.direction, idx, t) === wantedDir;
+    }
+    if (trainState === 'accelerating' || trainState === 'cruising') {
+      const station = cityrailStationByIdFast(stationId);
+      if (!station) return false;
+      const latDelta = Math.abs(Number(t.lat) - Number(station.lat));
+      const lngDelta = Math.abs(Number(t.lng) - Number(station.lng));
+      if (latDelta >= 0.003 || lngDelta >= 0.003) return false;
+      return haversine(t.lat, t.lng, station.lat, station.lng) < 0.2
+        && cityrailStationPlatformDirection(line, t.direction, idx, t) === wantedDir;
+    }
+    return false;
+  });
 }
 
 function createTrainTickContext() {
@@ -21302,20 +21643,32 @@ function createTrainTickContext() {
   const lineNodesById = new Map();
   const lineProfileByKey = new Map();
   const occupiedStations = new Map();
+  const singleTrackSections = new Map();
   function addOccupied(train) {
     if (!train || train.id == null || train.lineId == null) return;
     const line = lineById.get(String(train.lineId));
     const route = train.routePlan && Array.isArray(train.routePlan.stationIds) && train.routePlan.stationIds.length >= 2 ? train.routePlan : null;
     const key = route
-      ? cityrailTrainOccKeyFromStationIds(train.lineId, train.direction, route.stationIds, train.nextStationIdx)
+      ? cityrailTrainOccKeyFromStationIds(train.lineId, train.direction, route.stationIds, train.nextStationIdx, train)
       : cityrailTrainOccKey(line || train.lineId, train.direction, train.nextStationIdx, train);
     let set = occupiedStations.get(key);
     if (!set) occupiedStations.set(key, set = new Set());
     set.add(String(train.id));
   }
+  function addSingleTrackSection(train) {
+    if (!train || train.id == null || train.lineId == null) return;
+    const line = lineById.get(String(train.lineId));
+    if (!line || typeof cityrailLineIsSingleTrack !== 'function' || !cityrailLineIsSingleTrack(line)) return;
+    const key = cityrailSingleTrackSectionKey(line, train.direction, train.nextStationIdx);
+    if (!key) return;
+    let set = singleTrackSections.get(key);
+    if (!set) singleTrackSections.set(key, set = new Set());
+    set.add(String(train.id));
+  }
   for (const train of state.trains || []) {
     if (!train) continue;
     const trainState = String(train.state || '');
+    if (/accelerating|cruising|decelerating|holding_short/.test(trainState)) addSingleTrackSection(train);
     if (trainState === 'dwelling' || trainState === 'turning_back' || trainState === 'dispatch_turning_back' || trainState === 'decelerating') {
       addOccupied(train);
       continue;
@@ -21340,6 +21693,7 @@ function createTrainTickContext() {
     lineById,
     stationById,
     occupiedStations,
+    singleTrackSections,
     lineNodesById,
 	    getLine(lineId) { return lineById.get(String(lineId)); },
 	    getStation(stationId) { return stationById.get(String(stationId)); },
@@ -21410,9 +21764,11 @@ function isStationOccupied(lineOrId, direction, stationIdx, excludeTrainId, tick
   const lineId = line && line.id != null ? line.id : lineOrId;
   const targetStationId = line && Array.isArray(line.stationIds) ? line.stationIds[stationIdx] : null;
   if (!targetStationId) return false;
+  const wantedPlatformDir = cityrailStationPlatformDirection(line, direction, stationIdx, null);
   return state.trains.some(t => {
     if (t.id === excludeTrainId) return false;
-    if (t.lineId !== lineId || t.direction !== direction) return false;
+    if (String(t.lineId) !== String(lineId)) return false;
+    if (cityrailStationPlatformDirection(line, t.direction, stationIdx, t) !== wantedPlatformDir) return false;
     // 前方有列车正在停站
     if (t.nextStationIdx === stationIdx && (t.state === 'dwelling' || t.state === 'turning_back' || t.state === 'dispatch_turning_back')) return true;
     // 前方有列车正在减速进站（已接近车站平台）
@@ -21432,6 +21788,77 @@ function isStationOccupied(lineOrId, direction, stationIdx, excludeTrainId, tick
     return false;
   });
 }
+
+try {
+  window.cityrailStationPlatformDirection = cityrailStationPlatformDirection;
+  window.cityrailIsStationPlatformOccupied = cityrailIsStationPlatformOccupied;
+} catch(e) {}
+
+function cityrailSingleTrackSectionKey(line, direction, nextStationIdx) {
+  if (!line || typeof cityrailLineIsSingleTrack !== 'function' || !cityrailLineIsSingleTrack(line)) return '';
+  const ids = Array.isArray(line.stationIds) ? line.stationIds : [];
+  if (ids.length < 2) return '';
+  const target = Math.max(0, Math.min(ids.length - 1, Math.round(Number(nextStationIdx) || 0)));
+  let a = target;
+  let b = target;
+  if (Number(direction) === 1) {
+    a = target;
+    b = target + 1;
+  } else {
+    a = target - 1;
+    b = target;
+  }
+  if (a < 0 || b >= ids.length || a === b) return '';
+  return String(line.id) + '|single-section|' + Math.min(a, b) + '~' + Math.max(a, b);
+}
+
+function cityrailIsSingleTrackSectionOccupied(line, direction, nextStationIdx, excludeTrainId, tickContext) {
+  const key = cityrailSingleTrackSectionKey(line, direction, nextStationIdx);
+  if (!key) return false;
+  const excluded = String(excludeTrainId == null ? '' : excludeTrainId);
+  if (tickContext && tickContext.singleTrackSections) {
+    const set = tickContext.singleTrackSections.get(key);
+    if (!set || !set.size) return false;
+    for (const id of set) if (id !== excluded) return true;
+    return false;
+  }
+  return (state.trains || []).some(t => {
+    if (!t || String(t.id) === excluded) return false;
+    if (String(t.lineId) !== String(line.id)) return false;
+    if (!/accelerating|cruising|decelerating|holding_short/.test(String(t.state || ''))) return false;
+    return cityrailSingleTrackSectionKey(line, t.direction, t.nextStationIdx) === key;
+  });
+}
+
+function cityrailHoldForSingleTrackSection(train, line, direction, nextStationIdx, tickContext, reason) {
+  if (!train || !line || typeof cityrailLineIsSingleTrack !== 'function' || !cityrailLineIsSingleTrack(line)) return false;
+  if (!cityrailIsSingleTrackSectionOccupied(line, direction, nextStationIdx, train.id, tickContext)) return false;
+  train.speed = 0;
+  train._singleTrackHold = true;
+  train._singleTrackHoldReason = reason || 'section-occupied';
+  train._singleTrackHoldSection = cityrailSingleTrackSectionKey(line, direction, nextStationIdx);
+  if (train.state === 'waiting') return true;
+  train.state = 'dwelling';
+  train.dwellRemaining = Math.max(Number(train.dwellRemaining) || 0, 10);
+  return true;
+}
+
+function cityrailReserveSingleTrackSection(train, line, direction, nextStationIdx, tickContext) {
+  if (!train || !line || !tickContext || !tickContext.singleTrackSections) return;
+  if (typeof cityrailLineIsSingleTrack !== 'function' || !cityrailLineIsSingleTrack(line)) return;
+  const key = cityrailSingleTrackSectionKey(line, direction, nextStationIdx);
+  if (!key) return;
+  let set = tickContext.singleTrackSections.get(key);
+  if (!set) tickContext.singleTrackSections.set(key, set = new Set());
+  set.add(String(train.id));
+}
+
+try {
+  window.cityrailSingleTrackSectionKey = cityrailSingleTrackSectionKey;
+  window.cityrailIsSingleTrackSectionOccupied = cityrailIsSingleTrackSectionOccupied;
+  window.cityrailHoldForSingleTrackSection = cityrailHoldForSingleTrackSection;
+  window.cityrailReserveSingleTrackSection = cityrailReserveSingleTrackSection;
+} catch(e) {}
 
 
 
@@ -21532,7 +21959,20 @@ function getTerminalOutboundPlan(line, stationIdx, nodes) {
 
 function beginTerminalTurnback(train, line, nodes, reason) {
   if (!train || !line || !isTerminalStationIndex(line, train.nextStationIdx)) return false;
+  const terminalIdx = Math.max(0, Math.min(line.stationIds.length - 1, Math.round(Number(train.nextStationIdx) || 0)));
+  const outboundPlatformDirection = terminalIdx <= 0 ? 0 : 1;
+  if (typeof cityrailLineIsSingleTrack === 'function' && cityrailLineIsSingleTrack(line) && cityrailIsStationPlatformOccupied(line, outboundPlatformDirection, terminalIdx, train.id)) {
+    train.state = 'dwelling';
+    train.speed = 0;
+    train.dwellRemaining = Math.max(Number(train.dwellRemaining) || 0, 10);
+    train._singleTrackPlatformHold = true;
+    train._singleTrackPlatformHoldDirection = outboundPlatformDirection;
+    return false;
+  }
   const sec = (typeof getTerminalTurnbackDwellSec === 'function' ? getTerminalTurnbackDwellSec(line) : getDwellBase(line));
+  train._cityrailTerminalPlatformDirection = outboundPlatformDirection;
+  delete train._singleTrackPlatformHold;
+  delete train._singleTrackPlatformHoldDirection;
   train.state = 'turning_back';
   train.speed = 0;
   train.dwellRemaining = Math.max(3, Math.min(45, Number(sec) || 12));
@@ -21590,12 +22030,13 @@ function cityrailV300CanReleaseTerminalTurnback(train, line, plan, reason) {
   return false;
 }
 
-function completeTerminalTurnback(train, line, nodes, reason) {
+function completeTerminalTurnback(train, line, nodes, reason, tickContext) {
   if (!train || !line || !isTerminalStationIndex(line, train.nextStationIdx)) return false;
   const terminalIdx = train.nextStationIdx;
   const plan = getTerminalOutboundPlan(line, terminalIdx, nodes);
   if (!plan) return false;
   if (!cityrailV300CanReleaseTerminalTurnback(train, line, plan, reason)) return false;
+  if (cityrailHoldForSingleTrackSection(train, line, plan.direction, plan.nextStationIdx, tickContext, 'terminal-turnback-section-occupied')) return false;
   train.direction = plan.direction;
   train.nextStationIdx = plan.nextStationIdx;
   normalizeTrainTargetForService(train, line, 'terminal-turnback');
@@ -21609,10 +22050,14 @@ function completeTerminalTurnback(train, line, nodes, reason) {
   train._holdingShort = false;
   train._terminalHold = false;
   train._terminalHoldForSecondStation = false;
+  delete train._cityrailTerminalPlatformDirection;
+  delete train._singleTrackPlatformHold;
+  delete train._singleTrackPlatformHoldDirection;
   train._v300TerminalHeadwayHold = false;
   train._v300TerminalHeadwayWaitSec = 0;
   train._holdTimer = 0;
   train._stuckTimer = 0;
+  cityrailReserveSingleTrackSection(train, line, train.direction, train.nextStationIdx, tickContext);
   if (window.CITYRAIL_DEBUG_TRAIN === true) {
     try { console.warn('[CityRail v57]', '折返完成，反向发车', { trainId: train.id, line: line.name || line.id, fromTerminalIdx: terminalIdx, newDirection: train.direction, nextStationIdx: train.nextStationIdx, segIndex: train.segIndex, segProgress: train.segProgress, reason: reason || 'timer' }); } catch(e) {}
   }
@@ -21652,9 +22097,10 @@ function beginDispatchTurnback(train, line, nodes, reason) {
   return true;
 }
 
-function completeDispatchTurnback(train, line, nodes, reason) {
+function completeDispatchTurnback(train, line, nodes, reason, tickContext) {
   const plan = train && train._dispatchTurnbackPlan;
   if (!train || !plan) return false;
+  if (cityrailHoldForSingleTrackSection(train, line, plan.direction, plan.nextStationIdx, tickContext, 'dispatch-turnback-section-occupied')) return false;
   train.direction = plan.direction;
   train.nextStationIdx = plan.nextStationIdx;
   normalizeTrainTargetForService(train, line, 'dispatch-turnback');
@@ -21668,6 +22114,7 @@ function completeDispatchTurnback(train, line, nodes, reason) {
   train._holdingShort = false;
   train._holdTimer = 0;
   train._stuckTimer = 0;
+  cityrailReserveSingleTrackSection(train, line, train.direction, train.nextStationIdx, tickContext);
   delete train._dispatchTurnbackNext;
   delete train._dispatchTurnbackPlan;
   delete train._dispatchCommand;
@@ -21745,7 +22192,7 @@ function recoverStationStopIfNeeded(train, line, nodes, dtSec, tickContext) {
     const planned = Math.max(3, Math.min(45, Number(train._turnbackDuration) || base));
     if (train._stationStopElapsed > Math.max(90, planned * 3)) {
       train._stationStopRecoveryReason = 'terminal-turnback-timeout';
-      return completeTerminalTurnback(train, line, nodes, 'station-stop-timeout');
+      return completeTerminalTurnback(train, line, nodes, 'station-stop-timeout', tickContext);
     }
   }
 
@@ -21753,7 +22200,7 @@ function recoverStationStopIfNeeded(train, line, nodes, dtSec, tickContext) {
     const planned = Math.max(6, Math.min(30, Number(train._turnbackDuration) || base * 0.55));
     if (train._stationStopElapsed > Math.max(90, planned * 3)) {
       train._stationStopRecoveryReason = 'dispatch-turnback-timeout';
-      return completeDispatchTurnback(train, line, nodes, 'station-stop-timeout');
+      return completeDispatchTurnback(train, line, nodes, 'station-stop-timeout', tickContext);
     }
   }
 
@@ -21812,8 +22259,13 @@ function updateSingleTrain(train, dtSec, toRemove, tickContext) {
   // If train hasn't departed yet (waiting state)
   if (train.state === 'waiting') {
     if (nowSec >= train.depTime && nowSec >= firstH * 3600 && nowSec < lastH * 3600) {
+      if (cityrailHoldForSingleTrackSection(train, line, train.direction, train.nextStationIdx, tickContext, 'initial-departure-section-occupied')) return;
+      delete train._singleTrackHold;
+      delete train._singleTrackHoldReason;
+      delete train._singleTrackHoldSection;
       train.state = 'accelerating';
       train.speed = 0;
+      cityrailReserveSingleTrackSection(train, line, train.direction, train.nextStationIdx, tickContext);
     } else if (nowSec >= lastH * 3600) {
       // 已过末班时间，该列车无法再发车，清除
       train.state = 'done';
@@ -21917,7 +22369,7 @@ function updateSingleTrain(train, dtSec, toRemove, tickContext) {
     train.dwellRemaining = Math.max(0, planned - train._turnbackElapsed);
     try { boardPassengersDuringDwell(train, line); } catch(e) {}
     if (train._turnbackElapsed >= planned || train.dwellRemaining <= 0) {
-      completeDispatchTurnback(train, line, nodes, 'dispatch turnback timer reached');
+      completeDispatchTurnback(train, line, nodes, 'dispatch turnback timer reached', tickContext);
       if (typeof window.cityrailRecordActualDiagramDeparture === 'function') {
         try { window.cityrailRecordActualDiagramDeparture(line, train.direction, train); } catch(e) {}
       }
@@ -21939,7 +22391,7 @@ function updateSingleTrain(train, dtSec, toRemove, tickContext) {
     // 终点折返期间仍允许按折返后的方向持续上客，但不能由客流模块延长折返时间。
     try { boardPassengersDuringDwell(train, line); } catch(e) {}
     if (train._turnbackElapsed >= planned || train.dwellRemaining <= 0) {
-      completeTerminalTurnback(train, line, nodes, 'turning_back timer reached');
+      completeTerminalTurnback(train, line, nodes, 'turning_back timer reached', tickContext);
       if (typeof window.cityrailRecordActualDiagramDeparture === 'function') {
         try { window.cityrailRecordActualDiagramDeparture(line, train.direction, train); } catch(e) {}
       }
@@ -21970,6 +22422,12 @@ function updateSingleTrain(train, dtSec, toRemove, tickContext) {
         beginTerminalTurnback(train, line, nodes, 'legacy dwelling terminal handoff');
       } else {
         const departedStationIdx = train.nextStationIdx;
+        const nextStationIdx = train.direction === 0 ? departedStationIdx + 1 : departedStationIdx - 1;
+        if (cityrailHoldForSingleTrackSection(train, line, train.direction, nextStationIdx, tickContext, 'station-departure-section-occupied')) return;
+        delete train._singleTrackHold;
+        delete train._singleTrackHoldReason;
+        delete train._singleTrackHoldSection;
+        cityrailReserveSingleTrackSection(train, line, train.direction, nextStationIdx, tickContext);
         advanceNextStation(train, line, totalStations);
 	        if (lineIsLoop && train.direction === 0 && train.nextStationIdx === 0) {
           const nodeIdx = getStationNodeIndexForLine(line, departedStationIdx, nodes);
@@ -23273,6 +23731,31 @@ function renderConfigLineStationFlow(line) {
   box.innerHTML = `<div class="cfg-line-station-flow-title"><span>本线路站点客流</span><span>${cfgLineFlowFmt(rows.length)}站</span></div><div class="cfg-line-station-flow-list">${list}</div>`;
 }
 
+function cityrailApplyTrackModeHeadwayPanelConstraints(line) {
+  if (!line) return 0;
+  const minMin = typeof cityrailSingleTrackMinimumHeadwayMin === 'function' ? cityrailSingleTrackMinimumHeadwayMin(line) : 0;
+  const minValue = Math.ceil(Math.max(0, minMin) * 4) / 4;
+  const ids = ['cfg-headway-offpeak', 'cfg-headway-normal', 'cfg-headway-peak'];
+  const labels = {
+    'cfg-headway-offpeak': 'cfg-headway-offpeak-val',
+    'cfg-headway-normal': 'cfg-headway-normal-val',
+    'cfg-headway-peak': 'cfg-headway-peak-val'
+  };
+  ids.forEach(id => {
+    const slider = document.getElementById(id);
+    const label = document.getElementById(labels[id]);
+    if (!slider) return;
+    if (minValue > 0) {
+      slider.min = String(minValue);
+      if (Number(slider.value) < minValue) slider.value = String(minValue);
+    } else {
+      slider.min = '1';
+    }
+    if (label) label.textContent = parseFloat(slider.value).toFixed(1) + ' 分钟';
+  });
+  return minValue;
+}
+
 function openLineConfig(lineId) {
   const line = state.lines.find(l => l.id === lineId);
   if (!line) return;
@@ -23307,6 +23790,14 @@ function openLineConfig(lineId) {
     `<option value="${v}" ${(line.speed || 80) === v ? 'selected' : ''}>${v} km/h</option>`
   ).join('');
 
+  const trackSelect = document.getElementById('cfg-track-mode');
+  if (trackSelect) {
+    const mode = cityrailLineTrackMode(line);
+    trackSelect.innerHTML = Object.values(LINE_TRACK_MODES).map(item =>
+      `<option value="${item.key}" ${mode === item.key ? 'selected' : ''}>${item.label}</option>`
+    ).join('');
+  }
+
   // Populate headway sliders
   document.getElementById('cfg-headway-offpeak').value = line.offPeakHeadwayMin;
   document.getElementById('cfg-headway-offpeak-val').textContent = line.offPeakHeadwayMin + ' 分钟';
@@ -23314,6 +23805,7 @@ function openLineConfig(lineId) {
   document.getElementById('cfg-headway-normal-val').textContent = line.normalHeadwayMin + ' 分钟';
   document.getElementById('cfg-headway-peak').value = line.peakHeadwayMin;
   document.getElementById('cfg-headway-peak-val').textContent = line.peakHeadwayMin + ' 分钟';
+  cityrailApplyTrackModeHeadwayPanelConstraints(line);
 
   // Populate first/last train time
   const firstTrain = line.firstTrain;
@@ -24049,6 +24541,10 @@ function saveLineConfig() {
   line.trainType = document.getElementById('cfg-train-type').value;
   line.cars = parseInt(document.getElementById('cfg-cars').value) || 6;
   line.speed = parseInt(document.getElementById('cfg-speed').value) || 80;
+  const trackSelect = document.getElementById('cfg-track-mode');
+  if (trackSelect) line.trackMode = normalizeLineTrackModeValue(trackSelect.value);
+  normalizeLineTrackMode(line);
+  cityrailApplyTrackModeHeadwayPanelConstraints(line);
   line.offPeakHeadwayMin = parseFloat(document.getElementById('cfg-headway-offpeak').value);
   line.normalHeadwayMin = parseFloat(document.getElementById('cfg-headway-normal').value);
   line.peakHeadwayMin = parseFloat(document.getElementById('cfg-headway-peak').value);
@@ -24059,9 +24555,14 @@ function saveLineConfig() {
   line.lastTrain = parseFloat(document.getElementById('cfg-last-train').value);
   normalizeLineTrainType(line);
   normalizeLineServiceConfig(line);
+  cityrailNormalizeSingleTrackOperation(line, 'save-line-config');
   delete line._strictSchedule;
   delete line._strictHeadwaySec;
   delete line._strictTargetFleet;
+  delete line._v300Schedule;
+  delete line._v309HeadwaySlotState;
+  delete line._v308DepotWaveState;
+  delete line._v300LastDispatchSec;
   try {
     if (typeof cityrailBuildLinePlayerConfig === 'function') line.playerConfig = cityrailBuildLinePlayerConfig(line);
     if (typeof cityrailSyncLinePlayerConfigs === 'function') cityrailSyncLinePlayerConfigs(state);
@@ -24110,10 +24611,25 @@ function saveLineConfig() {
     const label = document.getElementById(labelId);
     if (slider && label) {
       slider.addEventListener('input', () => {
+        const overlay = document.getElementById('line-config-overlay');
+        const line = overlay && overlay.dataset ? state.lines.find(l => String(l.id) === String(overlay.dataset.lineId)) : null;
+        if (line) cityrailApplyTrackModeHeadwayPanelConstraints(line);
         label.textContent = parseFloat(slider.value).toFixed(1) + ' 分钟';
       });
     }
   });
+  const trackMode = document.getElementById('cfg-track-mode');
+  if (trackMode) {
+    trackMode.addEventListener('change', () => {
+      const overlay = document.getElementById('line-config-overlay');
+      const line = overlay && overlay.dataset ? state.lines.find(l => String(l.id) === String(overlay.dataset.lineId)) : null;
+      if (!line) return;
+      line.trackMode = normalizeLineTrackModeValue(trackMode.value);
+      normalizeLineTrackMode(line);
+      cityrailNormalizeSingleTrackOperation(line, 'track-mode-preview');
+      cityrailApplyTrackModeHeadwayPanelConstraints(line);
+    });
+  }
   // Time sliders: update label on input
   const timeMap = {
     'cfg-first-train': 'cfg-first-train-val',
@@ -27218,6 +27734,9 @@ document.getElementById('draw-line-finish').addEventListener('click', () => {
       trainType: drawNewLine.branchTrainType || 'A',
       cars: drawNewLine.branchCars || 6,
       speed: drawNewLine.branchSpeed || 80,
+      trackMode: LINE_TRACK_MODE_DEFAULT,
+      trackCount: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].tracks,
+      trackOperation: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].operation,
       offPeakHeadwayMin: LINE_SERVICE_DEFAULTS.offPeakHeadwayMin,
       normalHeadwayMin: LINE_SERVICE_DEFAULTS.normalHeadwayMin,
       peakHeadwayMin: LINE_SERVICE_DEFAULTS.peakHeadwayMin,
@@ -27276,6 +27795,9 @@ document.getElementById('draw-line-finish').addEventListener('click', () => {
     trainType: 'A',
     cars: 6,
     speed: 80,
+    trackMode: LINE_TRACK_MODE_DEFAULT,
+    trackCount: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].tracks,
+    trackOperation: LINE_TRACK_MODES[LINE_TRACK_MODE_DEFAULT].operation,
     offPeakHeadwayMin: LINE_SERVICE_DEFAULTS.offPeakHeadwayMin,
     normalHeadwayMin: LINE_SERVICE_DEFAULTS.normalHeadwayMin,
     peakHeadwayMin: LINE_SERVICE_DEFAULTS.peakHeadwayMin,
@@ -32540,6 +33062,15 @@ window.cityrailRealPassengerStats = realStats;
   function syncModalToLine(){
     const line=lineById(currentLineId); const modal=document.getElementById('cc-express-modal'); if(!line||!modal) return;
     const cfg=ensureConfig(line);
+    if(typeof window.cityrailLineIsSingleTrack==='function' && window.cityrailLineIsSingleTrack(line)){
+      cfg.enabled=false;
+      line.expressEnabled=false;
+      cfg.overtakeMode='none';
+      cfg.overtakeStations=[];
+      line.overtakeStationIds=[];
+      saveLine(line);
+      return;
+    }
     cfg.enabled=!!modal.querySelector('#cc-ex-enabled')?.checked;
     line.expressEnabled=cfg.enabled;
     cfg.expressEvery=parseInt(modal.querySelector('#cc-ex-density')?.value,10)||3;
@@ -32602,14 +33133,16 @@ window.cityrailRealPassengerStats = realStats;
   function renderModal(){
     const line=lineById(currentLineId); const modal=ensureModal(); if(!line) return;
     const cfg=ensureConfig(line); const ids=line.stationIds||[];
+    const singleTrack=typeof window.cityrailLineIsSingleTrack==='function' && window.cityrailLineIsSingleTrack(line);
     modal.querySelector('#cc-express-title').textContent=`${line.name||'未命名线路'} · 快慢车配置`;
     modal.querySelector('#cc-ex-enabled').checked=!!cfg.enabled;
+    modal.querySelector('#cc-ex-enabled').disabled=!!singleTrack;
     modal.querySelector('#cc-ex-density').value=String(cfg.expressEvery||3);
     modal.querySelector('#cc-ex-overtake').value=cfg.overtakeMode||'none';
     modal.querySelector('#cc-ex-stop-count').textContent=`${(cfg.expressStops||[]).length}/${ids.length}站`;
     const ov=cfg.overtakeStations||[];
     const ovCount=modal.querySelector('#cc-ex-overtake-count'); if(ovCount) ovCount.textContent=`${ov.length}站`;
-    const disabled=!cfg.enabled;
+    const disabled=!cfg.enabled || singleTrack;
     modal.querySelectorAll('.cc-express-section').forEach(s=>s.classList.toggle('disabled',disabled));
     modal.querySelectorAll('button,select').forEach(el=>{ if(el.id!=='cc-ex-save' && !el.dataset.close && el.id!=='cc-ex-enabled') el.disabled=disabled; });
     renderStationLists();
@@ -32737,6 +33270,13 @@ window.cityrailRealPassengerStats = realStats;
     if(!line) return null;
     if(!line.expressService) line.expressService = { enabled:false, expressStops:getDefaultStops(line), expressEvery:3, overtakeMode:'none', overtakeStations:[], version:29 };
     const cfg=line.expressService; const ids=Array.isArray(line.stationIds)?line.stationIds:[];
+    if(typeof window.cityrailLineIsSingleTrack==='function' && window.cityrailLineIsSingleTrack(line)){
+      cfg.enabled=false;
+      line.expressEnabled=false;
+      cfg.overtakeMode='none';
+      cfg.overtakeStations=[];
+      line.overtakeStationIds=[];
+    }
     if(!Array.isArray(cfg.expressStops)) cfg.expressStops=getDefaultStops(line);
     cfg.expressEvery=Math.max(2, Math.min(8, parseInt(cfg.expressEvery,10)||3));
     if(!cfg.overtakeMode) cfg.overtakeMode='none';
@@ -33180,12 +33720,15 @@ window.cityrailRealPassengerStats = realStats;
     Array.from(body.querySelectorAll('.cc-express-open')).forEach(btn=>{
       const line=lineById(btn.dataset.lineId); if(!line) return;
       const cfg=ensureConfig(line);
+      const singleTrack=!!(window.cityrailLineIsSingleTrack&&window.cityrailLineIsSingleTrack(line));
       const arr=trains().filter(t=>t && String(t.lineId)===String(line.id) && t.state!=='done' && t.state!=='waiting');
       const ex=arr.filter(t=>t.serviceType==='express').length;
       const lo=arr.length-ex;
       const over=(cfg.overtakeMode==='planned' && cfg.overtakeStations.length) ? `｜越${cfg.overtakeStations.length}` : '';
-      btn.textContent=cfg.enabled ? '已开启' : '未开启';
-      btn.classList.toggle('on',!!cfg.enabled); btn.classList.toggle('off',!cfg.enabled);
+      btn.disabled=singleTrack;
+      btn.textContent=singleTrack ? '单线不可用' : (cfg.enabled ? '已开启' : '未开启');
+      btn.title=singleTrack ? '单线制式不启用快慢车和越行站' : `打开${line.name||'线路'}快慢车配置`;
+      btn.classList.toggle('on',!!cfg.enabled&&!singleTrack); btn.classList.toggle('off',!cfg.enabled&&!singleTrack);
     });
   }
   function patchModalLabels(){
@@ -33271,6 +33814,7 @@ window.cityrailRealPassengerStats = realStats;
   function lineById(id){ return lines().find(l=>keyId(l.id)===keyId(id)) || null; }
   function stationById(id){ return stations().find(s=>keyId(s.id)===keyId(id)) || null; }
   function isExpressEnabled(line){
+    try { if(typeof window.cityrailLineIsSingleTrack === 'function' && window.cityrailLineIsSingleTrack(line)) return false; } catch(e) {}
     const c=line && line.expressService;
     return !!(c && c.enabled && Array.isArray(c.expressStops) && c.expressStops.length>=2);
   }
@@ -33283,6 +33827,7 @@ window.cityrailRealPassengerStats = realStats;
     return ids.filter(id=>set.has(keyId(id)));
   }
   function overtakeSet(line){
+    try { if(typeof window.cityrailLineIsSingleTrack === 'function' && window.cityrailLineIsSingleTrack(line)) return new Set(); } catch(e) {}
     const c=line && line.expressService || {};
     return new Set([...(Array.isArray(line&&line.overtakeStationIds)?line.overtakeStationIds:[]),...(Array.isArray(c.overtakeStations)?c.overtakeStations:[])].map(keyId));
   }
@@ -34127,7 +34672,23 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if(train._retireOnTerminal) return retireTerminalTrain(train, line, train._strictRetireReason || reason || 'terminal_retire');
     const terminalIdx = train.nextStationIdx;
     setTerminalPosition(train, line, terminalIdx);
+    const outboundPlatformDirection = terminalIdx <= 0 ? 0 : 1;
+    if(window.cityrailLineIsSingleTrack && window.cityrailLineIsSingleTrack(line) && window.cityrailIsStationPlatformOccupied && window.cityrailIsStationPlatformOccupied(line, outboundPlatformDirection, terminalIdx, train.id)){
+      train.state = 'dwelling';
+      train.speed = 0;
+      train.dwellRemaining = Math.max(n(train.dwellRemaining), 10);
+      train._singleTrackPlatformHold = true;
+      train._singleTrackPlatformHoldDirection = outboundPlatformDirection;
+      log('platform-hold:' + train.id + ':' + terminalIdx, 750, '单线终点到发线占用，列车留在到达侧等待', {
+        trainId: train.id, line: line.name || line.id, station: stationName(line, terminalIdx), terminalIdx,
+        outboundPlatformDirection, reason
+      });
+      return false;
+    }
 	    const sec = turnbackSeconds(line) + headwaySlotTurnbackBuffer(train);
+    train._cityrailTerminalPlatformDirection = outboundPlatformDirection;
+    delete train._singleTrackPlatformHold;
+    delete train._singleTrackPlatformHoldDirection;
 	    train.state = 'turning_back';
     train.speed = 0;
     train.dwellRemaining = sec;
@@ -34158,6 +34719,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       log('complete-no-plan:' + train.id, 1000, '折返失败：找不到终点出站区间', { trainId: train.id, line: line.name || line.id, terminalIdx, reason });
       return false;
     }
+    if(window.cityrailHoldForSingleTrackSection && window.cityrailHoldForSingleTrackSection(train, line, plan.direction, plan.nextStationIdx, null, 'terminal-turnback-section-occupied-v61')) return false;
     const before = {
       trainId: train.id, line: line.name || line.id, station: stationName(line, terminalIdx), terminalIdx,
       oldState: train.state, oldDirection: train.direction, oldNextStationIdx: train.nextStationIdx,
@@ -34180,6 +34742,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     train._holdingShort = false;
     train._terminalHold = false;
     train._terminalHoldForSecondStation = false;
+    delete train._cityrailTerminalPlatformDirection;
+    delete train._singleTrackPlatformHold;
+    delete train._singleTrackPlatformHoldDirection;
     train._holdTimer = 0;
     train._stuckTimer = 0;
     try {
@@ -34193,6 +34758,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       newDirection: train.direction, newNextStationIdx: train.nextStationIdx, nextStation: stationName(line, train.nextStationIdx),
       newSegIndex: train.segIndex, newSegProgress: train.segProgress
     }));
+    try { if(window.cityrailReserveSingleTrackSection) window.cityrailReserveSingleTrackSection(train, line, train.direction, train.nextStationIdx, null); } catch(e) {}
     try { if(typeof window.cityrailRecordActualDiagramDeparture === 'function') window.cityrailRecordActualDiagramDeparture(line, train.direction, train); } catch(e) {}
     try { if(typeof renderAllTrainMarkers === 'function') renderAllTrainMarkers(); } catch(e) {}
     return true;
@@ -39401,6 +39967,15 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   }
   function normalizeOvertakes(line){
     if(!line) return [];
+    if(typeof W.cityrailLineIsSingleTrack==='function' && W.cityrailLineIsSingleTrack(line)){
+      const cfg=expressConfig(line);
+      line.overtakeStationIds=[];
+      cfg.overtakeStations=[];
+      cfg.overtakeMode='none';
+      cfg.enabled=false;
+      line.expressEnabled=false;
+      return [];
+    }
     const ids=lineStations(line), terminals=new Set([sid(ids[0]),sid(ids[ids.length-1])]);
     const cfg=expressConfig(line);
     const union=new Set([...(Array.isArray(line.overtakeStationIds)?line.overtakeStationIds:[]),...(Array.isArray(cfg.overtakeStations)?cfg.overtakeStations:[])].map(sid));
@@ -39417,7 +39992,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     const sel=modal.querySelector('#cc-ex-overtake'); if(sel) sel.value=set.size?'planned':'none';
     modal.querySelectorAll('#cc-ex-overtake-list [data-station-id]').forEach(ch=>{ const id=sid(ch.dataset.stationId); const idx=ids.indexOf(id), fixed=idx<=0||idx>=ids.length-1; ch.classList.toggle('overtake-on',!fixed&&set.has(id)); ch.classList.toggle('overtake-off',!fixed&&!set.has(id)); const tag=ch.querySelector('.tag'); if(tag) tag.textContent=fixed?'不可选':(set.has(id)?'越行':'普通'); });
   }
-  function setOvertake(line,stationId,on){ if(!line) return false; const cfg=expressConfig(line); const ids=lineStations(line), id=sid(stationId), idx=ids.indexOf(id); if(idx<=0||idx>=ids.length-1) return false; const set=overtakeIds(line); if(on) set.add(id); else set.delete(id); line.overtakeStationIds=ids.filter((x,i)=>i>0&&i<ids.length-1&&set.has(sid(x))); cfg.overtakeStations=line.overtakeStationIds.slice(); cfg.overtakeMode=cfg.overtakeStations.length?'planned':'none'; if(cfg.overtakeStations.length){ cfg.enabled=true; line.expressEnabled=true; const os=new Set(cfg.overtakeStations.map(sid)); const current=(cfg.expressStops&&cfg.expressStops.length?cfg.expressStops:ids.filter((x,i)=>i===0||i===ids.length-1||i%3===0)); cfg.expressStops=ids.filter((x,i)=>i===0||i===ids.length-1||(current.includes(x)&&!os.has(sid(x)))); } else { cfg.overtakeMode='none'; } line._topologyVersion=(num(line._topologyVersion)+1)||1; const st=stationById(id); D.documentElement.dataset.cityrailLastOvertake=[sid(line.id),id,on?'on':'off'].join(':'); D.documentElement.dataset.cityrailDispatchNotice=`${lineName(line)} ${(st&&st.name)||id} ${on?'已设为越行站':'已取消越行站'}`; syncExpressModalDom(line); syncExpressRuntime(); try{ if(W.CityRailExpressRouteChoiceV32&&typeof W.CityRailExpressRouteChoiceV32.invalidate==='function') W.CityRailExpressRouteChoiceV32.invalidate(); }catch(e){} try{W.refreshAll&&W.refreshAll();}catch(e){} try{ if(typeof W.updateControlCenter==='function') W.updateControlCenter(); }catch(e){} markAtsDirty('overtake'); renderAts(true); noteAtsRendered(); return true; }
+  function setOvertake(line,stationId,on){ if(!line) return false; if(typeof W.cityrailLineIsSingleTrack==='function'&&W.cityrailLineIsSingleTrack(line)){ normalizeOvertakes(line); D.documentElement.dataset.cityrailDispatchNotice=`${lineName(line)} 为单线制式，不能设置越行站`; markAtsDirty('single-track-overtake-blocked'); renderAts(true); noteAtsRendered(); return false; } const cfg=expressConfig(line); const ids=lineStations(line), id=sid(stationId), idx=ids.indexOf(id); if(idx<=0||idx>=ids.length-1) return false; const set=overtakeIds(line); if(on) set.add(id); else set.delete(id); line.overtakeStationIds=ids.filter((x,i)=>i>0&&i<ids.length-1&&set.has(sid(x))); cfg.overtakeStations=line.overtakeStationIds.slice(); cfg.overtakeMode=cfg.overtakeStations.length?'planned':'none'; if(cfg.overtakeStations.length){ cfg.enabled=true; line.expressEnabled=true; const os=new Set(cfg.overtakeStations.map(sid)); const current=(cfg.expressStops&&cfg.expressStops.length?cfg.expressStops:ids.filter((x,i)=>i===0||i===ids.length-1||i%3===0)); cfg.expressStops=ids.filter((x,i)=>i===0||i===ids.length-1||(current.includes(x)&&!os.has(sid(x)))); } else { cfg.overtakeMode='none'; } line._topologyVersion=(num(line._topologyVersion)+1)||1; const st=stationById(id); D.documentElement.dataset.cityrailLastOvertake=[sid(line.id),id,on?'on':'off'].join(':'); D.documentElement.dataset.cityrailDispatchNotice=`${lineName(line)} ${(st&&st.name)||id} ${on?'已设为越行站':'已取消越行站'}`; syncExpressModalDom(line); syncExpressRuntime(); try{ if(W.CityRailExpressRouteChoiceV32&&typeof W.CityRailExpressRouteChoiceV32.invalidate==='function') W.CityRailExpressRouteChoiceV32.invalidate(); }catch(e){} try{W.refreshAll&&W.refreshAll();}catch(e){} try{ if(typeof W.updateControlCenter==='function') W.updateControlCenter(); }catch(e){} markAtsDirty('overtake'); renderAts(true); noteAtsRendered(); return true; }
   function liveWaitingBatches(){ return Array.isArray(S().batches)?S().batches:(Array.isArray(S().passengerBatches)?S().passengerBatches:[]); }
   function waitingCountOfBatch(b){ return Math.max(0,num(b&&(b.count!=null?b.count:(b.passengers!=null?b.passengers:b.size)),0)); }
   function waitingLegOfBatch(b){ return b&&Array.isArray(b.legs)?b.legs[num(b.currentLeg,0)]||null:null; }
@@ -39710,7 +40285,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if(owner.atsSideFlushTimer){ W.clearTimeout(owner.atsSideFlushTimer); owner.atsSideFlushTimer=0; }
     commitAtsSide(side,key,html);
   }
-  function trainStateLabel(t){ const s=sid(t&&t.state); if(s==='depot_pulling_out') return '出库接轨'; if(s==='holding_short'||t&&t._holdingShort||t&&t._v136HeldBehindLocal) return '机外等待'; if(t&&t._dispatchTurnbackNext) return '待就地折返'; if(s==='dispatch_turning_back') return '就地折返'; if(t&&t._dispatchHold) return '扣车中'; if(t&&t._dispatchSkipNext) return '跳停下一站'; if(t&&(t._overtakeHoldingV29||t._v136LocalYielding)) return '待避快车'; if(/dwell|station|停/i.test(s)) return '停站作业'; if(/wait|hold|等待/i.test(s)) return '等待进路'; if(/acceler/i.test(s)) return '启动加速'; if(/cruis|run|move/i.test(s)) return '区间运行'; if(/turn|terminal|折返/i.test(s)) return '终端折返'; return s||'运行中'; }
+  function trainStateLabel(t){ const s=sid(t&&t.state); if(t&&t._singleTrackHold) return '单线区间等待'; if(s==='depot_pulling_out') return '出库接轨'; if(s==='holding_short'||t&&t._holdingShort||t&&t._v136HeldBehindLocal) return '机外等待'; if(t&&t._dispatchTurnbackNext) return '待就地折返'; if(s==='dispatch_turning_back') return '就地折返'; if(t&&t._dispatchHold) return '扣车中'; if(t&&t._dispatchSkipNext) return '跳停下一站'; if(t&&(t._overtakeHoldingV29||t._v136LocalYielding)) return '待避快车'; if(/dwell|station|停/i.test(s)) return '停站作业'; if(/wait|hold|等待/i.test(s)) return '等待进路'; if(/acceler/i.test(s)) return '启动加速'; if(/cruis|run|move/i.test(s)) return '区间运行'; if(/turn|terminal|折返/i.test(s)) return '终端折返'; return s||'运行中'; }
   function trainStationName(line,t,key){ const ids=lineStations(line); let id=sid(t&&t[key]); if(id){ const st=stationById(id); if(st&&st.name) return st.name; } const idx=Math.max(0,Math.min(ids.length-1,Math.round(num(t&&t.nextStationIdx,num(t&&t.currentStationIdx,0))))); const st=stationById(ids[idx]); return (st&&st.name)||ids[idx]||'—'; }
   function trainServiceLabel(t){ return isExpress(t)?'快车':'普通车'; }
   function trainAtsSig(line,t){ return [trainId(t),trainDir(t),sid(t&&t.state),Math.round(num(t&&t.passengers||t&&t.load,0)),Math.round(trainSeq(line,t)*100),Math.round(num(t&&t.speed,0)*10),sid(t&&t.currentStationId),sid(t&&t.nextStationId),Math.round(num(t&&t.dwellRemaining,0)*10),t&&t._dispatchHold?'H':'',t&&t._dispatchSkipNext?'S':'',t&&t._dispatchTurnbackNext?'T':'',sid(t&&t._dispatchCommand)].join(':'); }
@@ -39996,17 +40571,42 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     const name=ov.querySelector('.cr135-hname'), board=ov.querySelector('.cr135-board'), side=ov.querySelector('.cr135-side'); if(!board||!side||!name) return;
     if(!line){ name.textContent='请选择线路'; board.innerHTML='<div class="cr135-empty">暂无线路</div>'; renderAtsSide(side,atsSideKey('none',owner.mode,'empty'),''); return; }
     const ids=lineStations(line), N=ids.length; name.textContent=lineName(line)+' · ATS调度台';
-    const shown=trainsFor(line,owner.mode), all=trainsFor(line,'both'), selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain)), stationFlowRows=lineStationPassengerRows(line,ids); const sig=[sid(line.id),owner.mode,N,sid(line._topologyVersion),selectedTrainAtsSig(line,selected),shown.map(t=>trainAtsSig(line,t)).join(','),stationFlowRows.map(r=>[Math.round(r.up),Math.round(r.down)].join(':')).join(',')].join('|'); if(!force&&sig===owner.lastSig) return; owner.lastSig=sig; owner.renderCount++;
-    const gap=320,left=160,right=160,width=Math.max(1320,left+right+Math.max(0,N-1)*gap),yUp=160,yDn=400,yMid=280; const oset=overtakeIds(line);
+    const singleTrack=!!(W.cityrailLineIsSingleTrack&&W.cityrailLineIsSingleTrack(line));
+    if(singleTrack && W.cityrailNormalizeSingleTrackOperation) W.cityrailNormalizeSingleTrackOperation(line,'ats-render');
+    const shown=trainsFor(line,owner.mode), all=trainsFor(line,'both'), selected=getTrains().find(t=>trainId(t)===sid(owner.selectedTrain)), stationFlowRows=lineStationPassengerRows(line,ids);
+    const storageSigApi=W.CityRailStorageSiding;
+    const storageSig=storageSigApi&&typeof storageSigApi.capacityForStationLine==='function'&&typeof storageSigApi.storedTrains==='function'?ids.map(id=>[sid(id),storageSigApi.capacityForStationLine(id,line.id),storageSigApi.storedTrains(id,line.id).map(rec=>sid(rec&&rec.id)).join('.')].join(':')).join(','):'';
+    const sig=[sid(line.id),owner.mode,N,sid(line._topologyVersion),singleTrack?'single':'multi',selectedTrainAtsSig(line,selected),shown.map(t=>trainAtsSig(line,t)).join(','),stationFlowRows.map(r=>[Math.round(r.up),Math.round(r.down)].join(':')).join(','),storageSig].join('|'); if(!force&&sig===owner.lastSig) return; owner.lastSig=sig; owner.renderCount++;
+    const gap=320,left=160,right=160,width=Math.max(1320,left+right+Math.max(0,N-1)*gap),yUp=160,yDn=400,yMid=280,lineStroke=esc(lineColor(line)); const oset=singleTrack?new Set():overtakeIds(line);
     board.style.height='620px';
     let svg=`<svg class="cr135-svg" width="${width}" height="620" viewBox="0 0 ${width} 620" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="620" fill="#02060b"/><g stroke="rgba(255,255,255,.045)" stroke-width="1">`;
     for(let x=0;x<width;x+=40) svg+=`<line x1="${x}" y1="0" x2="${x}" y2="620"/>`; for(let y=0;y<620;y+=40) svg+=`<line x1="0" y1="${y}" x2="${width}" y2="${y}"/>`; svg+='</g>';
-    if(N>1){const end=left+(N-1)*gap; svg+=`<path d="M${left} ${yUp} H${end}" stroke="#78e08f" stroke-width="5" fill="none"/><path d="M${left} ${yDn} H${end}" stroke="#86b7ff" stroke-width="5" fill="none"/><path d="M${left-70} ${yUp} C${left-130} ${yUp},${left-130} ${yDn},${left-70} ${yDn}" stroke="rgba(255,255,255,.54)" stroke-width="3" fill="none"/><path d="M${end+70} ${yUp} C${end+130} ${yUp},${end+130} ${yDn},${end+70} ${yDn}" stroke="rgba(255,255,255,.54)" stroke-width="3" fill="none"/>`;}
+    const singleTrackGeom={mainJoin:98, platformJoin:62, platformWidth:104};
+    if(N>1){const end=left+(N-1)*gap; svg+=singleTrack?ids.slice(0,-1).map((_,i)=>{const a=left+i*gap+singleTrackGeom.mainJoin,b=left+(i+1)*gap-singleTrackGeom.mainJoin;return `<path d="M${a} ${yMid} H${b}" stroke="${lineStroke}" stroke-width="6" fill="none" stroke-linecap="round"/>`;}).join(''):`<path d="M${left} ${yUp} H${end}" stroke="#78e08f" stroke-width="5" fill="none"/><path d="M${left} ${yDn} H${end}" stroke="#86b7ff" stroke-width="5" fill="none"/><path d="M${left-70} ${yUp} C${left-130} ${yUp},${left-130} ${yDn},${left-70} ${yDn}" stroke="rgba(255,255,255,.54)" stroke-width="3" fill="none"/><path d="M${end+70} ${yUp} C${end+130} ${yUp},${end+130} ${yDn},${end+70} ${yDn}" stroke="rgba(255,255,255,.54)" stroke-width="3" fill="none"/>`;}
     ids.forEach((stationId,i)=>{
       const st=stationById(stationId), x=left+i*gap, isOv=oset.has(sid(stationId)), nextIsOv=i<N-1&&oset.has(sid(ids[i+1])), w0=lineWaiting(line,stationId,0), w1=lineWaiting(line,stationId,1);
       const storageApi=W.CityRailStorageSiding;
       const storageCap=storageApi&&typeof storageApi.capacityForStationLine==='function'?storageApi.capacityForStationLine(stationId,line.id):0;
       const storageTrains=storageApi&&typeof storageApi.storedTrains==='function'?storageApi.storedTrains(stationId,line.id):[];
+      if(singleTrack){
+        const singleUp=yMid-34, singleDn=yMid+34, platW=singleTrackGeom.platformWidth, half=platW/2, storageY=yMid+92;
+        const arrivalLeft=i>0?x-singleTrackGeom.platformJoin:x-half;
+        const arrivalRight=i<N-1?x+singleTrackGeom.platformJoin:x+half;
+        const leftConnector=i>0?`M${x-singleTrackGeom.mainJoin} ${yMid} L${x-singleTrackGeom.platformJoin} ${singleUp} M${x-singleTrackGeom.mainJoin} ${yMid} L${x-singleTrackGeom.platformJoin} ${singleDn}`:'';
+        const rightConnector=i<N-1?`M${x+singleTrackGeom.platformJoin} ${singleUp} L${x+singleTrackGeom.mainJoin} ${yMid} M${x+singleTrackGeom.platformJoin} ${singleDn} L${x+singleTrackGeom.mainJoin} ${yMid}`:'';
+        const connectorPath=[leftConnector,rightConnector].filter(Boolean).join(' ');
+        const stationTitle=esc(st&&st.name?st.name:'站'+(i+1));
+        const platformName=`<rect x="${x-half+7}" y="${yMid-12}" width="${platW-14}" height="24" rx="6" fill="rgba(2,6,11,.78)"/><text x="${x}" y="${yMid+5}" fill="rgba(255,255,255,.94)" font-size="12" font-weight="900" text-anchor="middle">${stationTitle}</text>`;
+        if(i<N-1) svg+=`<circle cx="${x+gap/2}" cy="${yMid}" r="3" fill="#ff453a"/>`;
+        if(storageCap>0){
+          svg+=`<g class="cr135-storage-station cr135-single-station"><path d="M${arrivalLeft} ${singleUp} H${arrivalRight} M${arrivalLeft} ${singleDn} H${arrivalRight}" stroke="${lineStroke}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M${x-104} ${storageY} H${x+104}" stroke="rgba(255,255,255,.58)" stroke-width="2.5" fill="none" stroke-linecap="round"/>${connectorPath?`<path d="${connectorPath}" stroke="${lineStroke}" stroke-width="3" fill="none" stroke-linecap="round"/>`:''}<rect x="${x-half}" y="${yMid-18}" width="${platW}" height="36" rx="8" fill="rgba(255,255,255,.10)" stroke="${lineStroke}" stroke-width="2"/><line x1="${x-half}" y1="${yMid}" x2="${x+half}" y2="${yMid}" stroke="rgba(255,255,255,.14)" stroke-width="1"/>${platformName}<text x="${x}" y="${singleUp-18}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${singleDn+28}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${storageY+34}" fill="#ffb340" font-size="12" font-weight="900" text-anchor="middle">存车线</text>`;
+          storageTrains.slice(0,2).forEach((rec,k)=>{ const tx=x-34+k*68; svg+=`<g class="cr135-storage-train"><rect x="${tx-30}" y="${storageY-15}" width="60" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="#ff9500" stroke-width="3"/><text x="${tx}" y="${storageY+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">存</text><path d="M${tx+35},${storageY} l10,-6 v12 z" fill="#ff9500"/></g>`; });
+          svg+=`</g>`;
+        } else {
+          svg+=`<g class="cr135-single-station"><path d="M${arrivalLeft} ${singleUp} H${arrivalRight} M${arrivalLeft} ${singleDn} H${arrivalRight}" stroke="${lineStroke}" stroke-width="4" fill="none" stroke-linecap="round"/>${connectorPath?`<path d="${connectorPath}" stroke="${lineStroke}" stroke-width="3" fill="none" stroke-linecap="round"/>`:''}<rect x="${x-half}" y="${yMid-18}" width="${platW}" height="36" rx="8" fill="rgba(255,255,255,.10)" stroke="${lineStroke}" stroke-width="2"/><line x1="${x-half}" y1="${yMid}" x2="${x+half}" y2="${yMid}" stroke="rgba(255,255,255,.14)" stroke-width="1"/>${platformName}<text x="${x}" y="${singleUp-18}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${singleDn+28}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text></g>`;
+        }
+        return;
+      }
       if(i<N-1){svg+=`<circle cx="${x+gap/2}" cy="${yUp}" r="3" fill="#ff453a"/><circle cx="${x+gap/2}" cy="${yDn}" r="3" fill="#ff453a"/>`; if(!isOv&&!nextIsOv&&!storageCap){svg+=`<path d="M${x+42} ${yUp+2} L${x+92} ${yDn-2} M${x+92} ${yUp+2} L${x+42} ${yDn-2}" stroke="rgba(255,255,255,.24)" stroke-width="2"/>`;}}
       if(storageCap>0){
         const platW=88, half=platW/2, midTrack=yMid, topPlat=yMid-55, botPlat=yMid+27;
@@ -40015,7 +40615,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         svg+=`</g>`;
       } else if(isOv){
         const platW=78, half=platW/2, platTopY=yUp+22,platBotY=yDn-50,sideUp=yMid-30,sideDn=yMid+30, sideHalf=78, swLeft=x-gap*0.42, swRight=x+gap*0.42;
-        svg+=`<g class="cr135-overtake-station"><path d="M${x-sideHalf} ${sideUp} H${x+sideHalf} M${x-sideHalf} ${sideDn} H${x+sideHalf}" stroke="rgba(255,255,255,.72)" stroke-width="2.5" fill="none"/><path d="M${x-sideHalf} ${sideUp} L${swLeft} ${yUp} M${x+sideHalf} ${sideUp} L${swRight} ${yUp} M${x-sideHalf} ${sideDn} L${swLeft} ${yDn} M${x+sideHalf} ${sideDn} L${swRight} ${yDn}" stroke="rgba(255,255,255,.40)" stroke-width="2" fill="none"/><rect x="${x-half}" y="${platTopY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76bfff" stroke-width="2"/><rect x="${x-half}" y="${platBotY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76ffb2" stroke-width="2"/><line x1="${x-half}" y1="${platTopY+14}" x2="${x+half}" y2="${platTopY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><line x1="${x-half}" y1="${platBotY+14}" x2="${x+half}" y2="${platBotY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><text x="${x}" y="${yUp+58}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${yDn-36}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${yDn-14}" fill="#ffd66b" font-size="12" font-weight="900" text-anchor="middle">${esc(st&&st.name?st.name:'站'+(i+1))} · 越行 两岛四线</text></g>`;
+        svg+=`<g class="cr135-overtake-station"><path d="M${x-sideHalf} ${sideUp} H${x+sideHalf} M${x-sideHalf} ${sideDn} H${x+sideHalf}" stroke="rgba(255,255,255,.72)" stroke-width="2.5" fill="none"/><path d="M${x-sideHalf} ${sideUp} L${swLeft} ${yUp} M${x+sideHalf} ${sideUp} L${swRight} ${yUp} M${x-sideHalf} ${sideDn} L${swLeft} ${yDn} M${x+sideHalf} ${sideDn} L${swRight} ${yDn}" stroke="rgba(255,255,255,.40)" stroke-width="2" fill="none"/><rect x="${x-half}" y="${platTopY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76bfff" stroke-width="2"/><rect x="${x-half}" y="${platBotY}" width="${platW}" height="28" rx="7" fill="rgba(255,255,255,.10)" stroke="#76ffb2" stroke-width="2"/><line x1="${x-half}" y1="${platTopY+14}" x2="${x+half}" y2="${platTopY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><line x1="${x-half}" y1="${platBotY+14}" x2="${x+half}" y2="${platBotY+14}" stroke="rgba(255,255,255,.16)" stroke-width="1"/><text x="${x}" y="${yUp+58}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${yDn-36}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${yDn-14}" fill="#ffd66b" font-size="12" font-weight="900" text-anchor="middle">${esc(st&&st.name?st.name:'站'+(i+1))} · 越行站</text></g>`;
       } else {
         svg+=`<g><rect x="${x-39}" y="${yMid-34}" width="78" height="68" rx="10" fill="rgba(255,255,255,.08)" stroke="${esc(lineColor(line))}" stroke-width="2"/><line x1="${x-43}" y1="${yMid}" x2="${x+43}" y2="${yMid}" stroke="rgba(255,255,255,.25)" stroke-width="2"/><text x="${x}" y="${yUp+36}" fill="#76bfff" font-size="11" text-anchor="middle">上行 ${fmt(w0)}人</text><text x="${x}" y="${yDn-28}" fill="#76ffb2" font-size="11" text-anchor="middle">下行 ${fmt(w1)}人</text><text x="${x}" y="${yMid+54}" fill="rgba(255,255,255,.88)" font-size="12" font-weight="800" text-anchor="middle">${esc(st&&st.name?st.name:'站'+(i+1))}</text></g>`;
       }
@@ -40025,10 +40625,12 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       svg+=throughAtsButton(throughInfo,jx,yMid-96,'主支线图');
     }
     const localStoppedAtOvertake=t=>{ const idx=Math.round(trainSeq(line,t)); const stationId=ids[Math.max(0,Math.min(N-1,idx))]; const near=Math.abs(trainSeq(line,t)-idx)<0.18; return !isExpress(t)&&near&&oset.has(sid(stationId))&&/dwell|wait|hold|station|停|等待|holding/i.test(sid(t.state)); };
-    const lanes=Object.create(null); shown.forEach(t=>{const dir=trainDir(t)===1?1:0,x=stableX(line,t,left,gap),onSide=localStoppedAtOvertake(t),base=dir===0?yUp:yDn,key=dir+'|'+Math.round(x/46),k=lanes[key]||0;lanes[key]=k+1;const y=onSide?(yMid+(dir===0?-8:8)):(base+(dir===0?-46:46)+(k%2)*(dir===0?-18:18)),held=!!(t&&t._dispatchHold)||/hold|holding|扣停/i.test(sid(t&&t.state)),c=held?'#ffd60a':(isExpress(t)?'#0a84ff':(isRed(t)?'#ff453a':'#30d158')),sel=sid(owner.selectedTrain)===trainId(t),load=fmt(t.passengers||t.load||0); svg+=`<g class="cr135-train ${sel?'selected':''}" data-train="${esc(trainId(t))}"><rect x="${x-32}" y="${y-15}" width="64" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">${esc(load)}</text><path d="M${dir===0?x+37:x-37},${y} l${dir===0?10:-10},-6 v12 z" fill="${c}"/></g>`;});
+    const lanes=Object.create(null); shown.forEach(t=>{const dir=trainDir(t)===1?1:0,x=stableX(line,t,left,gap),stateText=sid(t&&t.state),singleStopped=singleTrack&&(!!(t&&t._singleTrackHold)||/dwell|wait|turn|station|停|等待|holding/i.test(stateText)),onSide=!singleTrack&&localStoppedAtOvertake(t),base=singleTrack?(singleStopped?(dir===0?yMid-34:yMid+34):yMid):(dir===0?yUp:yDn),key=dir+'|'+Math.round(x/46),k=lanes[key]||0;lanes[key]=k+1;const y=singleTrack?(base+(singleStopped?((k%2)*(dir===0?-16:16)):((dir===0?-8:8)+(k%2)*(dir===0?-14:14)))):(onSide?(yMid+(dir===0?-8:8)):(base+(dir===0?-46:46)+(k%2)*(dir===0?-18:18))),held=!!(t&&t._dispatchHold)||!!(t&&t._singleTrackHold)||/hold|holding|扣停/i.test(stateText),c=held?'#ffd60a':(isExpress(t)?'#0a84ff':(isRed(t)?'#ff453a':'#30d158')),sel=sid(owner.selectedTrain)===trainId(t),load=fmt(t.passengers||t.load||0); svg+=`<g class="cr135-train ${sel?'selected':''}" data-train="${esc(trainId(t))}"><rect x="${x-32}" y="${y-15}" width="64" height="30" rx="8" fill="rgba(0,0,0,.82)" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+5}" fill="#fff" text-anchor="middle" font-size="13" font-weight="900">${esc(load)}</text><path d="M${dir===0?x+37:x-37},${y} l${dir===0?10:-10},-6 v12 z" fill="${c}"/></g>`;});
     svg+='</svg>'; board.style.width=width+'px'; board.innerHTML=svg;
     const allWait=stationFlowRows.reduce((a,r)=>a+r.waiting,0), onboard=all.reduce((a,t)=>a+num(t.passengers||t.load,0),0); let max={name:'—',w:0}; stationFlowRows.forEach(r=>{ if(r.waiting>max.w) max={name:r.name,w:r.waiting};}); const noSelected=selected?'':' disabled';
-    renderAtsSide(side,atsSideKey(line.id,owner.mode,'line'),`<h3 data-ats-side-section="summary-title">运行调度</h3>${dispatchRiskRow(all)}<div class="cr135-kpi" data-ats-side-section="summary"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div>${commandNotice()}${lineDepotGuidePanel(line)}${lineStationPassengerPanel(line,stationFlowRows)}${selectedTrainPanel(line,selected)}<section class="cr135-command-panel" data-ats-side-section="commands"><div class="cr135-panel-head"><h3>列车命令</h3><span class="cr135-pill">单车</span></div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd warn" data-cmd="hold"${noSelected}>扣车/延长停站</button><button type="button" class="cr135-cmd ok" data-cmd="release"${noSelected}>放行</button><button type="button" class="cr135-cmd danger" data-cmd="skip"${noSelected}>跳停下一站</button><button type="button" class="cr135-cmd warn" data-cmd="turnback"${noSelected}>就地折返</button><button type="button" class="cr135-cmd" data-cmd="clear"${noSelected}>清除命令</button></div></section><div id="cr156-service-slot" class="cr156-slot" data-ats-side-section="service-patterns" data-ats-side-external="true"></div><section class="cr135-overtake-panel" data-ats-side-section="overtake"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map((id,i)=>{const st=stationById(id),on=overtakeIds(line).has(sid(id)),locked=i<=0||i>=ids.length-1;return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}"${locked?' disabled':''}>${locked?'终端站':(on?'取消越行站':'升级为越行站')}</button></div>`;}).join('')}</div></section><div class="cr135-note" data-ats-side-section="overtake-note">越行站：慢车待避，快车通过。</div>`);
+    const turnbackDisabled=selected&&singleTrack?' disabled':noSelected;
+    const overtakeConfigPanel=singleTrack?`<div class="cr135-note" data-ats-side-section="overtake-note">单线制式：区间一车闭塞，不设置越行站，不启用快慢车。</div>`:`<section class="cr135-overtake-panel" data-ats-side-section="overtake"><h3>越行站配置</h3><div class="cr135-overtake-list">${ids.map((id,i)=>{const st=stationById(id),on=overtakeIds(line).has(sid(id)),locked=i<=0||i>=ids.length-1;return `<div class="cr135-stctl"><b>${esc(st&&st.name?st.name:id)}</b><button type="button" class="cr135-small" data-ov="${esc(id)}"${locked?' disabled':''}>${locked?'终端站':(on?'取消越行站':'升级为越行站')}</button></div>`;}).join('')}</div></section><div class="cr135-note" data-ats-side-section="overtake-note">越行站：慢车待避，快车通过。</div>`;
+    renderAtsSide(side,atsSideKey(line.id,owner.mode,'line'),`<h3 data-ats-side-section="summary-title">运行调度</h3>${dispatchRiskRow(all)}<div class="cr135-kpi" data-ats-side-section="summary"><div><span>当前显示列车</span><b>${fmt(shown.length)}</b></div><div><span>全线列车</span><b>${fmt(all.length)}</b></div><div><span>车上人数</span><b>${fmt(onboard)}</b></div><div><span>全线候车</span><b>${fmt(allWait)}</b></div><div><span>最大候车站</span><b>${esc(max.name)}</b></div><div><span>候车人数</span><b>${fmt(max.w)}</b></div></div>${commandNotice()}${lineDepotGuidePanel(line)}${lineStationPassengerPanel(line,stationFlowRows)}${selectedTrainPanel(line,selected)}<section class="cr135-command-panel" data-ats-side-section="commands"><div class="cr135-panel-head"><h3>列车命令</h3><span class="cr135-pill">单车</span></div><div class="cr135-tabs" style="margin-top:10px"><button type="button" class="cr135-cmd warn" data-cmd="hold"${noSelected}>扣车/延长停站</button><button type="button" class="cr135-cmd ok" data-cmd="release"${noSelected}>放行</button><button type="button" class="cr135-cmd danger" data-cmd="skip"${noSelected}>跳停下一站</button><button type="button" class="cr135-cmd warn" data-cmd="turnback"${turnbackDisabled}>就地折返</button><button type="button" class="cr135-cmd" data-cmd="clear"${noSelected}>清除命令</button></div></section><div id="cr156-service-slot" class="cr156-slot" data-ats-side-section="service-patterns" data-ats-side-external="true"></div>${overtakeConfigPanel}`);
     renderAtsServicePatternPanel();
     bindScroll(line.id,owner.mode);
   }
@@ -40042,7 +40644,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     delete t._overtakeBehindIdV29;
     delete t._overtakeBehindEtaV29;
   }
-  function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){delete t._dispatchTurnbackNext; delete t._dispatchTurnbackPlan; clearDispatchRuntimeHolds(t); t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(['holding_short','dwelling','dispatch_turning_back'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='turnback'){t._dispatchTurnbackNext=true;t._dispatchCommand='turnback';delete t._dispatchHold;delete t._dispatchSkipNext;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.speed=0;t.dwellRemaining=Math.min(Math.max(num(t.dwellRemaining,6),6),12);}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dispatch_turning_back'){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); markAtsDirty('dispatch-command'); renderAts(true); noteAtsRendered(); return true; }
+  function applyCommand(cmd){ const t=getTrains().find(x=>trainId(x)===sid(owner.selectedTrain)); if(!t) return false; t._dispatchUpdatedAt=Date.now(); if(cmd==='hold'){delete t._dispatchTurnbackNext; delete t._dispatchTurnbackPlan; clearDispatchRuntimeHolds(t); t._dispatchHold=true;t._dispatchCommand='hold';t._manualHoldUntil=Infinity;t.speed=0;if(/waiting/i.test(sid(t.state))) t.state='waiting'; else t.state='dwelling';t.dwellRemaining=Math.max(num(t.dwellRemaining,0),90);} if(cmd==='release'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(['holding_short','dwelling','dispatch_turning_back'].includes(sid(t.state))){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} if(cmd==='skip'){t._dispatchSkipNext=true;t._dispatchCommand='skip-next';delete t._dispatchHold;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.dwellRemaining=0;t.state='accelerating';t.speed=0;}} if(cmd==='turnback'){const cmdLine=lineById(trainLine(t)); if(cmdLine&&W.cityrailLineIsSingleTrack&&W.cityrailLineIsSingleTrack(cmdLine)){D.documentElement.dataset.cityrailDispatchNotice='单线制式不设折返线，不能执行就地折返'; owner.lastSig=''; markAtsDirty('single-track-turnback-blocked'); renderAts(true); noteAtsRendered(); return false;} t._dispatchTurnbackNext=true;t._dispatchCommand='turnback';delete t._dispatchHold;delete t._dispatchSkipNext;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dwelling'){t.speed=0;t.dwellRemaining=Math.min(Math.max(num(t.dwellRemaining,6),6),12);}} if(cmd==='clear'){delete t._dispatchHold;delete t._dispatchCommand;delete t._dispatchSkipNext;delete t._dispatchTurnbackNext;delete t._dispatchTurnbackPlan;delete t._manualHoldUntil;clearDispatchRuntimeHolds(t);if(sid(t.state)==='dispatch_turning_back'){t.state='accelerating';t.speed=0;t.dwellRemaining=0;}} owner.lastSig=''; D.documentElement.dataset.cityrailLastDispatch=[trainId(t),sid(cmd),sid(t._dispatchCommand||'cleared')].join(':'); markAtsDirty('dispatch-command'); renderAts(true); noteAtsRendered(); return true; }
   function updatePerfHud(){ const hud=byId('cityrail-v114-perf')||D.querySelector('.perf-hud'); if(!hud) return; const has=getLines().length>0||!!S().__lastLoadAt||!!S().__v114Loaded; const blockers=['#settings-overlay:not(.hidden)','#line-config-v137-overlay:not(.hidden)','#line-config-v135-overlay:not(.hidden)','#line-config-v134-overlay:not(.hidden)','#city-select-screen:not(.hidden)','#payment-screen:not(.hidden)','#payment-success-screen:not(.hidden)','#station-stats-overlay:not(.hidden)','.modal:not(.hidden)']; const blocked=!!D.querySelector(blockers.join(',')); hud.classList.toggle('v135-hidden',!(has&&!blocked)); hud.style.pointerEvents='none'; }
   function stopOld(){ ['__cityrailAtsTimer','__cityrailV116AtsTimer','__cityrailV121AtsTimer','__cityrailV124AtsTimer','__cityrailV130Timer','__cityrailV131Timer','__cityrailV132Timer','__cityrailV133Timer','__cityrailV134Observer','__cityrailV102ControlTimer','__cityrailV101ControlTimer','__cityrailV100ControlTimer','__cityrailV99ControlTimer'].forEach(k=>{try{if(W[k]){clearInterval(W[k]);clearTimeout(W[k]);if(W[k].disconnect)W[k].disconnect();W[k]=null;}}catch(e){}}); }
 
@@ -44382,7 +44984,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       #line-config-panel.cr269-connector-config #cfg-time-panel,
       #line-config-panel.cr269-connector-config .cfg-row:has(#cfg-train-type),
       #line-config-panel.cr269-connector-config .cfg-row:has(#cfg-cars),
-      #line-config-panel.cr269-connector-config .cfg-row:has(#cfg-speed){display:none!important;}
+      #line-config-panel.cr269-connector-config .cfg-row:has(#cfg-speed),
+      #line-config-panel.cr269-connector-config .cfg-row:has(#cfg-track-mode){display:none!important;}
       @media(max-width:760px){#new-build-choice.cr269-has-connector{grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important;min-width:0!important;}.cr269-grid,.cr269-direction-grid,.cr269-stop-list{grid-template-columns:1fr!important;min-width:0!important;}#new-connector-form{min-width:0;}}
     `;
     D.head.appendChild(st);
@@ -44545,8 +45148,15 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     const el = choice || byId('new-build-choice');
     if (!el) return;
     const compact = W.innerWidth <= 760;
-    el.style.setProperty('grid-template-columns', compact ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(132px,1fr))', 'important');
-    el.style.setProperty('width', compact ? '100%' : 'min(880px,calc(100vw - 112px))', 'important');
+    const hasRealNetwork = el.classList.contains('cr-rni-build-choice') || !!byId('new-build-real-network');
+    const columns = hasRealNetwork
+      ? (compact ? 'repeat(5,minmax(84px,1fr))' : 'repeat(5,minmax(112px,1fr))')
+      : (compact ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(132px,1fr))');
+    const width = hasRealNetwork
+      ? (compact ? '100%' : 'min(1040px,calc(100vw - 112px))')
+      : (compact ? '100%' : 'min(880px,calc(100vw - 112px))');
+    el.style.setProperty('grid-template-columns', columns, 'important');
+    el.style.setProperty('width', width, 'important');
     el.style.setProperty('min-width', '0', 'important');
     el.style.setProperty('overflow', 'visible', 'important');
   }
@@ -44848,7 +45458,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       byId('cfg-time-panel'),
       byId('cfg-train-type') && byId('cfg-train-type').closest('.cfg-row'),
       byId('cfg-cars') && byId('cfg-cars').closest('.cfg-row'),
-      byId('cfg-speed') && byId('cfg-speed').closest('.cfg-row')
+      byId('cfg-speed') && byId('cfg-speed').closest('.cfg-row'),
+      byId('cfg-track-mode') && byId('cfg-track-mode').closest('.cfg-row')
     ].filter(Boolean);
   }
 
@@ -47129,6 +47740,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   });
   [300,1200,3000,7000].forEach(ms => W.setTimeout(() => boot('timer-' + ms), ms));
 })();
+
 
 /* ===== CityRail Designer City style map input governor ===== */
 (function(){

@@ -41,6 +41,7 @@ const FUNCTION_ROUTES = [
   { match: /^\/api\/analytics\/visit\/?$/i, file: 'functions/api/analytics/visit.js' },
   { match: /^\/api\/admin\/analytics\/?$/i, file: 'functions/api/admin/analytics.js' },
   { match: /^\/api\/map-tile\/?(.*)$/i, file: 'functions/api/map-tile/[[path]].js', params: m => ({ path: m[1] ? m[1].split('/').filter(Boolean).map(decodeURIComponent) : [] }) },
+  { match: /^\/api\/osm\/rail-network\/?$/i, file: 'functions/api/osm/rail-network.js' },
   { match: /^\/api\/place-name\/?$/i, file: 'functions/api/place-name.js' },
   { match: /^\/api\/city-place-data\/?$/i, file: 'functions/api/city-place-data.js' },
   { match: /^\/api\/check-username\/([^/]+)\/?$/i, file: 'functions/api/check-username/[username].js', params: m => ({ username: decodeURIComponent(m[1]) }) },
