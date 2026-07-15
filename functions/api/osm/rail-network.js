@@ -18,6 +18,14 @@ const MIN_POINT_DISTANCE_M = 55;
 const SIMPLIFY_TOLERANCE_M = 42;
 const LOOP_CLOSE_MAX_M = 180;
 const LOOP_SAME_TERMINAL_MAX_M = 2000;
+const SNAPSHOT_BBOXES = new Map([
+  ['31.05,121.25,31.45,121.65', 'shanghai.json'],
+  ['22.75,113.05,23.55,113.85', 'guangzhou.json'],
+  ['30.35,103.75,30.95,104.35', 'chengdu.json'],
+  ['29.35,106.2,29.85,106.85', 'chongqing.json'],
+  ['30.05,119.95,30.45,120.45', 'hangzhou.json'],
+]);
+const snapshotCache = new Map();
 
 function jsonResponse(data, status = 200, maxAge = 300) {
   return new Response(JSON.stringify(data), {
@@ -47,6 +55,29 @@ function bboxFromUrl(url) {
   if (south >= north || west >= east) return null;
   if ((north - south) > MAX_BBOX_SPAN || (east - west) > MAX_BBOX_SPAN) return null;
   return bbox.map(v => Math.round(v * 1000000) / 1000000);
+}
+
+function bboxKey(bbox) {
+  return (bbox || []).map(v => String(Number(v))).join(',');
+}
+
+async function snapshotForBbox(bbox) {
+  if (typeof process === 'undefined' || !process.versions || !process.versions.node) return null;
+  const file = SNAPSHOT_BBOXES.get(bboxKey(bbox));
+  if (!file) return null;
+  if (snapshotCache.has(file)) return snapshotCache.get(file);
+  try {
+    const [{ default: fs }, { default: path }] = await Promise.all([
+      import('node:fs/promises'),
+      import('node:path'),
+    ]);
+    const fullPath = path.join(process.cwd(), 'fixtures', 'real-network', file);
+    const data = JSON.parse(await fs.readFile(fullPath, 'utf8'));
+    snapshotCache.set(file, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 function relationSummaryQuery(bbox) {
@@ -591,6 +622,9 @@ export async function onRequestGet(context) {
   }
 
   try {
+    const snapshot = await snapshotForBbox(bbox);
+    if (snapshot) return jsonResponse(snapshot, 200, 86400);
+
     const startedAt = Date.now();
     const { endpoint, data, relationCount, fetchedRelationCount, failedBatchCount } = await queryOverpass(bbox);
     const maps = mapsFromElements(data && data.elements);
