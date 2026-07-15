@@ -2,18 +2,30 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v481-full-china-network';
+  const VERSION = 'v482-expanded-china-network';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
     { id:'shanghai', name:'上海', bbox:[31.05,121.25,31.45,121.65] },
+    { id:'beijing', name:'北京', bbox:[39.55,115.85,40.30,117.05] },
     { id:'guangzhou', name:'广州', bbox:[22.75,113.05,23.55,113.85] },
+    { id:'shenzhen', name:'深圳', bbox:[22.35,113.70,22.90,114.65] },
     { id:'chengdu', name:'成都', bbox:[30.35,103.75,30.95,104.35] },
     { id:'chongqing', name:'重庆', bbox:[29.35,106.20,29.85,106.85] },
+    { id:'wuhan', name:'武汉', bbox:[30.30,114.00,30.80,114.65] },
+    { id:'nanjing', name:'南京', bbox:[31.85,118.55,32.20,119.05] },
     { id:'hangzhou', name:'杭州', bbox:[30.05,119.95,30.45,120.45] },
+    { id:'xian', name:'西安', bbox:[34.05,108.65,34.45,109.25] },
+    { id:'suzhou', name:'苏州', bbox:[31.05,120.35,31.55,120.95] },
+    { id:'tianjin', name:'天津', bbox:[38.85,116.85,39.35,117.65] },
+    { id:'zhengzhou', name:'郑州', bbox:[34.50,113.35,34.95,114.10] },
+    { id:'qingdao', name:'青岛', bbox:[35.85,119.85,36.45,120.75] },
+    { id:'changsha', name:'长沙', bbox:[27.95,112.65,28.40,113.25] },
+    { id:'shenyang', name:'沈阳', bbox:[41.55,123.15,42.05,123.75] },
+    { id:'dalian', name:'大连', bbox:[38.75,121.25,39.15,122.10] },
     { id:'current', name:'当前地图视野', bbox:null },
   ];
-  const MAX_IMPORT_ROUTES = 24;
+  const MAX_IMPORT_ROUTES = 80;
   const MAX_BBOX_SPAN = 1.9;
   let importPlan = null;
   let previewLayer = null;
@@ -75,7 +87,7 @@
   }
   function apiUrl(bbox){
     const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260715-v481-full-china-network';
+    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260715-v482-expanded-china-network';
   }
   function setText(id, text){
     const el = byId(id);

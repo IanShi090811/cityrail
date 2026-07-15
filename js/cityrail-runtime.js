@@ -982,7 +982,7 @@ cityrailApplyPassengerShapeProfiles();
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v481-full-china-network-loader';
+  const VERSION = 'v482-expanded-china-network-loader';
   if (W.CityRailRealNetworkImporterLoader && W.CityRailRealNetworkImporterLoader.version === VERSION) return;
   let loading = null;
   function byId(id){ return D.getElementById(id); }
@@ -1067,7 +1067,7 @@ cityrailApplyPassengerShapeProfiles();
     if (loading) return loading;
     loading = new Promise((resolve, reject) => {
       const script = D.createElement('script');
-      script.src = 'js/cityrail-real-network-importer.js?v=20260715-v481-full-china-network';
+      script.src = 'js/cityrail-real-network-importer.js?v=20260715-v482-expanded-china-network';
       script.async = true;
       script.onload = () => W.CityRailRealNetworkImporter ? resolve(W.CityRailRealNetworkImporter) : reject(new Error('现实线网模块未注册'));
       script.onerror = () => reject(new Error('现实线网模块加载失败'));

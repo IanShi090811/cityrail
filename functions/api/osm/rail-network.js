@@ -20,10 +20,22 @@ const LOOP_CLOSE_MAX_M = 180;
 const LOOP_SAME_TERMINAL_MAX_M = 2000;
 const SNAPSHOT_BBOXES = new Map([
   ['31.05,121.25,31.45,121.65', 'shanghai.json'],
+  ['39.55,115.85,40.3,117.05', 'beijing.json'],
   ['22.75,113.05,23.55,113.85', 'guangzhou.json'],
+  ['22.35,113.7,22.9,114.65', 'shenzhen.json'],
   ['30.35,103.75,30.95,104.35', 'chengdu.json'],
   ['29.35,106.2,29.85,106.85', 'chongqing.json'],
+  ['30.3,114,30.8,114.65', 'wuhan.json'],
+  ['31.85,118.55,32.2,119.05', 'nanjing.json'],
   ['30.05,119.95,30.45,120.45', 'hangzhou.json'],
+  ['34.05,108.65,34.45,109.25', 'xian.json'],
+  ['31.05,120.35,31.55,120.95', 'suzhou.json'],
+  ['38.85,116.85,39.35,117.65', 'tianjin.json'],
+  ['34.5,113.35,34.95,114.1', 'zhengzhou.json'],
+  ['35.85,119.85,36.45,120.75', 'qingdao.json'],
+  ['27.95,112.65,28.4,113.25', 'changsha.json'],
+  ['41.55,123.15,42.05,123.75', 'shenyang.json'],
+  ['38.75,121.25,39.15,122.1', 'dalian.json'],
 ]);
 const snapshotCache = new Map();
 
