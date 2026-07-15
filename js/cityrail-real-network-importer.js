@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v480-china-real-network-import';
+  const VERSION = 'v481-full-china-network';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
@@ -75,7 +75,7 @@
   }
   function apiUrl(bbox){
     const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260715-v480-china-real-network-import';
+    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260715-v481-full-china-network';
   }
   function setText(id, text){
     const el = byId(id);

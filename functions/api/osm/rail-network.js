@@ -171,7 +171,7 @@ function displayName(tags, fallback) {
   return String(t['name:zh'] || t['name:zh-Hans'] || t.name || t['name:en'] || t.ref || fallback || '').trim();
 }
 
-function cleanName(name) {
+export function cleanName(name) {
   return String(name || '')
     .replace(/\s+/g, '')
     .replace(/站$/u, '')
@@ -190,7 +190,7 @@ function normalizeColor(value) {
   return '#' + s.split('').map(ch => ch + ch).join('');
 }
 
-function mapsFromElements(elements) {
+export function mapsFromElements(elements) {
   const nodes = new Map();
   const ways = new Map();
   const relations = [];
@@ -389,7 +389,7 @@ function compactSegmentWaypoints(points, fromStop, toStop) {
   return capPoints(simplifyPoints(seg, SIMPLIFY_TOLERANCE_M), MAX_SEGMENT_WAYPOINTS);
 }
 
-function parseRelation(relation, maps) {
+export function parseRelation(relation, maps) {
   const tags = relation.tags || {};
   if (!ROUTE_RE.test(String(tags.route || ''))) return null;
   const members = Array.isArray(relation.members) ? relation.members : [];
@@ -469,7 +469,7 @@ function parseRelation(relation, maps) {
   };
 }
 
-function chooseBestRoutes(routes) {
+export function chooseBestRoutes(routes) {
   const grouped = new Map();
   for (const route of routes) {
     const key = route.key || String(route.relationId);
@@ -524,7 +524,7 @@ function relationSortKey(relation) {
   return `${ref || name}|${name}|${relation.id}`;
 }
 
-function uniqueRouteRelations(elements) {
+function uniqueRouteRelations(elements, maxRelations = MAX_RELATIONS_TO_FETCH) {
   const grouped = new Map();
   for (const el of Array.isArray(elements) ? elements : []) {
     if (!el || el.type !== 'relation' || !ROUTE_RE.test(String(el.tags && el.tags.route || ''))) continue;
@@ -538,7 +538,7 @@ function uniqueRouteRelations(elements) {
   return Array.from(grouped.values())
     .map(list => list.sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))[0])
     .sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))
-    .slice(0, MAX_RELATIONS_TO_FETCH);
+    .slice(0, maxRelations);
 }
 
 function chunk(items, size) {
@@ -573,11 +573,11 @@ function mergeElements(elementLists) {
   return Array.from(byKey.values());
 }
 
-async function queryOverpass(bbox) {
+async function queryOverpass(bbox, maxRelations = MAX_RELATIONS_TO_FETCH) {
   const summary = await requestOverpass(relationSummaryQuery(bbox), 22000, data =>
     Array.isArray(data && data.elements) && data.elements.some(el => el && el.type === 'relation')
   );
-  const relations = uniqueRouteRelations(summary.data && summary.data.elements);
+  const relations = uniqueRouteRelations(summary.data && summary.data.elements, maxRelations);
   if (!relations.length) return { endpoint: summary.endpoint, data: { elements: [] }, relationCount: 0, fetchedRelationCount: 0, failedBatchCount: 0 };
 
   const batches = chunk(relations.map(relation => relation.id), RELATION_BATCH_SIZE);
@@ -622,11 +622,13 @@ export async function onRequestGet(context) {
   }
 
   try {
-    const snapshot = await snapshotForBbox(bbox);
+    const forceLive = url.searchParams.get('live') === '1';
+    const maxRelations = Math.max(1, Math.min(160, Math.round(num(url.searchParams.get('maxRelations'), MAX_RELATIONS_TO_FETCH))));
+    const snapshot = forceLive ? null : await snapshotForBbox(bbox);
     if (snapshot) return jsonResponse(snapshot, 200, 86400);
 
     const startedAt = Date.now();
-    const { endpoint, data, relationCount, fetchedRelationCount, failedBatchCount } = await queryOverpass(bbox);
+    const { endpoint, data, relationCount, fetchedRelationCount, failedBatchCount } = await queryOverpass(bbox, maxRelations);
     const maps = mapsFromElements(data && data.elements);
     const parsed = maps.relations.map(relation => parseRelation(relation, maps)).filter(Boolean);
     const routes = chooseBestRoutes(parsed);
