@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v484-real-network-branches';
+  const VERSION = 'v486-urban-rail-route-scope';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
@@ -87,7 +87,7 @@
   }
   function apiUrl(bbox){
     const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v484-real-network-branches';
+    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v486-urban-rail-route-scope';
   }
   function setText(id, text){
     const el = byId(id);
@@ -144,6 +144,20 @@
       return /支线\d*$/u.test(base) ? base : base + suffix;
     }
     return base;
+  }
+  function routeCategoryLabel(route){
+    const key = sid(route && route.routeCategory);
+    const map = {
+      metro:'地铁',
+      light_rail:'轻轨',
+      monorail:'单轨',
+      maglev:'磁浮',
+      tram:'有轨',
+      suburban_rail:'市郊/市域',
+      intercity_rail:'城际',
+      regional_urban_rail:'区域轨道',
+    };
+    return map[key] || '';
   }
   function installStyle(){
     if (byId('cityrail-real-network-importer-style')) return;
@@ -298,7 +312,7 @@
         <input type="checkbox" data-rni-route value="${index}" ${index < MAX_IMPORT_ROUTES ? 'checked' : ''}>
         <span class="cr-rni-swatch"></span>
         <span><span class="cr-rni-name">${esc(routeServiceName(route))}</span><span class="cr-rni-meta">${esc(route.network || route.route || 'OSM')} · ${esc(route.ref || ('#' + route.relationId))}${route.variantRole === 'branch' && route.branchJunctionName ? ' · 接入 ' + esc(route.branchJunctionName) : ''}</span></span>
-        <span class="cr-rni-badge">${(route.stations || []).length}站${route.variantRole === 'branch' ? ' · 支线' : (route.variantRole === 'section' ? ' · 区段' : '')}${routeIsLoop(route) ? ' · 环线' : ''}</span>
+        <span class="cr-rni-badge">${routeCategoryLabel(route) ? esc(routeCategoryLabel(route)) + ' · ' : ''}${(route.stations || []).length}站${route.variantRole === 'branch' ? ' · 支线' : (route.variantRole === 'section' ? ' · 区段' : '')}${routeIsLoop(route) ? ' · 环线' : ''}</span>
       </label>`).join('');
     list.querySelectorAll('[data-rni-route]').forEach(input => input.addEventListener('change', () => {
       renderKpis();
@@ -469,7 +483,7 @@
       _headwayManual:false,
       pathMode:'ordered',
 	      requiresRealDepot:true,
-	      sourceImport: { type:'osm-overpass', relationId:route.relationId, ref:route.ref || '', network:route.network || '', originalName:route.name || '', variantRole:route.variantRole || 'main', branchBaseKey:route.branchBaseKey || route.key || '', branchIndex:Math.max(0, Math.round(num(route.branchIndex, 0))), branchJunctionName:route.branchJunctionName || '', isLoop:routeIsLoop(route), loopReason:route.loopReason || '', importedAt:Date.now(), version:VERSION },
+	      sourceImport: { type:'osm-overpass', relationId:route.relationId, ref:route.ref || '', network:route.network || '', routeCategory:route.routeCategory || '', originalName:route.name || '', variantRole:route.variantRole || 'main', branchBaseKey:route.branchBaseKey || route.key || '', branchIndex:Math.max(0, Math.round(num(route.branchIndex, 0))), branchJunctionName:route.branchJunctionName || '', isLoop:routeIsLoop(route), loopReason:route.loopReason || '', importedAt:Date.now(), version:VERSION },
 	    };
 	    if (route && route.variantRole === 'branch') {
 	      line.branchTransferPenalty = 2;

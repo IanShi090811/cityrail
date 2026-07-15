@@ -5,7 +5,10 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.osm.ch/api/interpreter',
 ];
 const USER_AGENT = 'CityRailGame/1.0 (+https://cityrailgame.com)';
-const ROUTE_RE = /^(subway|light_rail|monorail)$/i;
+const ROUTE_RE = /^(subway|light_rail|monorail|tram|train|rail)$/i;
+const URBAN_ROUTE_RE = /^(subway|light_rail|monorail|tram)$/i;
+const REGIONAL_URBAN_RAIL_RE = /地铁|軌道交通|轨道交通|市域|市郊|城际|城際|城郊|通勤|机场线|机场快线|空港|快线|捷运|磁浮|磁悬浮|云巴|有轨|tram|metro|subway|mrt|lrt|urban rail|commuter|suburban|intercity|airport|express|rapid transit|regional rail|\b[SR]\s*\d+\b/i;
+const NON_URBAN_RAIL_RE = /货运|货物|货线|货车|货运铁路|专用线|支线货运|高速铁路|高铁|客运专线|普速铁路|干线铁路|national rail|freight|cargo|high[-\s]?speed|bullet train|mainline|main line|long[-\s]?distance/i;
 const STOP_ROLE_RE = /stop|platform|station|halt/i;
 const STOP_TAG_RE = /station|stop_position|platform|halt/i;
 const NON_OPERATING_RE = /已停运|停运|暫停|暂停|未开通|未開通|规划|規劃|建设中|建設中|under construction|planned|proposed|abandoned|disused|closed/i;
@@ -96,7 +99,7 @@ async function snapshotForBbox(bbox) {
 function relationSummaryQuery(bbox) {
   const box = bbox.join(',');
   return `[out:json][timeout:30];
-  relation["type"="route"]["route"~"^(subway|light_rail|monorail)$"](${box});
+  relation["type"="route"]["route"~"^(subway|light_rail|monorail|tram|train|rail)$"](${box});
 out tags;`;
 }
 
@@ -201,6 +204,41 @@ function normalizeColor(value) {
   if (!shortHex) return null;
   const s = raw.replace('#', '').toLowerCase();
   return '#' + s.split('').map(ch => ch + ch).join('');
+}
+
+function relationText(tags, name = '') {
+  const t = tags || {};
+  return [
+    name,
+    t['name:zh'],
+    t['name:zh-Hans'],
+    t.name,
+    t['name:en'],
+    t.ref,
+    t.network,
+    t.operator,
+    t.description,
+    t.from,
+    t.to,
+  ].filter(Boolean).join(' ');
+}
+
+function isUrbanRailRouteTags(tags, name = '') {
+  const route = String(tags && tags.route || '').trim();
+  if (!ROUTE_RE.test(route)) return false;
+  const raw = relationText(tags, name);
+  if (NON_OPERATING_RE.test(raw)) return false;
+  if (URBAN_ROUTE_RE.test(route)) return true;
+  if (NON_URBAN_RAIL_RE.test(raw) && !REGIONAL_URBAN_RAIL_RE.test(raw)) return false;
+  return REGIONAL_URBAN_RAIL_RE.test(raw);
+}
+
+function isTrainServiceRef(tags) {
+  const route = String(tags && tags.route || '').trim().toLowerCase();
+  if (route !== 'train' && route !== 'rail') return false;
+  const ref = String(tags && tags.ref || '').trim();
+  if (!ref) return false;
+  return /^(?:[CGDKTZ]\s*\d+[A-Z]?|\d{3,5})(?:\s*[;,/]\s*(?:[CGDKTZ]\s*)?\d+[A-Z]?)*$/i.test(ref);
 }
 
 export function mapsFromElements(elements) {
@@ -368,7 +406,7 @@ function capPoints(points, maxCount) {
 
 function routeKey(tags, name) {
   const network = cleanName(tags && (tags.network || tags.operator || ''));
-  const ref = cleanName(tags && tags.ref || '');
+  const ref = isTrainServiceRef(tags) ? '' : cleanName(tags && tags.ref || '');
   const baseName = cleanName(String(name || '').split(/[:：]|=>|→|↔|-/)[0]);
   return [network, ref || baseName].filter(Boolean).join('|') || baseName;
 }
@@ -411,7 +449,12 @@ function sameRouteVariant(a, b) {
   const bSeq = sequenceKey(bKeys);
   if (aSeq === bSeq || aSeq === sequenceKey(bKeys.slice().reverse())) return true;
   if (stationSubsetOf(aKeys, bKeys) || stationSubsetOf(bKeys, aKeys)) return true;
-  return routeTerminalKey(a) === routeTerminalKey(b) && routeOverlapRatio(aKeys, bKeys) >= 0.86;
+  const sameTerminals = routeTerminalKey(a) === routeTerminalKey(b);
+  const overlap = routeOverlapRatio(aKeys, bKeys);
+  if (sameTerminals && overlap >= 0.86) return true;
+  const regional = [a && a.route, b && b.route].some(route => /^(train|rail)$/i.test(String(route || '')))
+    || [a && a.routeCategory, b && b.routeCategory].some(category => /^(suburban_rail|intercity_rail|regional_urban_rail)$/i.test(String(category || '')));
+  return regional && sameTerminals && overlap >= 0.6;
 }
 
 function branchJunctionName(main, branch) {
@@ -455,6 +498,18 @@ function routeLooksOperating(route) {
   return !NON_OPERATING_RE.test(raw);
 }
 
+function routeCategory(tags, name) {
+  const route = String(tags && tags.route || '').trim().toLowerCase();
+  const raw = relationText(tags, name);
+  if (route === 'tram') return 'tram';
+  if (route === 'light_rail') return /有轨|tram/i.test(raw) ? 'tram' : 'light_rail';
+  if (route === 'monorail') return /磁浮|磁悬浮|maglev/i.test(raw) ? 'maglev' : 'monorail';
+  if (/市域|市郊|城郊|通勤|commuter|suburban|regional rail/i.test(raw)) return 'suburban_rail';
+  if (/城际|城際|intercity/i.test(raw)) return 'intercity_rail';
+  if (route === 'subway') return 'metro';
+  return 'regional_urban_rail';
+}
+
 function closedRoutePointDistance(points) {
   if (!Array.isArray(points) || points.length < 3) return Infinity;
   return meters(points[0], points[points.length - 1]);
@@ -476,7 +531,8 @@ function compactSegmentWaypoints(points, fromStop, toStop) {
 
 export function parseRelation(relation, maps) {
   const tags = relation.tags || {};
-  if (!ROUTE_RE.test(String(tags.route || ''))) return null;
+  const name = displayName(tags, tags.ref ? `线路 ${tags.ref}` : 'OSM 线路');
+  if (!isUrbanRailRouteTags(tags, name)) return null;
   const members = Array.isArray(relation.members) ? relation.members : [];
   let stops = mergeStopCandidates(members.map(member => stationCandidate(member, maps)).filter(Boolean));
   let routePoints = concatWays(members, maps.ways);
@@ -501,7 +557,6 @@ export function parseRelation(relation, maps) {
     return cleanName(prev.name) !== cleanName(stop.name) || meters(prev, stop) >= 120;
   });
   if (stops.length < 2) return null;
-  const name = displayName(tags, tags.ref ? `线路 ${tags.ref}` : 'OSM 线路');
   const firstStop = stops[0];
   const lastStop = stops[stops.length - 1];
   const terminalDistanceM = meters(firstStop, lastStop);
@@ -533,9 +588,10 @@ export function parseRelation(relation, maps) {
 	    key: routeKey(tags, name),
 	    branchBaseKey: routeKey(tags, name),
 	    name,
-	    ref: tags.ref || '',
+	    ref: isTrainServiceRef(tags) ? '' : (tags.ref || ''),
 	    network: tags.network || '',
     route: tags.route || '',
+    routeCategory: routeCategory(tags, name),
     color: normalizeColor(tags.colour || tags.color),
     isLoop,
     loopMode: isLoop ? 'closed-ring' : '',
@@ -636,8 +692,7 @@ function uniqueRouteRelations(elements, maxRelations = MAX_RELATIONS_TO_FETCH) {
   const seen = new Set();
   const relations = [];
 	  for (const el of Array.isArray(elements) ? elements : []) {
-	    if (!el || el.type !== 'relation' || !ROUTE_RE.test(String(el.tags && el.tags.route || ''))) continue;
-	    if (NON_OPERATING_RE.test(Object.values(el.tags || {}).join(' '))) continue;
+	    if (!el || el.type !== 'relation' || !isUrbanRailRouteTags(el.tags || {}, displayName(el.tags || {}, el.id))) continue;
 	    const key = String(el.id);
     if (seen.has(key)) continue;
     seen.add(key);
