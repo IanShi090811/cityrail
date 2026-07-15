@@ -982,7 +982,7 @@ cityrailApplyPassengerShapeProfiles();
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v484-real-network-branches-loader';
+  const VERSION = 'v485-loop-segment-topology-authority';
   if (W.CityRailRealNetworkImporterLoader && W.CityRailRealNetworkImporterLoader.version === VERSION) return;
   let loading = null;
   function byId(id){ return D.getElementById(id); }
@@ -16910,6 +16910,34 @@ function lineSegmentStationIds(line, segIdx) {
   return null;
 }
 
+function lineSegmentCount(line) {
+  if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return 0;
+  return (line.stationIds.length - 1) + (hasLoopTopology(line) ? 1 : 0);
+}
+
+function lineSegmentEndpointPositions(line, segIdx) {
+  const endpoints = lineSegmentStationIds(line, segIdx);
+  if (!endpoints) return null;
+  const a = cityrailStationByIdFast(endpoints[0]);
+  const b = cityrailStationByIdFast(endpoints[1]);
+  if (!a || !b) return null;
+  const pa = getStationPosition(a, line && line.id);
+  const pb = getStationPosition(b, line && line.id);
+  const aLat = Number(pa && pa.lat);
+  const aLng = Number(pa && pa.lng);
+  const bLat = Number(pb && pb.lat);
+  const bLng = Number(pb && pb.lng);
+  if (!Number.isFinite(aLat) || !Number.isFinite(aLng) || !Number.isFinite(bLat) || !Number.isFinite(bLng)) return null;
+  return {
+    fromId: endpoints[0],
+    toId: endpoints[1],
+    fromStation: a,
+    toStation: b,
+    from: { lat: aLat, lng: aLng },
+    to: { lat: bLat, lng: bLng },
+  };
+}
+
 function snapshotLineTopologyNodes(line) {
   if (!line || !Array.isArray(line.stationIds)) return [];
   try {
@@ -16998,7 +17026,7 @@ function rebuildWaypointsFromTopologySnapshot(line, oldNodes, reason) {
 function normalizeLineWaypoints(line, reason) {
   if (!line || !Array.isArray(line.stationIds)) return line;
   if (!Array.isArray(line.waypoints)) line.waypoints = [];
-  const maxSeg = Math.max(0, line.stationIds.length - (hasLoopTopology(line) ? 1 : 2));
+  const maxSeg = Math.max(0, lineSegmentCount(line) - 1);
   const valid = [];
 
   // v195：节点顺序的权威规则改为“显式 segIdx + order”。
@@ -17013,21 +17041,16 @@ function normalizeLineWaypoints(line, reason) {
     if (seg < 0 || seg > maxSeg) {
       let bestSeg = 0, bestDist = Infinity;
       for (let i = 0; i <= maxSeg; i++) {
-        const endpoints = lineSegmentStationIds(line, i);
+        const endpoints = lineSegmentEndpointPositions(line, i);
         if (!endpoints) continue;
-        const a = state.stations.find(s => s.id === endpoints[0]);
-        const b = state.stations.find(s => s.id === endpoints[1]);
-        if (!a || !b) continue;
-        const dist = pointToSegmentDist(wp.lat, wp.lng, a.lat, a.lng, b.lat, b.lng);
+        const dist = pointToSegmentDist(wp.lat, wp.lng, endpoints.from.lat, endpoints.from.lng, endpoints.to.lat, endpoints.to.lng);
         if (dist < bestDist) { bestDist = dist; bestSeg = i; }
       }
       seg = bestSeg;
       repairedSeg = true;
     }
-    const endpoints = lineSegmentStationIds(line, seg);
-    const a = endpoints && state.stations.find(s => s.id === endpoints[0]);
-    const b = endpoints && state.stations.find(s => s.id === endpoints[1]);
-    const ratio = (a && b) ? projectRatioOnSegmentPx(wp.lat, wp.lng, a.lat, a.lng, b.lat, b.lng) : 0;
+    const endpoints = lineSegmentEndpointPositions(line, seg);
+    const ratio = endpoints ? projectRatioOnSegmentPx(wp.lat, wp.lng, endpoints.from.lat, endpoints.from.lng, endpoints.to.lat, endpoints.to.lng) : 0;
     const explicitOrder = Number(wp.order);
     valid.push(Object.assign({}, wp, {
       segIdx: seg,
@@ -17421,16 +17444,16 @@ function getLineTrainNodes(line) {
 // 保留旧函数兼容性（其他模块可能调用它来获取曲线坐标）
 function getSegmentCurveWithWaypoints(line, segIdx, numSegs) {
   numSegs = numSegs || 8;
-  const nodes = getLineNodes(line);
-  const sidA = line.stationIds[segIdx];
-  const sidB = line.stationIds[segIdx + 1];
-  let startIdx = -1, endIdx = -1;
-  for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].type === 'station' && nodes[i].id === sidA) startIdx = i;
-    if (nodes[i].type === 'station' && nodes[i].id === sidB) { endIdx = i; break; }
-  }
-  if (startIdx < 0 || endIdx < 0) return [];
-  const segPoints = nodes.slice(startIdx, endIdx + 1).map(n => [n.lat, n.lng]);
+  const endpoints = lineSegmentEndpointPositions(line, segIdx);
+  if (!endpoints) return [];
+  const segPoints = [[endpoints.from.lat, endpoints.from.lng]];
+  (line.waypoints || [])
+    .filter(w => Math.round(Number(w && w.segIdx)) === Math.round(Number(segIdx)))
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    .forEach(w => {
+      if (Number.isFinite(Number(w.lat)) && Number.isFinite(Number(w.lng))) segPoints.push([Number(w.lat), Number(w.lng)]);
+    });
+  segPoints.push([endpoints.to.lat, endpoints.to.lng]);
   return smoothPath(segPoints, numSegs);
 }
 
@@ -23909,10 +23932,9 @@ function insertStationOnLine(line, lat, lng) {
   const segIdx = findClosestSegmentIndex(line, lat, lng);
   const insertIdx = segIdx + 1;
   const originalWaypoints = Array.isArray(line.waypoints) ? line.waypoints.slice() : [];
-  const beforeStation = state.stations.find(s => s.id === line.stationIds[segIdx]);
-  const afterStation = state.stations.find(s => s.id === line.stationIds[Math.min(segIdx + 1, line.stationIds.length - 1)]);
-  const splitRatio = (beforeStation && afterStation)
-    ? projectRatioOnSegmentPx(lat, lng, beforeStation.lat, beforeStation.lng, afterStation.lat, afterStation.lng)
+  const splitEndpoints = lineSegmentEndpointPositions(line, segIdx);
+  const splitRatio = splitEndpoints
+    ? projectRatioOnSegmentPx(lat, lng, splitEndpoints.from.lat, splitEndpoints.from.lng, splitEndpoints.to.lat, splitEndpoints.to.lng)
     : 0.5;
 
   line.stationIds.splice(insertIdx, 0, station.id);
@@ -23925,8 +23947,8 @@ function insertStationOnLine(line, lat, lng) {
     if (!Number.isFinite(oldSeg)) return next;
     if (oldSeg > segIdx) next.segIdx = oldSeg + 1;
     else if (oldSeg === segIdx) {
-      const ratio = (beforeStation && afterStation)
-        ? projectRatioOnSegmentPx(next.lat, next.lng, beforeStation.lat, beforeStation.lng, afterStation.lat, afterStation.lng)
+      const ratio = splitEndpoints
+        ? projectRatioOnSegmentPx(next.lat, next.lng, splitEndpoints.from.lat, splitEndpoints.from.lng, splitEndpoints.to.lat, splitEndpoints.to.lng)
         : 0;
       next.segIdx = ratio <= splitRatio ? segIdx : segIdx + 1;
     } else next.segIdx = oldSeg;
@@ -23952,20 +23974,17 @@ function insertWaypointOnLine(line, lat, lng) {
   const segWps = line.waypoints.filter(w => w.segIdx === segIdx).sort((a, b) => a.order - b.order);
 
   // Find where the click is closest along the segment to determine order
-  const sidA = line.stationIds[segIdx];
-  const sidB = line.stationIds[Math.min(segIdx + 1, line.stationIds.length - 1)];
-  const sa = state.stations.find(s => s.id === sidA);
-  const sb = state.stations.find(s => s.id === sidB);
-  if (!sa || !sb) return;
+  const endpoints = lineSegmentEndpointPositions(line, segIdx);
+  if (!endpoints) return;
 
   // Compute true projection ratio along the segment. Distance-to-A alone is unstable on angled/curved edits
   // and was the root cause of waypoint order inversion after extending a line.
-  const ratio = projectRatioOnSegmentPx(lat, lng, sa.lat, sa.lng, sb.lat, sb.lng);
+  const ratio = projectRatioOnSegmentPx(lat, lng, endpoints.from.lat, endpoints.from.lng, endpoints.to.lat, endpoints.to.lng);
 
   // Insert into waypoints in sorted order
   let insertOrder = 0;
   for (let i = 0; i < segWps.length; i++) {
-    const wpRatio = projectRatioOnSegmentPx(segWps[i].lat, segWps[i].lng, sa.lat, sa.lng, sb.lat, sb.lng);
+    const wpRatio = projectRatioOnSegmentPx(segWps[i].lat, segWps[i].lng, endpoints.from.lat, endpoints.from.lng, endpoints.to.lat, endpoints.to.lng);
     if (ratio > wpRatio) insertOrder = i + 1;
   }
 
@@ -23993,13 +24012,13 @@ function findClosestSegmentIndex(line, lat, lng) {
   let minDist = Infinity;
   let bestIdx = 0;
 
-  for (let i = 0; i < line.stationIds.length - 1; i++) {
-    const sa = state.stations.find(s => s.id === line.stationIds[i]);
-    const sb = state.stations.find(s => s.id === line.stationIds[i + 1]);
-    if (!sa || !sb) continue;
+  const count = lineSegmentCount(line);
+  for (let i = 0; i < count; i++) {
+    const endpoints = lineSegmentEndpointPositions(line, i);
+    if (!endpoints) continue;
 
     // Find closest point on segment SA→SB to click
-    const dist = pointToSegmentDist(lat, lng, sa.lat, sa.lng, sb.lat, sb.lng);
+    const dist = pointToSegmentDist(lat, lng, endpoints.from.lat, endpoints.from.lng, endpoints.to.lat, endpoints.to.lng);
     if (dist < minDist) {
       minDist = dist;
       bestIdx = i;
@@ -28774,40 +28793,33 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 // including all waypoints in between. This gives the real segment length
 // rather than the straight-line (crow-flies) distance.
 function getLineSegmentDistance(line, segIdx) {
-  const sidA = line.stationIds[segIdx];
-  const sidB = segIdx === line.stationIds.length - 1 && isLoopLine(line)
-    ? line.stationIds[0]
-    : line.stationIds[segIdx + 1];
-  const sa = state.stations.find(s => s.id === sidA);
-  const sb = state.stations.find(s => s.id === sidB);
-  if (!sa || !sb) return 0;
+  const endpoints = lineSegmentEndpointPositions(line, segIdx);
+  if (!endpoints) return 0;
 
   const wps = (line.waypoints || []).filter(w => w.segIdx === segIdx).sort((a, b) => a.order - b.order);
   let total = 0;
-  let prevLat = sa.lat, prevLng = sa.lng;
+  let prevLat = endpoints.from.lat, prevLng = endpoints.from.lng;
   for (const wp of wps) {
     total += haversineKm(prevLat, prevLng, wp.lat, wp.lng);
     prevLat = wp.lat;
     prevLng = wp.lng;
   }
-  total += haversineKm(prevLat, prevLng, sb.lat, sb.lng);
+  total += haversineKm(prevLat, prevLng, endpoints.to.lat, endpoints.to.lng);
   return total;
 }
 
 function getLineSegmentEndpointIds(line, segIdx) {
-  if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return null;
-  const lastIdx = line.stationIds.length - 1;
-  if (segIdx < 0 || segIdx > lastIdx) return null;
-  if (segIdx === lastIdx && !isLoopLine(line)) return null;
+  const endpoints = lineSegmentStationIds(line, segIdx);
+  if (!endpoints) return null;
   return {
-    from: line.stationIds[segIdx],
-    to: segIdx === lastIdx ? line.stationIds[0] : line.stationIds[segIdx + 1]
+    from: endpoints[0],
+    to: endpoints[1]
   };
 }
 
 function findLineSegmentIndexBetween(line, fromId, toId) {
   if (!line || !Array.isArray(line.stationIds)) return null;
-  const count = (line.stationIds.length - 1) + (isLoopLine(line) ? 1 : 0);
+  const count = lineSegmentCount(line);
   for (let i = 0; i < count; i++) {
     const endpoints = getLineSegmentEndpointIds(line, i);
     if (!endpoints) continue;
@@ -38610,9 +38622,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   // More realistic navigation timing: scheduled average speed, dwell, initial wait, and transfer walk/wait.
   function lineSegmentDistance(line, segIdx){
     try{ if(typeof getLineSegmentDistance==='function') return Math.max(0,num(getLineSegmentDistance(line,segIdx))); }catch(e){}
-    const st=S(); const a=st.stations&&st.stations.find(x=>sid(x.id)===sid(line.stationIds[segIdx])); const b=st.stations&&st.stations.find(x=>sid(x.id)===sid(line.stationIds[segIdx+1]));
-    if(!a||!b) return 0;
-    const R=6371, rad=x=>x*Math.PI/180, dLat=rad(num(b.lat)-num(a.lat)), dLng=rad(num(b.lng)-num(a.lng)), la1=rad(num(a.lat)), la2=rad(num(b.lat));
+    const endpoints=typeof lineSegmentEndpointPositions==='function' ? lineSegmentEndpointPositions(line,segIdx) : null;
+    if(!endpoints) return 0;
+    const R=6371, rad=x=>x*Math.PI/180, dLat=rad(num(endpoints.to.lat)-num(endpoints.from.lat)), dLng=rad(num(endpoints.to.lng)-num(endpoints.from.lng)), la1=rad(num(endpoints.from.lat)), la2=rad(num(endpoints.to.lat));
     const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;
     return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
   }
@@ -38918,8 +38930,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   }
   function segmentCoords(line,segIdx,reverse){
     const endpoints=typeof getLineSegmentEndpointIds==='function' ? getLineSegmentEndpointIds(line,segIdx) : null;
-    const from=endpoints?endpoints.from:line.stationIds[segIdx];
-    const to=endpoints?endpoints.to:line.stationIds[segIdx+1];
+    const from=endpoints?endpoints.from:null;
+    const to=endpoints?endpoints.to:null;
+    if(!from || !to) return [];
     const coords=[];
     const start=routePosition(from,line), end=routePosition(to,line);
     if(start) coords.push(start);
