@@ -2,7 +2,7 @@ import { handleOptions } from '../../_shared/cityrail-cloudflare.js';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.osm.ch/api/interpreter',
 ];
 const USER_AGENT = 'CityRailGame/1.0 (+https://cityrailgame.com)';
 const ROUTE_RE = /^(subway|light_rail|monorail)$/i;
@@ -10,6 +10,9 @@ const STOP_ROLE_RE = /stop|platform|station|halt/i;
 const STOP_TAG_RE = /station|stop_position|platform|halt/i;
 const MAX_BBOX_SPAN = 1.9;
 const MAX_ROUTES = 42;
+const MAX_RELATIONS_TO_FETCH = 18;
+const RELATION_BATCH_SIZE = 3;
+const RELATION_BATCH_CONCURRENCY = 2;
 const MAX_SEGMENT_WAYPOINTS = 18;
 const MIN_POINT_DISTANCE_M = 55;
 const SIMPLIFY_TOLERANCE_M = 42;
@@ -46,12 +49,16 @@ function bboxFromUrl(url) {
   return bbox.map(v => Math.round(v * 1000000) / 1000000);
 }
 
-function overpassQuery(bbox) {
+function relationSummaryQuery(bbox) {
   const box = bbox.join(',');
-  return `[out:json][timeout:90];
-(
+  return `[out:json][timeout:30];
   relation["type"="route"]["route"~"^(subway|light_rail|monorail)$"](${box});
-);
+out tags;`;
+}
+
+function relationDetailQuery(ids) {
+  return `[out:json][timeout:55];
+relation(id:${ids.join(',')});
 (._;>;);
 out body geom;`;
 }
@@ -448,9 +455,8 @@ function chooseBestRoutes(routes) {
   ).slice(0, MAX_ROUTES);
 }
 
-async function queryOverpass(bbox) {
+async function requestOverpass(query, timeoutMs, validateData = null) {
   let lastError = '';
-  const query = overpassQuery(bbox);
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
       const response = await fetchWithTimeout(endpoint, {
@@ -467,12 +473,105 @@ async function queryOverpass(bbox) {
         lastError = `overpass ${response.status}`;
         continue;
       }
-      return { endpoint, data: JSON.parse(text) };
+      const data = JSON.parse(text);
+      if (validateData && !validateData(data)) {
+        lastError = 'overpass empty result';
+        continue;
+      }
+      return { endpoint, data };
     } catch (err) {
       lastError = String(err && err.message || err || 'overpass request failed');
     }
   }
   throw new Error(lastError || 'overpass request failed');
+}
+
+function relationSortKey(relation) {
+  const tags = relation && relation.tags || {};
+  const ref = String(tags.ref || '').trim();
+  const name = String(tags['name:zh'] || tags.name || tags['name:en'] || '').trim();
+  return `${ref || name}|${name}|${relation.id}`;
+}
+
+function uniqueRouteRelations(elements) {
+  const grouped = new Map();
+  for (const el of Array.isArray(elements) ? elements : []) {
+    if (!el || el.type !== 'relation' || !ROUTE_RE.test(String(el.tags && el.tags.route || ''))) continue;
+    const tags = el.tags || {};
+    const name = displayName(tags, tags.ref ? `线路 ${tags.ref}` : String(el.id));
+    const key = routeKey(tags, name) || String(el.id);
+    const list = grouped.get(key) || [];
+    list.push(el);
+    grouped.set(key, list);
+  }
+  return Array.from(grouped.values())
+    .map(list => list.sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))[0])
+    .sort((a, b) => relationSortKey(a).localeCompare(relationSortKey(b), 'zh-CN', { numeric: true, sensitivity: 'base' }))
+    .slice(0, MAX_RELATIONS_TO_FETCH);
+}
+
+function chunk(items, size) {
+  const out = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const current = index++;
+      results[current] = await mapper(items[current], current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+function mergeElements(elementLists) {
+  const byKey = new Map();
+  for (const elements of elementLists) {
+    for (const el of Array.isArray(elements) ? elements : []) {
+      if (!el || !el.type || el.id == null) continue;
+      const key = `${el.type}:${el.id}`;
+      const existing = byKey.get(key);
+      if (!existing || JSON.stringify(el).length > JSON.stringify(existing).length) byKey.set(key, el);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+async function queryOverpass(bbox) {
+  const summary = await requestOverpass(relationSummaryQuery(bbox), 22000, data =>
+    Array.isArray(data && data.elements) && data.elements.some(el => el && el.type === 'relation')
+  );
+  const relations = uniqueRouteRelations(summary.data && summary.data.elements);
+  if (!relations.length) return { endpoint: summary.endpoint, data: { elements: [] }, relationCount: 0, fetchedRelationCount: 0, failedBatchCount: 0 };
+
+  const batches = chunk(relations.map(relation => relation.id), RELATION_BATCH_SIZE);
+  const failures = [];
+  const detailResults = await mapWithConcurrency(batches, RELATION_BATCH_CONCURRENCY, async ids => {
+    try {
+      return await requestOverpass(relationDetailQuery(ids), 30000, data => {
+        const wanted = new Set(ids.map(String));
+        return Array.isArray(data && data.elements)
+          && data.elements.some(el => el && el.type === 'relation' && wanted.has(String(el.id)));
+      });
+    } catch (err) {
+      failures.push({ ids, error: String(err && err.message || err || 'overpass batch failed') });
+      return null;
+    }
+  });
+  const successful = detailResults.filter(Boolean);
+  if (!successful.length) throw new Error(failures[0] && failures[0].error || 'overpass request failed');
+  return {
+    endpoint: successful[0].endpoint || summary.endpoint,
+    data: { elements: mergeElements(successful.map(result => result.data && result.data.elements)) },
+    relationCount: relations.length,
+    fetchedRelationCount: relations.length - failures.reduce((sum, failure) => sum + failure.ids.length, 0),
+    failedBatchCount: failures.length,
+  };
 }
 
 export async function onRequestOptions() {
@@ -493,7 +592,7 @@ export async function onRequestGet(context) {
 
   try {
     const startedAt = Date.now();
-    const { endpoint, data } = await queryOverpass(bbox);
+    const { endpoint, data, relationCount, fetchedRelationCount, failedBatchCount } = await queryOverpass(bbox);
     const maps = mapsFromElements(data && data.elements);
     const parsed = maps.relations.map(relation => parseRelation(relation, maps)).filter(Boolean);
     const routes = chooseBestRoutes(parsed);
@@ -513,6 +612,9 @@ export async function onRequestGet(context) {
         stations: stations.size,
         waypoints: waypointCount,
         relationsRead: maps.relations.length,
+        relationsMatched: relationCount,
+        relationsFetched: fetchedRelationCount,
+        failedBatches: failedBatchCount,
         elapsedMs: Date.now() - startedAt,
       },
     }, 200, 300);

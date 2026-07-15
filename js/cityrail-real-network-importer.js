@@ -6,20 +6,11 @@
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
-    { id:'shanghai', name:'上海', bbox:[30.65,120.85,31.95,122.25] },
-    { id:'beijing', name:'北京', bbox:[39.55,115.85,40.30,117.05] },
+    { id:'shanghai', name:'上海', bbox:[31.05,121.25,31.45,121.65] },
     { id:'guangzhou', name:'广州', bbox:[22.75,113.05,23.55,113.85] },
-    { id:'shenzhen', name:'深圳', bbox:[22.35,113.70,22.90,114.65] },
     { id:'chengdu', name:'成都', bbox:[30.35,103.75,30.95,104.35] },
     { id:'chongqing', name:'重庆', bbox:[29.35,106.20,29.85,106.85] },
-    { id:'wuhan', name:'武汉', bbox:[30.30,114.00,30.80,114.65] },
-    { id:'nanjing', name:'南京', bbox:[31.85,118.55,32.20,119.05] },
     { id:'hangzhou', name:'杭州', bbox:[30.05,119.95,30.45,120.45] },
-    { id:'tokyo', name:'东京', bbox:[35.45,139.45,35.85,139.95] },
-    { id:'london', name:'伦敦', bbox:[51.35,-0.35,51.65,0.10] },
-    { id:'paris', name:'巴黎', bbox:[48.75,2.15,48.95,2.50] },
-    { id:'newyork', name:'纽约', bbox:[40.55,-74.10,40.90,-73.70] },
-    { id:'singapore', name:'新加坡', bbox:[1.20,103.60,1.48,104.05] },
     { id:'current', name:'当前地图视野', bbox:null },
   ];
   const MAX_IMPORT_ROUTES = 24;
