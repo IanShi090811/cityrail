@@ -7998,6 +7998,7 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
   };
 
   window.cityrailBindAuthEntryEvents = bindAuthEntryEvents;
+  window.__CITYRAIL_RUNTIME_READY__ = true;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bindAuthEntryEvents, { once: true });
