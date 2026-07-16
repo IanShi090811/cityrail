@@ -1,0 +1,26 @@
+{
+  "name": "CityRail 轨道交通模拟器",
+  "short_name": "CityRail",
+  "description": "城市轨道交通规划、客流与调度模拟器。",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020B18",
+  "theme_color": "#020B18",
+  "categories": ["simulation", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

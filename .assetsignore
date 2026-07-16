@@ -1,6 +1,8 @@
 .git/
 .wrangler/
 node_modules/
+android/
+desktop/
 .DS_Store
 __pycache__/
 *.pyc

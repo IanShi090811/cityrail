@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CityRail 离线</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#020b18;color:#eef7ff;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif}
+  .card{width:min(460px,calc(100vw - 36px));border:1px solid rgba(255,255,255,.14);border-radius:22px;background:#081421;padding:26px;box-shadow:0 24px 80px rgba(0,0,0,.42)}
+  h1{margin:0 0 12px;font-size:24px}
+  p{margin:0 0 18px;color:rgba(238,247,255,.68);line-height:1.7}
+  button{height:42px;border:0;border-radius:12px;background:#0a84ff;color:#fff;font-weight:900;padding:0 16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>暂时无法连接 CityRail</h1>
+  <p>桌面客户端需要连接官网版本以保持功能和更新一致。请检查网络后重试。</p>
+  <button type="button" onclick="window.CityRailDesktop&&window.CityRailDesktop.reloadOnline()">重新连接</button>
+</div>
+</body>
+</html>

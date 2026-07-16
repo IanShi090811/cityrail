@@ -1,6 +1,8 @@
 .git
 .wrangler
 node_modules
+android
+desktop
 server/.data
 server/users.json
 server/orders.json

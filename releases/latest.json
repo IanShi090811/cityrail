@@ -1,0 +1,24 @@
+{
+  "webVersion": "20260717-download-hub",
+  "paymentMode": "download-first-then-unlock",
+  "onlineUrl": "https://cityrailgame.com/",
+  "notes": "桌面客户端加载官网版本，功能和远程更新与在线版保持一致。首次安装包打包后把 url 填入对应平台即可。",
+  "windows": {
+    "version": "",
+    "url": "",
+    "size": "",
+    "sha256": ""
+  },
+  "macos": {
+    "version": "",
+    "url": "",
+    "size": "",
+    "sha256": ""
+  },
+  "android": {
+    "version": "",
+    "url": "",
+    "size": "",
+    "sha256": ""
+  }
+}

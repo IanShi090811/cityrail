@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#020B18">
+<link rel="manifest" href="manifest.webmanifest">
+<title>下载 CityRail 轨道交通模拟器</title>
+<style>
+  :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#020b18;color:#eef7ff;}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 8%,rgba(10,132,255,.28),transparent 34%),linear-gradient(140deg,#020b18 0%,#081421 48%,#06111d 100%);color:#eef7ff;}
+  .page{min-height:100vh;display:flex;align-items:center;padding:36px 22px;}
+  .wrap{width:min(1120px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:34px;align-items:center;}
+  .brand{font-size:18px;font-weight:900;letter-spacing:0;margin-bottom:44px;color:rgba(238,247,255,.78)}
+  .brand span{color:#0a84ff}
+  h1{margin:0;font-size:clamp(42px,7vw,82px);line-height:.98;letter-spacing:0;font-weight:950;}
+  .lede{margin:22px 0 0;max-width:720px;color:rgba(238,247,255,.72);font-size:18px;line-height:1.75;}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px;}
+  .btn{height:54px;border-radius:14px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:900;border:1px solid rgba(255,255,255,.14);color:#fff;background:rgba(255,255,255,.08);}
+  .btn.primary{background:#0a84ff;border-color:#54b8ff;box-shadow:0 18px 46px rgba(10,132,255,.32);}
+  .btn[aria-disabled="true"]{opacity:.52;cursor:not-allowed}
+  .note{margin-top:18px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.7;}
+  .panel{border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(7,16,29,.72);box-shadow:0 26px 80px rgba(0,0,0,.36);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:22px;}
+  .panel h2{margin:0 0 14px;font-size:20px;letter-spacing:0;}
+  .option{display:block;padding:16px;border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);margin-top:12px;text-decoration:none;color:#eef7ff;}
+  .option strong{display:block;font-size:16px}
+  .option span{display:block;margin-top:6px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.55}
+  .status{margin-top:14px;padding:12px;border-radius:14px;background:rgba(10,132,255,.10);border:1px solid rgba(10,132,255,.20);color:rgba(238,247,255,.72);font-size:13px;line-height:1.65;}
+  .footer{position:fixed;left:22px;right:22px;bottom:18px;display:flex;justify-content:space-between;gap:12px;color:rgba(238,247,255,.42);font-size:12px;}
+  .footer a{color:rgba(125,212,255,.72);text-decoration:none}
+  @media(max-width:860px){.page{align-items:flex-start}.wrap{grid-template-columns:1fr}.brand{margin-bottom:30px}.footer{position:static;padding:0 22px 20px;flex-direction:column}.panel{order:2}}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="wrap">
+    <section>
+      <div class="brand">City<span>Rail</span></div>
+      <h1>下载或在线使用<br>同一套 CityRail</h1>
+      <p class="lede">桌面版先下载安装到本地，打开后连接官网版本，因此功能、付费状态和远程更新节奏都与在线版一致。在线使用保持现有入口，不影响已有用户。</p>
+      <div class="actions">
+        <a class="btn primary" href="/" id="play-online">在线游玩</a>
+        <a class="btn" href="#" id="install-pwa">安装网页版客户端</a>
+      </div>
+      <p class="note">当前优先采用“先下载/安装，再登录或付费解锁”的模式。若平台或支付审核要求更严，可切换为“先付费，再开放安装包下载”。</p>
+    </section>
+    <aside class="panel" aria-label="下载客户端">
+      <h2>桌面客户端下载</h2>
+      <a class="option" id="download-win" href="#" aria-disabled="true"><strong>Windows 安装包</strong><span>等待首次打包上传。发布后会自动指向最新版。</span></a>
+      <a class="option" id="download-mac" href="#" aria-disabled="true"><strong>macOS 客户端</strong><span>等待首次打包上传。发布后会自动指向最新版。</span></a>
+      <a class="option" id="download-android" href="#" aria-disabled="true"><strong>Android 安装包</strong><span>等待签名 APK/AAB 完成。正式商店版会单独走渠道包。</span></a>
+      <div class="status" id="release-status">正在读取发布清单…</div>
+    </aside>
+  </div>
+</main>
+<div class="footer">
+  <span>CityRail 轨道交通模拟器</span>
+  <span><a href="/">返回在线版</a> · <a href="releases/latest.json">查看更新清单</a></span>
+</div>
+<script>
+(function(){
+  var deferredPrompt=null;
+  var install=document.getElementById('install-pwa');
+  var status=document.getElementById('release-status');
+  window.addEventListener('beforeinstallprompt',function(event){
+    event.preventDefault();
+    deferredPrompt=event;
+    if(install) install.textContent='安装到桌面';
+  });
+  if(install){
+    install.addEventListener('click',function(event){
+      event.preventDefault();
+      if(deferredPrompt){
+        deferredPrompt.prompt();
+        deferredPrompt=null;
+        return;
+      }
+      status.textContent='如果浏览器没有弹出安装按钮，请使用浏览器菜单中的“安装应用”或“添加到桌面”。';
+    });
+  }
+  function applyLink(id,item){
+    var node=document.getElementById(id);
+    if(!node||!item||!item.url) return;
+    node.href=item.url;
+    node.removeAttribute('aria-disabled');
+    node.querySelector('span').textContent='版本 '+(item.version||'latest')+' · '+(item.size||'安装包');
+  }
+  fetch('releases/latest.json',{cache:'no-store'}).then(function(res){return res.json();}).then(function(manifest){
+    applyLink('download-win',manifest.windows);
+    applyLink('download-mac',manifest.macos);
+    applyLink('download-android',manifest.android);
+    status.textContent='当前官网版本 '+manifest.webVersion+'。下载客户端会远程加载官网版本，更新无需重新安装。';
+  }).catch(function(){
+    status.textContent='暂时无法读取发布清单。在线版仍可直接使用。';
+  });
+  if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
+    window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+  }
+})();
+</script>
+</body>
+</html>

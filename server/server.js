@@ -26,6 +26,7 @@ const MIME = {
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -286,7 +287,12 @@ async function serveStatic(req, res, pathname) {
       'x-content-type-options': 'nosniff',
     };
     if (ext === '.html') Object.assign(headers, HTML_SECURITY_HEADERS);
-    if (filePath !== STATIC_INDEX && /\.(?:js|css|png|jpe?g|webp|svg|ico|json|wasm)$/i.test(filePath)) {
+    const relativePath = '/' + path.relative(ROOT_DIR, filePath).split(path.sep).join('/');
+    if (relativePath === '/sw.js') {
+      headers['cache-control'] = 'no-cache';
+    } else if (relativePath === '/releases/latest.json') {
+      headers['cache-control'] = 'no-store';
+    } else if (filePath !== STATIC_INDEX && /\.(?:js|css|png|jpe?g|webp|svg|ico|json|wasm)$/i.test(filePath)) {
       headers['cache-control'] = 'public, max-age=31536000, immutable';
     } else {
       headers['cache-control'] = 'no-cache';

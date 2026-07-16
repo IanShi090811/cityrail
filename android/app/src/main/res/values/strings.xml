@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CityRail 轨道交通模拟器</string>
+    <string name="trial_expired_title">试用额度已用完</string>
+    <string name="trial_expired_message">解锁专业版授权后，可继续使用完整规模的轨道交通规划与仿真功能。</string>
+    <string name="payment_not_ready">当前渠道支付尚未完成配置。请在对应应用商店后台开通应用内购买后重新打包。</string>
+</resources>

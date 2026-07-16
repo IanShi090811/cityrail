@@ -16,6 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="CityRail">
 <meta name="news_keywords" content="地铁模拟游戏,轨道交通模拟游戏,城市轨道交通规划,铁路调度游戏,ATS调度模拟,独立游戏">
 <meta name="theme-color" content="#020B18">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preload" href="vendor/leaflet/leaflet.css" as="style">
 <link rel="preload" href="vendor/leaflet/leaflet.js" as="script">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.css" as="style">
@@ -324,6 +325,15 @@
         }
       }
     } catch(e) {}
+  })();
+</script>
+<script>
+  (function(){
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
   })();
 </script>
 <script type="application/ld+json">
@@ -4675,6 +4685,49 @@ html.cityrail-light-ui .depot-actions .danger {
 .splash-continue-btn:active {
   transform: translateY(0) scale(0.98);
 }
+.splash-action-row {
+  position: relative;
+  z-index: 1;
+  margin-top: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  animation: splashFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1.35s;
+}
+.splash-action-row .splash-continue-btn {
+  margin-top: 0;
+  animation: none;
+}
+.splash-download-btn {
+  min-width: 188px;
+  height: 58px;
+  padding: 0 30px;
+  border-radius: 100px;
+  border: 1px solid rgba(125,212,255,0.24);
+  background: rgba(255,255,255,0.075);
+  color: rgba(238,247,255,0.90);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 16px 44px rgba(0,0,0,0.22);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+}
+.splash-download-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125,212,255,0.42);
+  background: rgba(255,255,255,0.11);
+}
+.splash-download-btn:active { transform: translateY(0) scale(0.98); }
 @media (prefers-reduced-motion: reduce) {
   .splash-continue-btn {
     opacity: 1 !important;
@@ -7534,7 +7587,10 @@ html:not(.cityrail-light-ui) .cityrail-system-card{
       <div class="splash-metric"><strong>ATS</strong><span>调度台</span></div>
       <div class="splash-metric"><strong>1000+km</strong><span>线网支持</span></div>
     </div>
-    <button class="splash-continue-btn" id="splash-continue-btn" onclick="handleSplashContinue()" data-action="splash-continue-btn">进入游戏</button>
+    <div class="splash-action-row">
+      <button class="splash-continue-btn" id="splash-continue-btn" onclick="handleSplashContinue()" data-action="splash-continue-btn">在线游玩</button>
+      <a class="splash-download-btn" href="download.html" data-action="splash-download-btn">下载客户端</a>
+    </div>
   </div>
   <div class="splash-slogan">轨道构筑城市 · 重塑都会秩序</div>
   <div class="splash-system-note">NETWORK STABLE</div>

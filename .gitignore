@@ -6,6 +6,9 @@ __pycache__/
 *.tar.gz
 node_modules/
 .wrangler/
+android/.gradle/
+android/build/
+android/app/build/
 server/.data/
 server/.env
 server/users.json
