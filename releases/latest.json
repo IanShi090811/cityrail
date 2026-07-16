@@ -14,13 +14,13 @@
       "displayName": "Windows",
       "recommended": "installer",
       "installer": {
-        "status": "preparing",
+        "status": "available",
         "label": "Windows 安装包",
         "format": "exe",
-        "version": "",
-        "url": "",
-        "size": "",
-        "sha256": "",
+        "version": "1.0.0",
+        "url": "https://raw.githubusercontent.com/IanShi090811/cityrail/main/releases/desktop/CityRail-Setup-1.0.0-x64.exe",
+        "size": "76.7 MB",
+        "sha256": "81d9b36632976927b6db7f10b40924c63c5512060dc5dee87296d46b492855b3",
         "instructions": [
           "下载安装包",
           "双击 .exe",

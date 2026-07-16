@@ -9,7 +9,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac dmg",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win nsis --x64"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -31,7 +31,7 @@
     ],
     "win": {
       "target": ["nsis"],
-      "artifactName": "CityRail-Setup-${version}.${ext}"
+      "artifactName": "CityRail-Setup-${version}-${arch}.${ext}"
     },
     "mac": {
       "target": ["dmg"],

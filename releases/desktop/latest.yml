@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: CityRail-Setup-1.0.0-x64.exe
+    sha512: 72eBgzmcnVbp1C1wAAmxcF1kWAtzSdbrxUuQZI1KB+j4NWFC2kdnZrPomeofJjVp/xD1WDHUGUr4Ba16Uivaqg==
+    size: 80465703
+path: CityRail-Setup-1.0.0-x64.exe
+sha512: 72eBgzmcnVbp1C1wAAmxcF1kWAtzSdbrxUuQZI1KB+j4NWFC2kdnZrPomeofJjVp/xD1WDHUGUr4Ba16Uivaqg==
+releaseDate: '2026-07-16T20:47:11.596Z'
