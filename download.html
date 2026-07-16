@@ -71,6 +71,7 @@
   var installTitle=document.getElementById('install-title');
   var installSteps=document.getElementById('install-steps');
   var releaseManifest=null;
+  var releaseReady=false;
   function platformKey(){
     var ua=(navigator.userAgent||'').toLowerCase();
     var platform=(navigator.platform||'').toLowerCase();
@@ -93,6 +94,8 @@
     el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
     el.tabIndex = disabled ? -1 : 0;
   }
+  setDisabled(installer,true);
+  setDisabled(portable,true);
   function renderSteps(title, steps){
     if(!installCard || !installTitle || !installSteps) return;
     installTitle.textContent=title || '安装说明';
@@ -144,6 +147,10 @@
     }
   }
   function downloadItem(item, kind){
+    if(!releaseReady){
+      status.textContent='正在读取发布清单，请稍后再下载。';
+      return;
+    }
     if(isAvailable(item)){
       location.href=item.url;
       status.textContent=kind==='portable'
@@ -151,7 +158,15 @@
         : '正在下载安装包。下载完成后按安装向导完成安装。';
       return;
     }
-    status.textContent=kind==='portable' ? '当前系统暂未发布便携版。' : '当前系统的正式安装包正在准备中，请先使用在线版。';
+    if(item && item.status==='app-store-required'){
+      status.textContent='当前系统需要通过应用商店发布客户端，请先使用在线版。';
+      return;
+    }
+    if(item && item.status==='preparing'){
+      status.textContent=(item.label || '当前系统安装包')+'正在准备中，请先使用在线版。';
+      return;
+    }
+    status.textContent=kind==='portable' ? '当前系统暂未发布便携版。' : '当前系统暂未发布正式安装包，请先使用在线版。';
   }
   if(installer){
     installer.addEventListener('click',function(event){
@@ -172,8 +187,10 @@
     return res.json();
   }).then(function(manifest){
     releaseManifest=manifest;
+    releaseReady=true;
     renderRelease();
   }).catch(function(){
+    releaseReady=false;
     if(installer){
       installer.textContent='暂时无法读取安装包';
       setDisabled(installer,true);
