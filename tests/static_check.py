@@ -17,6 +17,7 @@ expected_js=[
     'cityrail-maplibre-pmtiles-authority.js',
     'cityrail-living-city.js',
     'cityrail-external-sources-v1.js',
+    'cityrail-real-network-importer.js',
     'cityrail-performance-authority-v400.js',
 ]
 inline_js=(

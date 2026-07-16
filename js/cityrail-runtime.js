@@ -978,138 +978,6 @@ cityrailApplyPassengerShapeProfiles();
   window.cityrailShowChangelog=window.CityRailHelp.showChangelog;
 })();
 
-;/* CityRail v479 real-network importer lazy entry. */
-(function(){
-  'use strict';
-  const W = window, D = document;
-  const VERSION = 'v487-rail-graph-route-geometry-loader';
-  if (W.CityRailRealNetworkImporterLoader && W.CityRailRealNetworkImporterLoader.version === VERSION) return;
-  let loading = null;
-  function byId(id){ return D.getElementById(id); }
-  function applyBuildChoiceLayout(choice){
-    const el = choice || byId('new-build-choice');
-    if (!el) return;
-    const compact = W.innerWidth <= 760;
-    el.style.setProperty('grid-template-columns', compact ? 'repeat(5,minmax(84px,1fr))' : 'repeat(5,minmax(112px,1fr))', 'important');
-    el.style.setProperty('width', compact ? '100%' : 'min(1040px,calc(100vw - 112px))', 'important');
-    el.style.setProperty('min-width', '0', 'important');
-    el.style.setProperty('overflow', 'visible', 'important');
-  }
-  function ensureBuildEntry(){
-    const choice = byId('new-build-choice');
-    if (!choice) return false;
-    choice.classList.add('cr-rni-build-choice');
-    if (byId('new-build-real-network')) {
-      applyBuildChoiceLayout(choice);
-      return true;
-    }
-    const btn = D.createElement('button');
-    btn.type = 'button';
-    btn.id = 'new-build-real-network';
-    btn.dataset.action = 'new-build-real-network';
-    btn.innerHTML = '<span class="new-build-icon" aria-hidden="true">◎</span><strong>真实线网</strong><small>复刻真实线路、车站、节点</small>';
-    choice.appendChild(btn);
-    applyBuildChoiceLayout(choice);
-    return true;
-  }
-  function ensureStyle(){
-    if (byId('cityrail-real-network-loader-style')) return;
-    const style = D.createElement('style');
-    style.id = 'cityrail-real-network-loader-style';
-    style.textContent = `
-      #new-build-choice.cr-rni-build-choice,
-      #new-build-choice.cr-rni-build-choice.cr269-has-connector{
-        grid-template-columns:repeat(5,minmax(112px,1fr))!important;
-        width:min(1040px,calc(100vw - 112px))!important;
-        min-width:0!important;
-        overflow:visible!important;
-      }
-      #new-build-real-network{
-        display:grid!important;
-        grid-template-rows:auto auto auto!important;
-        align-content:center!important;
-        justify-items:center!important;
-        row-gap:8px!important;
-        text-align:center!important;
-        min-width:0!important;
-      }
-      #new-build-real-network .new-build-icon{
-        display:flex!important;
-        background:rgba(10,132,255,.18);
-        color:#8cc8ff;
-      }
-      #new-build-real-network strong{
-        display:block!important;
-        font-size:16px;
-        font-weight:780;
-        line-height:1.1;
-        white-space:nowrap;
-      }
-      #new-build-real-network small{
-        display:block!important;
-        max-width:132px!important;
-        text-align:center!important;
-        line-height:1.28!important;
-        white-space:normal!important;
-      }
-      @media(max-width:760px){
-        #new-build-choice.cr-rni-build-choice,
-        #new-build-choice.cr-rni-build-choice.cr269-has-connector{
-          grid-template-columns:repeat(5,minmax(84px,1fr))!important;
-          width:100%!important;
-        }
-      }
-    `;
-    D.head.appendChild(style);
-  }
-  function loadImporter(){
-    if (W.CityRailRealNetworkImporter && typeof W.CityRailRealNetworkImporter.open === 'function') return Promise.resolve(W.CityRailRealNetworkImporter);
-    if (loading) return loading;
-    loading = new Promise((resolve, reject) => {
-      const script = D.createElement('script');
-      script.src = 'js/cityrail-real-network-importer.js?v=20260716-v487-rail-graph-route-geometry';
-      script.async = true;
-      script.onload = () => W.CityRailRealNetworkImporter ? resolve(W.CityRailRealNetworkImporter) : reject(new Error('现实线网模块未注册'));
-      script.onerror = () => reject(new Error('现实线网模块加载失败'));
-      D.head.appendChild(script);
-    });
-    return loading;
-  }
-  function openImporter(){
-    loadImporter()
-      .then(api => {
-        if (api && typeof api.boot === 'function') api.boot('lazy-open');
-        if (api && typeof api.open === 'function') api.open();
-      })
-      .catch(err => {
-        try { alert((err && err.message) || err || '现实线网模块加载失败'); } catch(e) {}
-      });
-  }
-  function installEvents(){
-    if (D.__cityrailRealNetworkImporterLoaderEvents) return;
-    D.__cityrailRealNetworkImporterLoaderEvents = true;
-    D.addEventListener('click', ev => {
-      const card = ev.target && ev.target.closest && ev.target.closest('#new-build-real-network');
-      if (!card) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      openImporter();
-    }, true);
-    try { W.addEventListener('resize', () => applyBuildChoiceLayout(), { passive:true }); } catch(e) {}
-  }
-  function boot(reason){
-    ensureStyle();
-    ensureBuildEntry();
-    installEvents();
-  }
-  W.CityRailRealNetworkImporterLoader = { version:VERSION, boot, open:openImporter, load:loadImporter };
-  if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', () => boot('dom'), { once:true }); else boot('immediate');
-  ['cityrail-save-loaded','cityrail:runtime-integrity'].forEach(name => {
-    try { W.addEventListener(name, () => W.setTimeout(() => boot(name), 0)); } catch(e) {}
-  });
-  [300,1200,3000].forEach(ms => W.setTimeout(() => boot('timer-' + ms), ms));
-})();
-
 ;/* CityRail v445: analytics, error observability and unified UI refresh scheduling. */
 (function(){
   'use strict';
@@ -11684,6 +11552,37 @@ let _routePairCache = new Map();        // 缓存 OD 对路径，避免大客流
 let _passengerLineByIdCache = null;
 let _passengerLineByIdSource = null;
 let _passengerLineByIdCount = 0;
+const CITYRAIL_ROUTE_PAIR_CACHE_LIMIT = 180000;
+const CITYRAIL_PASSENGER_LEG_CACHE_LIMIT = 180000;
+const CITYRAIL_OPERATIONAL_ROUTE_CACHE_LIMIT = 140000;
+
+function cityrailBoundedMapGet(map, key) {
+  if (!map || typeof map.has !== 'function' || !map.has(key)) return undefined;
+  const value = map.get(key);
+  map.delete(key);
+  map.set(key, value);
+  return value;
+}
+
+function cityrailBoundedMapSet(map, key, value, limit) {
+  if (!map || typeof map.set !== 'function') return;
+  const max = Math.max(1000, Number(limit) || 60000);
+  if (map.has(key)) map.delete(key);
+  map.set(key, value);
+  if (map.size <= max) return;
+  const target = Math.max(1, max - Math.ceil(max * 0.12));
+  const it = map.keys();
+  while (map.size > target) {
+    const next = it.next();
+    if (next.done) break;
+    map.delete(next.value);
+  }
+}
+
+try {
+  window.cityrailBoundedMapGet = cityrailBoundedMapGet;
+  window.cityrailBoundedMapSet = cityrailBoundedMapSet;
+} catch(e) {}
 
 function passengerLineByIdV350(lineId) {
   const lines = state.lines || [];
@@ -11700,8 +11599,7 @@ function passengerLineByIdV350(lineId) {
 
 function passengerLegCacheSetV350(key, value) {
   if (!state.__passengerLegCache) state.__passengerLegCache = new Map();
-  if (state.__passengerLegCache.size > 50000) state.__passengerLegCache.clear();
-  state.__passengerLegCache.set(key, value);
+  cityrailBoundedMapSet(state.__passengerLegCache, key, value, CITYRAIL_PASSENGER_LEG_CACHE_LIMIT);
 }
 
 function cityrailRoutePreferenceKey(pref) {
@@ -11761,7 +11659,7 @@ function computePassengerRoute(p) {
   const prefKey = pref ? (pref._routePreferenceKey || cityrailRoutePreferenceKey(pref)) : 'standard';
   const legCacheKey = String(p.originId) + '>' + String(p.destinationId) + '|' + prefKey;
   if (state.__passengerLegCache.has(legCacheKey)) {
-    const cachedLegs = state.__passengerLegCache.get(legCacheKey);
+    const cachedLegs = cityrailBoundedMapGet(state.__passengerLegCache, legCacheKey);
     if (!cachedLegs || !cachedLegs.length) { p.state = 'arrived'; return; }
     p.legs = cachedLegs.map(leg => Object.assign({}, leg));
     return;
@@ -11831,15 +11729,32 @@ function findRouteCached(fromId, toId, pref) {
   const prefKey = pref ? (pref._routePreferenceKey || cityrailRoutePreferenceKey(pref)) : 'standard';
   const routeKey = String(fromId) + '>' + String(toId) + '|' + prefKey;
   if (_routePairCache.has(routeKey)) {
-    const cached = _routePairCache.get(routeKey);
+    const cached = cityrailBoundedMapGet(_routePairCache, routeKey);
     return cached === false ? null : cached;
   }
   // 复用 findRoute 逻辑但传入缓存图
   const route = _findRouteWithGraph(fromId, toId, _routeGraphCache, pref);
-  if (_routePairCache.size > 60000) _routePairCache.clear();
-  _routePairCache.set(routeKey, route || false);
+  cityrailBoundedMapSet(_routePairCache, routeKey, route || false, CITYRAIL_ROUTE_PAIR_CACHE_LIMIT);
   return route;
 }
+
+try {
+  window.CityRailRuntimeRouteCache = {
+    version: 'v401-bounded-runtime-route-cache',
+    report: function(){
+      return {
+        routeCacheSize: _routePairCache ? _routePairCache.size : 0,
+        routeCacheLimit: CITYRAIL_ROUTE_PAIR_CACHE_LIMIT,
+        legCacheSize: state && state.__passengerLegCache ? state.__passengerLegCache.size : 0,
+        legCacheLimit: CITYRAIL_PASSENGER_LEG_CACHE_LIMIT
+      };
+    },
+    clear: function(){
+      _routePairCache = new Map();
+      if (state) state.__passengerLegCache = null;
+    }
+  };
+} catch(e) {}
 
 // 使用给定图的 Dijkstra（不重建图）
 function _findRouteWithGraph(fromId, toId, graph, pref) {
@@ -16570,7 +16485,23 @@ function cityrailLineTrainNodesFastKey(line) {
     first,
     last,
     waypointCount
-  ].join('|');
+	  ].join('|');
+}
+
+function cityrailWaypointsBySegment(line) {
+  const count = Math.max(0, lineSegmentCount(line));
+  const bySegment = Array.from({ length: count }, () => []);
+  const wps = Array.isArray(line && line.waypoints) ? line.waypoints : [];
+  for (let i = 0; i < wps.length; i++) {
+    const wp = wps[i];
+    const seg = Math.round(Number(wp && wp.segIdx));
+    if (!Number.isFinite(seg) || seg < 0 || seg >= count) continue;
+    bySegment[seg].push(wp);
+  }
+  for (let i = 0; i < bySegment.length; i++) {
+    if (bySegment[i].length > 1) bySegment[i].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  }
+  return bySegment;
 }
 
 function cityrailDeleteLineGeometryCache(lineId) {
@@ -16597,7 +16528,7 @@ function getLineNodes(line) {
   const cacheKey = cityrailLineGeometryCacheKey(line);
   if (lineNodesCache[cacheKey]) return lineNodesCache[cacheKey];
   normalizeLineWaypoints(line, 'getLineNodes');
-  const wps = line.waypoints || [];
+  const wpsBySegment = cityrailWaypointsBySegment(line);
   const nodes = [];
   for (let i = 0; i < line.stationIds.length; i++) {
     const sid = line.stationIds[i];
@@ -16606,13 +16537,13 @@ function getLineNodes(line) {
     const pos = getStationPosition(sta, line.id);
     nodes.push({ type: 'station', id: sid, lat: pos.lat, lng: pos.lng, name: sta.name });
     if (i < line.stationIds.length - 1) {
-      const segWps = wps.filter(w => w.segIdx === i).sort((a, b) => a.order - b.order);
+      const segWps = wpsBySegment[i] || [];
       segWps.forEach(w => nodes.push({ type: 'waypoint', id: w.id, lat: w.lat, lng: w.lng }));
     }
   }
   if (hasLoopTopology(line)) {
     const closureSeg = line.stationIds.length - 1;
-    const closureWps = wps.filter(w => w.segIdx === closureSeg).sort((a, b) => a.order - b.order);
+    const closureWps = wpsBySegment[closureSeg] || [];
     closureWps.forEach(w => nodes.push({ type: 'waypoint', id: w.id, lat: w.lat, lng: w.lng }));
   }
   lineNodesCache[cacheKey] = nodes;
@@ -17316,6 +17247,13 @@ function cityrailCurveLimitRangeMinKmh(nodes, from, to, lineMaxKmh) {
   return Number.isFinite(raw) ? Math.max(1, Math.min(maxSpeed, raw)) : maxSpeed;
 }
 
+function cityrailDenseIndexForRouteNode(routeIdx, routeCount, denseLength, loopClosure) {
+  if (loopClosure) return Math.max(0, denseLength - 1);
+  if (routeIdx <= 0) return 0;
+  const expected = routeIdx * TRAIN_PATH_SUBDIVISIONS;
+  return Math.max(0, Math.min(Math.max(0, denseLength - 1), expected));
+}
+
 function getLineTrainNodes(line) {
   const fastKey = cityrailLineTrainNodesFastKey(line);
   const fastHit = line && typeof line === 'object' ? cityrailFastTrainNodesCache.get(line) : null;
@@ -17345,66 +17283,36 @@ function getLineTrainNodes(line) {
       ? bezierDensePath(rawPoints, TRAIN_PATH_SUBDIVISIONS)
       : smoothPath(rawPoints, TRAIN_PATH_SUBDIVISIONS));
 
-  // 为每个站点找到 densePath 中最接近的索引
-  const stationNodeIndices = {};
+  const stationAtDenseIndex = Object.create(null);
+  const stationNameById = Object.create(null);
   for (let routeIdx = 0; routeIdx < routeNodes.length; routeIdx++) {
     const bn = routeNodes[routeIdx];
     if (bn.type !== 'station') continue;
-    let bestIdx = 0, bestDist = Infinity;
-    const expected = routeNodes.length > 1
-      ? Math.round((routeIdx / (routeNodes.length - 1)) * Math.max(0, densePath.length - 1))
-      : 0;
-    const span = Math.max(TRAIN_PATH_SUBDIVISIONS * 2, 12);
-    const from = loop ? Math.max(0, expected - span) : 0;
-    const to = loop ? Math.min(densePath.length - 1, expected + span) : densePath.length - 1;
-    for (let i = from; i <= to; i++) {
-      const d = haversine(bn.lat, bn.lng, densePath[i][0], densePath[i][1]);
-      if (d < bestDist) { bestDist = d; bestIdx = i; }
-    }
-    if (loop && bn._loopClosure) bestIdx = densePath.length - 1;
-    // 防止重复映射：同一个 densePath 索引只保留距离更近的站点
-    const key = bn._loopClosure ? bn.id + '.__loopClosure' : bn.id;
-    const exist = stationNodeIndices[key];
-    if (exist === undefined || bestDist < exist._dist) {
-      // 移除旧映射
-      for (const k in stationNodeIndices) {
-        if (stationNodeIndices[k] === bestIdx && k !== key) delete stationNodeIndices[k];
-      }
-      stationNodeIndices[key] = bestIdx;
-      stationNodeIndices[key + '._dist'] = bestDist;
+    const key = String(bn.id);
+    stationNameById[key] = bn.name || stationNameById[key] || '';
+    const denseIdx = cityrailDenseIndexForRouteNode(routeIdx, routeNodes.length, densePath.length, loop && bn._loopClosure);
+    if (denseIdx >= 0 && denseIdx < densePath.length && stationAtDenseIndex[denseIdx] == null) {
+      stationAtDenseIndex[denseIdx] = {
+        id: bn.id,
+        name: bn.name || stationNameById[key] || null,
+        loopClosure: !!bn._loopClosure
+      };
     }
   }
 
-  // 构建带 type 和预计算 segDist 的节点数组
-  const stationNameById = Object.create(null);
-  for (const sid of line.stationIds) {
-    const sta = cityrailStationByIdFast(sid);
-    if (sta) stationNameById[String(sid)] = sta.name;
-  }
   const nodes = [];
   for (let i = 0; i < densePath.length; i++) {
     const [lat, lng] = densePath[i];
-    // 检查该点是否属于某个站点
-    let stationType = null, stationId = null, stationName = null;
-    for (const sid of line.stationIds) {
-      if (stationNodeIndices[sid] === i || stationNodeIndices[sid + '.__loopClosure'] === i) {
-        if (Object.prototype.hasOwnProperty.call(stationNameById, String(sid))) {
-          stationType = 'station';
-          stationId = sid;
-          stationName = stationNameById[String(sid)];
-        }
-        break;
-      }
-    }
+    const station = stationAtDenseIndex[i] || null;
     // 预计算到下一个节点的距离
     let segDist = 0;
     if (i < densePath.length - 1) {
       segDist = haversine(lat, lng, densePath[i + 1][0], densePath[i + 1][1]);
     }
     nodes.push({
-      type: stationType || 'waypoint',
-      id: stationId || null,
-      name: stationName || null,
+      type: station ? 'station' : 'waypoint',
+      id: station ? station.id : null,
+      name: station ? station.name : null,
       lat, lng, segDist,
     });
   }
@@ -19970,8 +19878,11 @@ function runSimulation() {
   });
   // Store delivered-flow totals for control-center and line/station diagnostics.
   state.stationFlowMap = flowMap;
-  // Cache max flow to avoid expensive spread every train arrival
-  state._maxStationFlow = Math.max(1, ...Object.values(flowMap));
+  let maxStationFlow = 1;
+  for (const sid in flowMap) {
+    if (flowMap[sid] > maxStationFlow) maxStationFlow = flowMap[sid];
+  }
+  state._maxStationFlow = maxStationFlow;
   state.segmentFlowsCache = segmentFlows;
 
 }
@@ -21502,9 +21413,10 @@ function updateTrains(dtGameSeconds) {
   const toRemove = [];
   const stuckTrains = []; // 卡死列车：记录线路/方向信息用于补充运力
   const tickContext = createTrainTickContext();
-  state.trains.forEach(train => {
-    updateSingleTrain(train, dtGameSeconds, toRemove, tickContext);
-  });
+  const trainList = Array.isArray(state.trains) ? state.trains : [];
+  for (let i = 0; i < trainList.length; i++) {
+    updateSingleTrain(trainList[i], dtGameSeconds, toRemove, tickContext);
+  }
 
   // Separate stuck trains from normal removals
   const removedTrainIds = new Set();
@@ -21664,9 +21576,46 @@ function createTrainTickContext() {
   const lineById = runtimeIndexes.lineById;
   const stationById = runtimeIndexes.stationById;
   const lineNodesById = new Map();
+  const lineNodesByObject = new Map();
   const lineProfileByKey = new Map();
+  const lineProfileByObject = new Map();
+  const routeLineByKey = new Map();
   const occupiedStations = new Map();
   const singleTrackSections = new Map();
+  function routePlanCacheKey(line, route) {
+    const ids = Array.isArray(route && route.stationIds) ? route.stationIds : [];
+    const wps = Array.isArray(route && route.waypoints) ? route.waypoints : [];
+    return [
+      String(line && line.id != null ? line.id : ''),
+      String(route && route.routeId || ''),
+      String(route && route.kind || ''),
+      String(route && route.parentLineId || ''),
+      String(route && route.branchLineId || ''),
+      String(line && line._topologyVersion || 0),
+      String(line && line._geometryVersion || 0),
+      ids.length,
+      ids[0] == null ? '' : String(ids[0]),
+      ids[ids.length - 1] == null ? '' : String(ids[ids.length - 1]),
+      wps.length
+    ].join('|');
+  }
+  function runtimeLineForRoute(line, route) {
+    if (!line || !route || !Array.isArray(route.stationIds) || route.stationIds.length < 2) return line;
+    const key = routePlanCacheKey(line, route);
+    let runtimeLine = routeLineByKey.get(key);
+    if (!runtimeLine) {
+      runtimeLine = Object.assign({}, line, {
+        stationIds: route.stationIds,
+        waypoints: Array.isArray(route.waypoints) ? route.waypoints : [],
+        expressService: route.expressService || line.expressService,
+        pathMode: 'ordered',
+        _runtimeParentLineId: line.id,
+        _runtimeRouteId: route.routeId || ''
+      });
+      routeLineByKey.set(key, runtimeLine);
+    }
+    return runtimeLine;
+  }
   function addOccupied(train) {
     if (!train || train.id == null || train.lineId == null) return;
     const line = lineById.get(String(train.lineId));
@@ -21720,10 +21669,16 @@ function createTrainTickContext() {
     lineNodesById,
 	    getLine(lineId) { return lineById.get(String(lineId)); },
 	    getStation(stationId) { return stationById.get(String(stationId)); },
+    getRuntimeLineForTrain(train, baseLine) {
+      const route = train && train.routePlan && Array.isArray(train.routePlan.stationIds) && train.routePlan.stationIds.length >= 2 ? train.routePlan : null;
+      return route ? runtimeLineForRoute(baseLine, route) : baseLine;
+    },
     getLineProfile(line) {
       if (!line || line.id == null) {
         return { maxSpeed:80, accelMs2:1, decelMs2:1.1, accel:3.6, decel:3.96, loop:false };
       }
+      const objectProfile = lineProfileByObject.get(line);
+      if (objectProfile) return objectProfile;
       const key = [
         String(line.id),
         line._runtimeRouteId || '',
@@ -21735,7 +21690,7 @@ function createTrainTickContext() {
         line.loopClosedExplicit ? 1 : 0,
         line.trainType || '',
         line.cars || '',
-        line.speed || ''
+	        line.speed || ''
       ].join('|');
       let profile = lineProfileByKey.get(key);
       if (!profile) {
@@ -21749,13 +21704,16 @@ function createTrainTickContext() {
           accel: accelMs2 * 3.6,
           decel: decelMs2 * 3.6,
           loop: isLoopLine(line)
-        };
-        lineProfileByKey.set(key, profile);
+	        };
+	        lineProfileByKey.set(key, profile);
       }
+      lineProfileByObject.set(line, profile);
       return profile;
     },
-	    getLineNodes(line) {
+		    getLineNodes(line) {
       if (!line || line.id == null) return [];
+      const objectNodes = lineNodesByObject.get(line);
+      if (objectNodes) return objectNodes;
       const key = [
         String(line.id),
         line._runtimeRouteId || '',
@@ -21768,6 +21726,7 @@ function createTrainTickContext() {
         nodes = getLineTrainNodes(line);
         lineNodesById.set(key, nodes);
       }
+      lineNodesByObject.set(line, nodes);
       return nodes;
     }
   };
@@ -21898,12 +21857,33 @@ function isExpressServiceTrain(train, line) {
   return !!(train && train.serviceType === 'express' && isExpressServiceActive(line));
 }
 
+const cityrailServiceStopSetCache = new WeakMap();
+
 function serviceStopSetForTrain(line, train) {
   const ids = Array.isArray(line && line.stationIds) ? line.stationIds : [];
   const cfg = line && line.expressService || {};
   const stops = Array.isArray(train && train.expressStops) && train.expressStops.length
     ? train.expressStops
     : (Array.isArray(cfg.expressStops) ? cfg.expressStops : []);
+  if (train && typeof train === 'object') {
+    const cacheKey = [
+      String(line && line.id != null ? line.id : ''),
+      String(line && line._runtimeRouteId || ''),
+      ids.length,
+      ids[0] == null ? '' : String(ids[0]),
+      ids[ids.length - 1] == null ? '' : String(ids[ids.length - 1]),
+      stops.length,
+      stops[0] == null ? '' : String(stops[0]),
+      stops[stops.length - 1] == null ? '' : String(stops[stops.length - 1])
+    ].join('|');
+    const cached = cityrailServiceStopSetCache.get(train);
+    if (cached && cached.key === cacheKey) return cached.set;
+    const set = new Set(stops.map(v => String(v)));
+    if (ids[0]) set.add(String(ids[0]));
+    if (ids.length > 1) set.add(String(ids[ids.length - 1]));
+    cityrailServiceStopSetCache.set(train, { key: cacheKey, set });
+    return set;
+  }
   const set = new Set(stops.map(v => String(v)));
   if (ids[0]) set.add(String(ids[0]));
   if (ids.length > 1) set.add(String(ids[ids.length - 1]));
@@ -22248,13 +22228,12 @@ function updateSingleTrain(train, dtSec, toRemove, tickContext) {
     return;
   }
 
-  const route = train && train.routePlan && Array.isArray(train.routePlan.stationIds) && train.routePlan.stationIds.length >= 2
-    ? train.routePlan
-    : null;
-  if (route) {
+  if (tickContext && typeof tickContext.getRuntimeLineForTrain === 'function') line = tickContext.getRuntimeLineForTrain(train, line);
+  else if (train && train.routePlan && Array.isArray(train.routePlan.stationIds) && train.routePlan.stationIds.length >= 2) {
+    const route = train.routePlan;
     line = Object.assign({}, line, {
-      stationIds: route.stationIds.slice(),
-      waypoints: Array.isArray(route.waypoints) ? route.waypoints.map(w => Object.assign({}, w)) : [],
+      stationIds: route.stationIds,
+      waypoints: Array.isArray(route.waypoints) ? route.waypoints : [],
       expressService: route.expressService || line.expressService,
       pathMode: 'ordered',
       _runtimeParentLineId: line.id,
@@ -33814,10 +33793,21 @@ window.cityrailRealPassengerStats = realStats;
   const EXPRESS_DWELL_FACTOR=0.15;           // express still pays small operating margin at express stops
   const EXPRESS_SPEED_BONUS=1.08;            // kept for compatibility; service speed is derived below.
   const LOCAL_OVERTAKE_YIELD_MIN=1.8;        // expected delay when a local train enters a siding to let express pass
-  const MAX_CACHE_ENTRIES=25000;
+  const MAX_CACHE_ENTRIES=120000;
   let cacheSig='';
   let graphCache=null;
   const routeCache=new Map();
+  function cacheGet(map,key){
+    if(window.cityrailBoundedMapGet) return window.cityrailBoundedMapGet(map,key);
+    if(!map.has(key)) return undefined;
+    const value=map.get(key); map.delete(key); map.set(key,value); return value;
+  }
+  function cacheSet(map,key,value,limit){
+    if(window.cityrailBoundedMapSet) return window.cityrailBoundedMapSet(map,key,value,limit);
+    if(map.has(key)) map.delete(key);
+    map.set(key,value);
+    while(map.size>limit) map.delete(map.keys().next().value);
+  }
 
   function st(){ return window.state || (window.CityRail && window.CityRail.state && window.CityRail.state.get && window.CityRail.state.get()) || null; }
   function lines(){ const s=st(); return s && Array.isArray(s.lines) ? s.lines : []; }
@@ -34141,7 +34131,7 @@ window.cityrailRealPassengerStats = realStats;
     resetIfNeeded();
     const pref=normalizeRoutePreference(options.preference);
     const cacheKey=keyId(fromId)+'>'+keyId(toId)+'#'+pref.key;
-    if(routeCache.has(cacheKey)) return routeCache.get(cacheKey);
+    if(routeCache.has(cacheKey)) return cacheGet(routeCache,cacheKey);
     const graph=buildGraph();
     if(!graph[fromId] || !graph[toId]) return null;
     const pq=[{node:fromId,cost:0,prevService:null,prevActualLine:null,pendingTransferToLine:null,path:[fromId],edges:[],distKm:0,transfers:0}];
@@ -34151,8 +34141,7 @@ window.cityrailRealPassengerStats = realStats;
       const cur=pq.splice(mi,1)[0];
 	      if(keyId(cur.node)===keyId(toId)){
 	        const result={path:cur.path,edges:cur.edges,totalDistKm:cur.distKm,totalTimeMin:cur.cost,transfers:cur.transfers,preference:pref.key,preferenceLabel:pref.label};
-	        if(routeCache.size>MAX_CACHE_ENTRIES) routeCache.clear();
-	        routeCache.set(cacheKey,result); return result;
+	        cacheSet(routeCache,cacheKey,result,MAX_CACHE_ENTRIES); return result;
       }
       for(const edge of (graph[cur.node]||[])){
 	        if(cur.pendingTransferToLine && edge.serviceType!=='transfer' && keyId(edge.actualLineId)!==keyId(cur.pendingTransferToLine)) continue;
@@ -36451,10 +36440,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function board(train, line, reason){
     const s = ensureState(); if(!s || !train || !line) return 0;
     rebuildBatchMap(false);
-    // v74 source-of-truth rule: every passenger exchange cycle first normalizes
-    // real waiting batches, then rebuilds the waiting index from scratch. The
-    // bucket index is now a derived cache only, never an authority.
-    normalizeWaitingRoutesForAllPlatforms(reason);
+    // The waiting index is the derived boarding source during normal operation.
+    // Full-route normalization is reserved for install/manual rebuilds; candidate
+    // repair below handles the current platform without scanning every batch.
     rebuildWaitingIndexes();
     const stationIdx = num(train.nextStationIdx);
     if(stationIdx < 0 || !Array.isArray(line.stationIds) || stationIdx >= line.stationIds.length) return 0;
@@ -36626,8 +36614,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         (s.batches||[]).length,
         (s.lines||[]).length,
         (s.stations||[]).length,
-        Math.round(Number(s._totalGenerated)||0),
-        Math.round(Number(s._totalDelivered)||0)
+        Math.round(Number(s._v74PassengerExchangeVersion)||0),
+        Math.round(Number(s._v140WaitingDirty)||0)
       ].join('|');
     }
     if(!window.__cityrailV74RouteNormalizeTimer){
@@ -36637,7 +36625,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
           const sig=passengerIndexSig();
           if(sig===lastPassengerIndexSig) return;
           lastPassengerIndexSig=sig;
-          rebuildBatchMap(false); normalizeWaitingRoutesForAllPlatforms('timer'); rebuildWaitingIndexes(true); reconcileAllStationPools('timer');
+          rebuildBatchMap(false); rebuildWaitingIndexes(true);
         }catch(e){}
       }, 3000);
     }
@@ -39044,12 +39032,12 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     }
     const key=sid(fromId)+'>'+sid(toId)+'|'+routePreferenceKeyV198(pref);
     if(cachedOperationalRoutesV198.map.has(key)){
-      const hit=cachedOperationalRoutesV198.map.get(key);
+      const hit=window.cityrailBoundedMapGet ? window.cityrailBoundedMapGet(cachedOperationalRoutesV198.map,key) : cachedOperationalRoutesV198.map.get(key);
       return hit===false?null:hit;
     }
     const route=findOperationalRoute.call(this,fromId,toId,pref);
-    if(cachedOperationalRoutesV198.map.size>60000) cachedOperationalRoutesV198.map.clear();
-    cachedOperationalRoutesV198.map.set(key,route||false);
+    if(window.cityrailBoundedMapSet) window.cityrailBoundedMapSet(cachedOperationalRoutesV198.map,key,route||false,CITYRAIL_OPERATIONAL_ROUTE_CACHE_LIMIT);
+    else cachedOperationalRoutesV198.map.set(key,route||false);
     return route;
   }
   function install(){
@@ -39073,7 +39061,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       return false;
     }
     window.cityrailNavigationV198Report=function(){
-      return {version:VERSION, findRouteWrapped:hasV198Wrapper(window.findRoute), cachedWrapped:hasV198Wrapper(window.findRouteCached), engine:!!window.CityRailExpressRouteChoiceV32, speedModel:typeof window.cityrailNavigationServiceSpeedKmh==='function'?'service-aware':'fallback'};
+      return {version:VERSION, findRouteWrapped:hasV198Wrapper(window.findRoute), cachedWrapped:hasV198Wrapper(window.findRouteCached), routeCacheSize:cachedOperationalRoutesV198.map.size, routeCacheLimit:CITYRAIL_OPERATIONAL_ROUTE_CACHE_LIMIT, engine:!!window.CityRailExpressRouteChoiceV32, speedModel:typeof window.cityrailNavigationServiceSpeedKmh==='function'?'service-aware':'fallback'};
     };
   }
   install();
@@ -40945,6 +40933,17 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   const lineStationId=(line,idx)=>{ const ids=stationIdsOf(line); return ids[Math.max(0,Math.min(ids.length-1,Math.round(num(idx))))]; };
   const batchList=st=>Array.isArray(st&&st.batches)?st.batches:(Array.isArray(st&&st.passengerBatches)?st.passengerBatches:[]);
   let dirtyVersion=1,lastKey='',lastSnapshot=null,buildCount=0,lastBuildMs=0,lastReason='boot';
+  const signatureCache = {
+    poolSource:null,
+    poolKey:'',
+    poolValue:'p0',
+    ridershipLineSource:null,
+    ridershipFlowSource:null,
+    ridershipPassengerSource:null,
+    ridershipRowsSource:null,
+    ridershipKey:'',
+    ridershipValue:'r0'
+  };
 
   function markDirty(reason){
     dirtyVersion=(dirtyVersion+1)%1000000000;
@@ -41009,8 +41008,22 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 
   function stationPoolSignature(st){
     const pools=st.stationWaitingPool||st.stationPools||{};
+    const quickKey=[
+      stateStations().length,
+      num(st._v74PassengerExchangeVersion),
+      num(st._v140WaitingDirty),
+      num(st.__stationPassengerLedgerVersion),
+      num(st._totalGenerated||st.totalGenerated||st.totalPassengerFlow),
+      num(st._totalDelivered||st.totalDelivered)
+    ].join('|');
+    if(signatureCache.poolSource===pools && signatureCache.poolKey===quickKey) return signatureCache.poolValue;
     const keys=Object.keys(pools);
-    if(!keys.length) return 'p0';
+    if(!keys.length){
+      signatureCache.poolSource=pools;
+      signatureCache.poolKey=quickKey;
+      signatureCache.poolValue='p0';
+      return signatureCache.poolValue;
+    }
     let wait=0,del=0,arr=0,board=0;
     for(const key of keys){
       const p=pools[key]||{};
@@ -41019,10 +41032,28 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       arr+=Math.round(num(p.totalArrived));
       board+=Math.round(num(p.totalBoarded));
     }
-    return ['p',keys.length,wait,del,arr,board].join(':');
+    signatureCache.poolSource=pools;
+    signatureCache.poolKey=quickKey;
+    signatureCache.poolValue=['p',keys.length,wait,del,arr,board].join(':');
+    return signatureCache.poolValue;
   }
 
   function lineRidershipSignature(st){
+    const rows=Array.isArray(st.lineStatsData)?st.lineStatsData:[];
+    const quickKey=[
+      stateLines().length,
+      rows.length,
+      num(st._v74PassengerExchangeVersion),
+      num(st._totalGenerated||st.totalGenerated||st.totalPassengerFlow),
+      num(st._totalDelivered||st.totalDelivered)
+    ].join('|');
+    if(
+      signatureCache.ridershipLineSource===st._lineRidership &&
+      signatureCache.ridershipFlowSource===st.lineFlowStats &&
+      signatureCache.ridershipPassengerSource===st.linePassengerStats &&
+      signatureCache.ridershipRowsSource===rows &&
+      signatureCache.ridershipKey===quickKey
+    ) return signatureCache.ridershipValue;
     const maps=[st._lineRidership,st.lineFlowStats,st.linePassengerStats];
     let keys=0,total=0;
     for(const map of maps){
@@ -41031,10 +41062,15 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       keys+=names.length;
       for(const name of names) total+=Math.round(num(map[name]));
     }
-    const rows=Array.isArray(st.lineStatsData)?st.lineStatsData:[];
     let rowTotal=0;
     for(const row of rows) rowTotal+=Math.round(num(row&&(row.flow||row.passengers||row.ridership)));
-    return ['r',keys,total,rows.length,rowTotal].join(':');
+    signatureCache.ridershipLineSource=st._lineRidership;
+    signatureCache.ridershipFlowSource=st.lineFlowStats;
+    signatureCache.ridershipPassengerSource=st.linePassengerStats;
+    signatureCache.ridershipRowsSource=rows;
+    signatureCache.ridershipKey=quickKey;
+    signatureCache.ridershipValue=['r',keys,total,rows.length,rowTotal].join(':');
+    return signatureCache.ridershipValue;
   }
 
   function cacheKey(st){

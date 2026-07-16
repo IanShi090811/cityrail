@@ -22,6 +22,9 @@ const MIN_POINT_DISTANCE_M = 55;
 const SIMPLIFY_TOLERANCE_M = 42;
 const LOOP_CLOSE_MAX_M = 180;
 const LOOP_SAME_TERMINAL_MAX_M = 2000;
+const ORDERED_WAY_JOIN_MAX_M = 350;
+const MAX_SEGMENT_DETOUR_RATIO = 4.5;
+const MAX_SEGMENT_DETOUR_EXTRA_M = 4500;
 const SNAPSHOT_BBOXES = new Map([
   ['31.05,121.25,31.45,121.65', 'shanghai.json'],
   ['39.55,115.85,40.3,117.05', 'beijing.json'],
@@ -89,8 +92,9 @@ async function snapshotForBbox(bbox) {
     ]);
     const fullPath = path.join(process.cwd(), 'fixtures', 'real-network', file);
     const data = JSON.parse(await fs.readFile(fullPath, 'utf8'));
-    snapshotCache.set(file, data);
-    return data;
+    const normalized = normalizeNetworkResponse(data);
+    snapshotCache.set(file, normalized);
+    return normalized;
   } catch {
     return null;
   }
@@ -208,6 +212,107 @@ export function cleanName(name) {
     .replace(/Station$/i, '')
     .replace(/[()（）［］\[\]【】]/g, '')
     .toLowerCase();
+}
+
+function routeLoopNameHint(route) {
+  const text = [
+    route && route.name,
+    route && route.ref,
+    route && route.description,
+    route && route.loopMode,
+    route && route.loopReason,
+  ].filter(Boolean).join(' ');
+  return /环线|環線|外环|外環|内环|內環|环状|環狀|外圈|内圈|loop|circle|circular/i.test(text);
+}
+
+function routeNameClosedTerminal(route) {
+  const raw = String(route && route.name || '').trim();
+  const service = raw.split(/[：:]/).slice(1).join(':') || raw;
+  const match = service.match(/^\s*(.+?)\s*(?:->|→|－|—|–|-|至)\s*(.+?)\s*(?:[（(].*)?$/u);
+  if (!match) return false;
+  return !!cleanName(match[1]) && cleanName(match[1]) === cleanName(match[2]);
+}
+
+function routeClosureWaypointCount(route) {
+  const stationCount = Array.isArray(route && route.stations) ? route.stations.length : 0;
+  if (stationCount < 3 || !Array.isArray(route && route.waypoints)) return 0;
+  const closureSegIdx = stationCount - 1;
+  return route.waypoints.filter(w => Math.round(num(w && w.segIdx, -1)) === closureSegIdx).length;
+}
+
+function routePathLength(points) {
+  if (!Array.isArray(points) || points.length < 2) return 0;
+  let length = 0;
+  for (let i = 0; i < points.length - 1; i++) length += meters(points[i], points[i + 1]);
+  return length;
+}
+
+function segmentGeometryIsValid(from, to, waypoints) {
+  if (!Array.isArray(waypoints) || !waypoints.length) return true;
+  const direct = meters(from, to);
+  if (!Number.isFinite(direct) || direct <= 0) return true;
+  const pathLength = routePathLength([from, ...waypoints, to]);
+  if (!Number.isFinite(pathLength) || pathLength <= 0) return true;
+  return pathLength <= Math.max(direct * MAX_SEGMENT_DETOUR_RATIO, direct + MAX_SEGMENT_DETOUR_EXTRA_M);
+}
+
+function normalizeRouteWaypoints(route) {
+  const stations = Array.isArray(route && route.stations) ? route.stations : [];
+  const waypoints = Array.isArray(route && route.waypoints) ? route.waypoints : [];
+  if (stations.length < 2 || !waypoints.length) return waypoints;
+  const kept = [];
+  for (let segIdx = 0; segIdx < stations.length - 1; segIdx++) {
+    const segmentWaypoints = waypoints
+      .filter(w => Math.round(num(w && w.segIdx, -1)) === segIdx)
+      .sort((a, b) => num(a && a.order, 0) - num(b && b.order, 0));
+    if (segmentGeometryIsValid(stations[segIdx], stations[segIdx + 1], segmentWaypoints)) kept.push(...segmentWaypoints);
+  }
+  const closureSegIdx = stations.length - 1;
+  waypoints
+    .filter(w => Math.round(num(w && w.segIdx, -1)) >= closureSegIdx)
+    .forEach(w => kept.push(w));
+  return kept.length === waypoints.length ? waypoints : kept;
+}
+
+function normalizedLoopRoute(route) {
+  if (!route || typeof route !== 'object') return route;
+  const stations = Array.isArray(route.stations) ? route.stations : [];
+  if (stations.length < 3) return route;
+  const first = stations[0];
+  const last = stations[stations.length - 1];
+  const terminalDistanceM = meters(first, last);
+  const repeatedTerminal = cleanName(first && first.name) && cleanName(first && first.name) === cleanName(last && last.name) && terminalDistanceM <= LOOP_SAME_TERMINAL_MAX_M;
+  const adjacentLoopTerminal = terminalDistanceM <= LOOP_SAME_TERMINAL_MAX_M && routeLoopNameHint(route);
+  const explicitClosedName = routeNameClosedTerminal(route);
+  const closureWaypoints = routeClosureWaypointCount(route);
+  const isLoop = !!(route.isLoop || route.loopMode === 'closed-ring' || route.closedLoop || route.isCircular || repeatedTerminal || adjacentLoopTerminal || explicitClosedName || closureWaypoints > 0);
+  if (!isLoop) return route;
+  const next = { ...route };
+  next.isLoop = true;
+  next.loopMode = 'closed-ring';
+  next.loopTerminalDistanceM = Number.isFinite(terminalDistanceM) ? Math.round(terminalDistanceM) : next.loopTerminalDistanceM;
+  if (!next.loopReason) {
+    next.loopReason = repeatedTerminal
+      ? 'snapshot-repeated-terminal'
+      : (explicitClosedName ? 'snapshot-closed-terminal-name' : (closureWaypoints > 0 ? 'snapshot-closure-waypoints' : 'snapshot-adjacent-loop-terminals'));
+  }
+  return next;
+}
+
+function normalizedNetworkRoute(route) {
+  const loopNormalized = normalizedLoopRoute(route);
+  if (!loopNormalized || typeof loopNormalized !== 'object') return loopNormalized;
+  const waypoints = normalizeRouteWaypoints(loopNormalized);
+  return waypoints === loopNormalized.waypoints ? loopNormalized : { ...loopNormalized, waypoints };
+}
+
+function normalizeNetworkRoutes(routes) {
+  return Array.isArray(routes) ? routes.map(normalizedNetworkRoute) : [];
+}
+
+function normalizeNetworkResponse(data) {
+  if (!data || typeof data !== 'object') return data;
+  return { ...data, routes: normalizeNetworkRoutes(data.routes) };
 }
 
 function normalizeColor(value) {
@@ -372,6 +477,89 @@ function buildWayGraph(members, ways) {
   return nodes;
 }
 
+function appendOrderedWayPoints(out, points) {
+  if (!Array.isArray(points) || points.length < 2) return { ok: false, distanceM: Infinity };
+  let pts = points;
+  let distanceM = 0;
+  if (out.length) {
+    const tail = out[out.length - 1];
+    const forward = meters(tail, pts[0]);
+    const reverse = meters(tail, pts[pts.length - 1]);
+    if (reverse < forward) pts = pts.slice().reverse();
+    distanceM = Math.min(forward, reverse);
+    const connected = graphPointKey(tail) === graphPointKey(pts[0]) || distanceM <= 3;
+    pts = connected ? pts.slice(1) : pts;
+  }
+  pts.forEach(point => out.push(point));
+  return { ok: true, distanceM };
+}
+
+function routePathSupportsClosedService(points, stops) {
+  if (!Array.isArray(points) || points.length < 4 || meters(points[0], points[points.length - 1]) > LOOP_CLOSE_MAX_M) return false;
+  const projected = projectStopsOntoPath(points, stops);
+  if (!projected || projected.length < 3) return false;
+  return true;
+}
+
+function orderedMemberPoints(members, ways, tags, stops) {
+  const points = [];
+  let wayCount = 0;
+  let disconnected = 0;
+  for (const member of Array.isArray(members) ? members : []) {
+    if (!member || member.type !== 'way' || STOP_ROLE_RE.test(String(member.role || ''))) continue;
+    const pts = thinNearbyPoints(wayGeometry(ways.get(member.ref)), 3);
+    if (pts.length < 2) continue;
+    const appended = appendOrderedWayPoints(points, pts);
+    if (!appended.ok) continue;
+    if (wayCount > 0 && appended.distanceM > ORDERED_WAY_JOIN_MAX_M) disconnected++;
+    wayCount++;
+    if (wayCount >= 3 && routePathSupportsClosedService(points, stops)) return { points: points.slice(), closedLoopMemberPath: true };
+  }
+  if (wayCount < 1 || points.length < 2 || disconnected > 0) return null;
+  return { points, closedLoopMemberPath: false };
+}
+
+function projectStopsOntoPath(points, stops) {
+  const projected = [];
+  for (let stopIndex = 0; stopIndex < stops.length; stopIndex++) {
+    const stop = stops[stopIndex];
+    const snap = nearestPathPointIndex(points, stop);
+    if (snap.index < 0 || snap.distanceM > MAX_STOP_GRAPH_SNAP_M) continue;
+    projected.push({ stop, stopIndex, routeIndex: snap.index, distanceM: snap.distanceM });
+  }
+  if (projected.length < 2) return null;
+  projected.sort((a, b) => a.routeIndex - b.routeIndex || a.distanceM - b.distanceM);
+  return projected;
+}
+
+function pathSliceBetween(points, from, to) {
+  if (!Array.isArray(points) || !points.length) return [];
+  if (from < 0 || to < 0 || from >= points.length || to >= points.length) return [];
+  if (to >= from) return points.slice(from, to + 1);
+  const closed = meters(points[0], points[points.length - 1]) <= LOOP_CLOSE_MAX_M;
+  if (closed) return points.slice(from).concat(points.slice(0, to + 1));
+  return points.slice(to, from + 1).reverse();
+}
+
+function orderedMemberRoutePath(members, ways, stops, tags) {
+  const ordered = orderedMemberPoints(members, ways, tags, stops);
+  if (!ordered || !Array.isArray(ordered.points)) return null;
+  const points = ordered.points;
+  const projected = projectStopsOntoPath(points, stops);
+  if (!projected) return null;
+  stops.splice(0, stops.length, ...projected.map(item => item.stop));
+  projected.forEach((item, index) => {
+    stops[index]._graphRouteIndex = item.routeIndex;
+    stops[index]._graphSnapDistanceM = item.distanceM;
+  });
+  function pathBetweenStops(fromStop, toStop) {
+    const from = Math.round(num(fromStop && fromStop._graphRouteIndex, -1));
+    const to = Math.round(num(toStop && toStop._graphRouteIndex, -1));
+    return pathSliceBetween(points, from, to);
+  }
+  return { points, pathBetweenStops, source: 'relation-member-order', closedLoopMemberPath: !!ordered.closedLoopMemberPath };
+}
+
 function assignGraphComponents(graph) {
   let component = 0;
   for (let i = 0; i < graph.length; i++) {
@@ -501,32 +689,25 @@ function terminalRoutePath(graph, anchors, stops, tags) {
   const path = shortestGraphPath(graph, anchors[fromIndex].index, anchors[toIndex].index);
   if (!path || path.length < 2) return null;
   const points = path.map(nodeIndex => ({ lat: graph[nodeIndex].lat, lng: graph[nodeIndex].lng }));
-  const projected = [];
-  for (let stopIndex = 0; stopIndex < stops.length; stopIndex++) {
-    const stop = stops[stopIndex];
-    const snap = nearestPathPointIndex(points, stop);
-    if (snap.index < 0 || snap.distanceM > MAX_STOP_GRAPH_SNAP_M) continue;
-    projected.push({ stop, routeIndex: snap.index, distanceM: snap.distanceM, anchorIndex: anchors[stopIndex].index });
-  }
-  if (projected.length < 2) return null;
-  projected.sort((a, b) => a.routeIndex - b.routeIndex || a.distanceM - b.distanceM);
+  const projected = projectStopsOntoPath(points, stops);
+  if (!projected) return null;
   stops.splice(0, stops.length, ...projected.map(item => item.stop));
   projected.forEach((item, index) => {
     stops[index]._graphRouteIndex = item.routeIndex;
-    stops[index]._graphAnchorIndex = item.anchorIndex;
+    stops[index]._graphAnchorIndex = anchors[item.stopIndex] ? anchors[item.stopIndex].index : nearestGraphNode(graph, item.stop).index;
     stops[index]._graphSnapDistanceM = item.distanceM;
   });
   function pathBetweenStops(fromStop, toStop) {
     const from = Math.round(num(fromStop && fromStop._graphRouteIndex, -1));
     const to = Math.round(num(toStop && toStop._graphRouteIndex, -1));
-    if (from < 0 || to < 0 || from >= points.length || to >= points.length) return [];
-    if (to >= from) return points.slice(from, to + 1);
-    return points.slice(to, from + 1).reverse();
+    return pathSliceBetween(points, from, to);
   }
   return { points, pathBetweenStops };
 }
 
 function buildRouteGeometry(members, ways, stops, tags = {}) {
+  const orderedGeometry = orderedMemberRoutePath(members, ways, stops, tags);
+  if (orderedGeometry) return orderedGeometry;
   const graph = buildWayGraph(members, ways);
   if (graph.length < 2 || !Array.isArray(stops) || stops.length < 2) return null;
   const anchors = routeAnchorsForStops(graph, stops);
@@ -777,8 +958,10 @@ export function parseRelation(relation, maps) {
   const repeatedTerminal = stops.length >= 4 && sameTerminalName && terminalDistanceM <= LOOP_SAME_TERMINAL_MAX_M;
   const loopByTerminalDistance = terminalDistanceM <= LOOP_CLOSE_MAX_M;
   const loopByGeometry = geometryClosedDistanceM <= LOOP_CLOSE_MAX_M && (sameTerminalName || loopByName);
+  const loopByClosedAdjacentTerminals = geometryClosedDistanceM <= LOOP_CLOSE_MAX_M && terminalDistanceM <= LOOP_SAME_TERMINAL_MAX_M;
+  const loopByOrderedMemberClosure = geometryClosedDistanceM <= LOOP_CLOSE_MAX_M && geometry.closedLoopMemberPath === true;
   const serviceStops = repeatedTerminal ? stops.slice(0, -1) : stops;
-  const isLoop = serviceStops.length >= 3 && (repeatedTerminal || loopByTerminalDistance || loopByGeometry);
+  const isLoop = serviceStops.length >= 3 && (repeatedTerminal || loopByTerminalDistance || loopByGeometry || loopByClosedAdjacentTerminals || loopByOrderedMemberClosure);
   const waypoints = [];
   for (let i = 0; i < serviceStops.length - 1; i++) {
     const a = serviceStops[i];
@@ -806,7 +989,7 @@ export function parseRelation(relation, maps) {
     color: normalizeColor(tags.colour || tags.color),
     isLoop,
     loopMode: isLoop ? 'closed-ring' : '',
-    loopReason: isLoop ? (repeatedTerminal ? 'repeated-terminal' : (loopByName ? 'closed-geometry-name' : 'closed-geometry')) : '',
+    loopReason: isLoop ? (repeatedTerminal ? 'repeated-terminal' : (loopByName ? 'closed-geometry-name' : (loopByOrderedMemberClosure ? 'ordered-member-closed-loop' : (loopByClosedAdjacentTerminals ? 'closed-geometry-adjacent-terminals' : 'closed-geometry')))) : '',
     loopTerminalDistanceM: Number.isFinite(terminalDistanceM) ? Math.round(terminalDistanceM) : null,
     stations: serviceStops.map((stop, index) => ({
       name: stop.name,
@@ -1004,7 +1187,7 @@ export async function onRequestGet(context) {
     const { endpoint, data, relationCount, fetchedRelationCount, failedBatchCount } = await queryOverpass(bbox, maxRelations);
     const maps = mapsFromElements(data && data.elements);
     const parsed = maps.relations.map(relation => parseRelation(relation, maps)).filter(Boolean);
-    const routes = chooseBestRoutes(parsed);
+    const routes = normalizeNetworkRoutes(chooseBestRoutes(parsed));
     const stations = new Set();
     const waypointCount = routes.reduce((sum, route) => {
       route.stations.forEach(st => stations.add(`${cleanName(st.name)}:${Math.round(st.lat * 10000)}:${Math.round(st.lng * 10000)}`));

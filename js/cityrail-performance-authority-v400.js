@@ -380,28 +380,54 @@
     nodes: new Map()
   };
 
+  function hashText(value) {
+    const text = sid(value);
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
   function lineSignature(lines) {
-    return (Array.isArray(lines) ? lines : []).map(line => [
-      sid(line && line.id),
-      line && line._geometryVersion || 0,
-      line && line._topologyVersion || 0,
-      line && line._runtimeRouteId || '',
-      Array.isArray(line && line.stationIds) ? line.stationIds.join(',') : '',
-      Array.isArray(line && line.waypoints) ? line.waypoints.map(wp => [
-        Math.round(Number(wp && wp.lat || 0) * 1e5),
-        Math.round(Number(wp && wp.lng || 0) * 1e5),
-        Math.round(Number(wp && wp.segIdx || 0)),
-        Math.round(Number(wp && wp.order || 0))
-      ].join(',')).join(';') : ''
-    ].join(':')).join('|');
+    let hash = 2166136261;
+    const arr = Array.isArray(lines) ? lines : [];
+    for (let i = 0; i < arr.length; i++) {
+      const line = arr[i] || {};
+      const ids = Array.isArray(line.stationIds) ? line.stationIds : [];
+      const wps = Array.isArray(line.waypoints) ? line.waypoints : [];
+      hash ^= hashText(line.id); hash = Math.imul(hash, 16777619);
+      hash ^= Math.round(Number(line._geometryVersion || 0)); hash = Math.imul(hash, 16777619);
+      hash ^= Math.round(Number(line._topologyVersion || 0)); hash = Math.imul(hash, 16777619);
+      hash ^= hashText(line._runtimeRouteId || ''); hash = Math.imul(hash, 16777619);
+      hash ^= ids.length; hash = Math.imul(hash, 16777619);
+      if (ids.length) {
+        hash ^= hashText(ids[0]); hash = Math.imul(hash, 16777619);
+        hash ^= hashText(ids[ids.length - 1]); hash = Math.imul(hash, 16777619);
+      }
+      hash ^= wps.length; hash = Math.imul(hash, 16777619);
+      for (let j = 0; j < wps.length; j++) {
+        const wp = wps[j] || {};
+        hash ^= Math.round(Number(wp.lat || 0) * 1e5); hash = Math.imul(hash, 16777619);
+        hash ^= Math.round(Number(wp.lng || 0) * 1e5); hash = Math.imul(hash, 16777619);
+        hash ^= Math.round(Number(wp.segIdx || 0)); hash = Math.imul(hash, 16777619);
+        hash ^= Math.round(Number(wp.order || 0)); hash = Math.imul(hash, 16777619);
+      }
+    }
+    return [arr.length, hash >>> 0].join(':');
   }
 
   function stationSignature(stations) {
-    return (Array.isArray(stations) ? stations : []).map(st => [
-      sid(st && st.id),
-      Math.round(Number(st && st.lat || 0) * 1e5),
-      Math.round(Number(st && st.lng || 0) * 1e5)
-    ].join(':')).join('|');
+    let hash = 2166136261;
+    const arr = Array.isArray(stations) ? stations : [];
+    for (let i = 0; i < arr.length; i++) {
+      const st = arr[i] || {};
+      hash ^= hashText(st.id); hash = Math.imul(hash, 16777619);
+      hash ^= Math.round(Number(st.lat || 0) * 1e5); hash = Math.imul(hash, 16777619);
+      hash ^= Math.round(Number(st.lng || 0) * 1e5); hash = Math.imul(hash, 16777619);
+    }
+    return [arr.length, hash >>> 0].join(':');
   }
 
   function ensureModelIndexes(st) {
@@ -450,10 +476,31 @@
 
   function lineNodes(line) {
     if (!line) return [];
+    const attachStationIndex = nodes => {
+      if (!Array.isArray(nodes)) return [];
+      if (nodes._stationNodeIndexes) return nodes;
+      const index = Object.create(null);
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (!node || node.type !== 'station' || node.id == null) continue;
+        const key = sid(node.id);
+        if (!index[key]) index[key] = [];
+        index[key].push(i);
+      }
+      try {
+        Object.defineProperty(nodes, '_stationNodeIndexes', {
+          value:index,
+          configurable:true
+        });
+      } catch(e) {
+        nodes._stationNodeIndexes = index;
+      }
+      return nodes;
+    };
     try {
       if (typeof W.getLineTrainNodes === 'function') {
         const nodes = W.getLineTrainNodes(line);
-        if (Array.isArray(nodes) && nodes.length) return nodes;
+        if (Array.isArray(nodes) && nodes.length) return attachStationIndex(nodes);
       }
     } catch(e) {}
     const nodes = [];
@@ -469,7 +516,7 @@
           if (Number.isFinite(Number(wp.lat)) && Number.isFinite(Number(wp.lng))) nodes.push({ type:'waypoint', lat:Number(wp.lat), lng:Number(wp.lng) });
         });
     });
-    return nodes;
+    return attachStationIndex(nodes);
   }
 
   function trainLatLng(train, line, nodes) {
@@ -995,14 +1042,38 @@
   }
 
   function routeCacheSize() {
+    let total = 0;
+    let found = false;
     try {
       const api = W.CityRailExpressRouteChoiceV32;
       if (api && typeof api.report === 'function') {
         const r = api.report();
-        if (r && Number.isFinite(Number(r.routeCacheSize))) return Number(r.routeCacheSize);
+        if (r && Number.isFinite(Number(r.routeCacheSize))) {
+          total += Math.max(0, Number(r.routeCacheSize) || 0);
+          found = true;
+        }
       }
     } catch(e) {}
-    return null;
+    try {
+      const api = W.CityRailRuntimeRouteCache;
+      if (api && typeof api.report === 'function') {
+        const r = api.report();
+        if (r && Number.isFinite(Number(r.routeCacheSize))) {
+          total += Math.max(0, Number(r.routeCacheSize) || 0);
+          found = true;
+        }
+      }
+    } catch(e) {}
+    try {
+      if (typeof W.cityrailNavigationV198Report === 'function') {
+        const r = W.cityrailNavigationV198Report();
+        if (r && Number.isFinite(Number(r.routeCacheSize))) {
+          total += Math.max(0, Number(r.routeCacheSize) || 0);
+          found = true;
+        }
+      }
+    } catch(e) {}
+    return found ? total : null;
   }
 
   function collectPerfHudSnapshot() {

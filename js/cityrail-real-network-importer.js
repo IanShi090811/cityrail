@@ -86,7 +86,12 @@
     return bbox.map(v => Math.round(Number(v) * 1000000) / 1000000);
   }
   function apiUrl(bbox){
-    const base = W.location && W.location.protocol === 'file:' ? 'http://127.0.0.1:3011' : '';
+    const localStaticPreview = W.location && /^https?:$/.test(W.location.protocol) &&
+      /^(127\.0\.0\.1|localhost)$/i.test(W.location.hostname || '') &&
+      !/^(3011|8080)$/.test(String(W.location.port || ''));
+    const base = (W.location && W.location.protocol === 'file:') || localStaticPreview
+      ? 'http://127.0.0.1:3011'
+      : '';
     return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v487-rail-graph-route-geometry';
   }
   function setText(id, text){
