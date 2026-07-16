@@ -6692,10 +6692,9 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   setTimeout(boot,2600);
 })();
 
-;/* ===== bundled module: js/legacy/00-continue-emergency-fix.js ===== */
+;/* ===== bundled module: js/core/live-line-length.js ===== */
 /* Extracted from original index.html during low-risk modular refactor. Execution order is preserved. */
 (function(){
-  function byId(id){ return document.getElementById(id); }
   function havKm(a,b){
     if(!a||!b) return 0;
     var num=function(v){ return Number.isFinite(Number(v)) ? Number(v) : 0; };
@@ -6721,117 +6720,6 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     return total;
   }
   try{ window.cityrailLiveLineLength = liveLineLength; }catch(e){}
-
-  function showScreen(screenId){
-    var s = byId(screenId);
-    if(!s) return;
-    s.style.display = 'flex';
-    s.style.visibility = 'visible';
-    s.style.opacity = '1';
-    s.style.pointerEvents = 'auto';
-    s.classList.remove('fade-out');
-    s.classList.add('visible');
-  }
-
-  function hideScreen(screenId){
-    var s = byId(screenId);
-    if(!s) return;
-    s.classList.add('fade-out');
-    s.style.opacity = '0';
-    s.style.pointerEvents = 'none';
-    setTimeout(function(){ s.style.display = 'none'; }, 350);
-  }
-
-  function bindAuthFallback(){
-    if(window.__continueFallbackBound) return;
-    window.__continueFallbackBound = true;
-
-    var auth = byId('auth-screen');
-    var reg = byId('auth-register-btn');
-    var login = byId('auth-login-btn');
-    var invite = byId('auth-invite-btn');
-    var back = byId('auth-back-btn');
-
-    if(back) back.addEventListener('click', function(){ location.reload(); });
-
-    if(reg) reg.addEventListener('click', function(){
-      hideScreen('auth-screen');
-      setTimeout(function(){ showScreen('register-screen'); }, 280);
-    });
-
-    if(login) login.addEventListener('click', function(){
-      hideScreen('auth-screen');
-      setTimeout(function(){ showScreen('login-screen'); }, 280);
-    });
-
-    if(invite) invite.addEventListener('click', function(){
-      hideScreen('auth-screen');
-      if(typeof window.initInviteCodeScreen === 'function') {
-        try { window.initInviteCodeScreen(); } catch(e){}
-      }
-      setTimeout(function(){ showScreen('invite-code-screen'); }, 280);
-    });
-  }
-
-  function ensureSplashContinueVisible(){
-    var splash = byId('splash-screen');
-    var btn = byId('splash-continue-btn');
-    if(!splash || !btn) return;
-    var splashStyle = window.getComputedStyle ? getComputedStyle(splash) : null;
-    if(splashStyle && (splashStyle.display === 'none' || splashStyle.visibility === 'hidden')) return;
-    var style = window.getComputedStyle ? getComputedStyle(btn) : null;
-    var rect = btn.getBoundingClientRect ? btn.getBoundingClientRect() : { width: 1, height: 1 };
-    var invisible = !style || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.1 || rect.width <= 0 || rect.height <= 0;
-    if(!invisible) return;
-    btn.style.display = btn.tagName === 'BUTTON' ? 'inline-flex' : '';
-    btn.style.visibility = 'visible';
-    btn.style.opacity = '1';
-    btn.style.transform = 'translateY(0)';
-    btn.style.pointerEvents = 'auto';
-    btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'center';
-  }
-
-  window.handleSplashContinue = function(){
-    try{
-      var splash = byId('splash-screen');
-      var auth = byId('auth-screen');
-      if(!auth) return;
-
-      if(splash){
-        splash.classList.add('fade-out');
-        splash.style.opacity = '0';
-        splash.style.pointerEvents = 'none';
-        setTimeout(function(){ splash.style.display = 'none'; }, 350);
-      }
-
-      auth.style.display = 'flex';
-      auth.style.visibility = 'visible';
-      auth.style.opacity = '1';
-      auth.style.pointerEvents = 'auto';
-      auth.style.zIndex = '100000';
-      auth.classList.remove('fade-out');
-      auth.classList.add('visible');
-
-      bindAuthFallback();
-    }catch(e){
-      console.error('Continue fallback failed:', e);
-    }
-  };
-
-  document.addEventListener('DOMContentLoaded', function(){
-    var btn = byId('splash-continue-btn');
-    if(btn && !btn.dataset.continueFixed){
-      btn.dataset.continueFixed = '1';
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        window.handleSplashContinue();
-      });
-    }
-    setTimeout(ensureSplashContinueVisible, 1600);
-    setTimeout(ensureSplashContinueVisible, 2600);
-  });
-  window.addEventListener('pageshow', function(){ setTimeout(ensureSplashContinueVisible, 600); });
 })();
 
 ;/* ===== CityRail v177 - Apple OD passenger flow visualizer ===== */
@@ -7990,66 +7878,10 @@ window.SH_REALISM_CONFIG = {
 // ═══ 最顶层的 Continue 入口：hoisted 函数，确保永远可用 ═══
 function handleSplashContinue() {
   try {
-    var sp = document.getElementById('splash-screen');
-    var as = document.getElementById('auth-screen');
-    var animId = window.__animId;
-    if (!sp || !as) return;
-    window.__CITYRAIL_SPLASH_STOP_REQUESTED__ = true;
-    if (typeof window.cityrailStopSplashAnimation === 'function') window.cityrailStopSplashAnimation();
-    if (sp.classList.contains('fade-out')) {
-      as.style.display = '';
-      as.classList.add('visible');
-      return;
+    if (typeof window.cityrailOpenAuthEntry === 'function') {
+      window.cityrailOpenAuthEntry();
     }
-    sp.classList.add('fade-out');
-    if (animId) cancelAnimationFrame(animId);
-    setTimeout(function() { sp.style.display = 'none'; }, 600);
-    setTimeout(function() {
-      if (as) as.classList.add('visible');
-      // 绑定事件（首次才执行）
-      if (!window.__authBound) {
-        window.__authBound = true;
-        (function bindAuth() {
-          var rb = document.getElementById('reg-back-btn');
-          var lb = document.getElementById('login-back-btn');
-          var pb = document.getElementById('pay-back-btn');
-          var regBtn = document.getElementById('auth-register-btn');
-          var loginBtn = document.getElementById('auth-login-btn');
-          var inviteBtn = document.getElementById('auth-invite-btn');
-          var backBtn = document.getElementById('auth-back-btn');
-          if (backBtn) backBtn.addEventListener('click', function(){ location.reload(); });
-          if (regBtn) regBtn.addEventListener('click', function(){
-            as.classList.add('fade-out');
-            setTimeout(function(){ as.style.display = 'none'; }, 500);
-            var rs = document.getElementById('register-screen');
-            var ru = document.getElementById('reg-username'); if(ru) ru.value = '';
-            var rp = document.getElementById('reg-password'); if(rp) rp.value = '';
-            var rc = document.getElementById('reg-confirm'); if(rc) rc.value = '';
-            if (typeof updateRegSubmitBtn === 'function') updateRegSubmitBtn();
-            setTimeout(function(){ if(rs) rs.classList.add('visible'); }, 600);
-          });
-          if (loginBtn) loginBtn.addEventListener('click', function(){
-            as.classList.add('fade-out');
-            setTimeout(function(){ as.style.display = 'none'; }, 500);
-            var ls = document.getElementById('login-screen');
-            var le = document.getElementById('login-error');
-            if(le) le.classList.remove('visible');
-            setTimeout(function(){ if(ls) ls.classList.add('visible'); }, 600);
-          });
-          if (inviteBtn) inviteBtn.addEventListener('click', function(){
-            as.classList.add('fade-out');
-            setTimeout(function(){ as.style.display = 'none'; }, 500);
-            var inv = document.getElementById('invite-code-screen');
-            if (typeof initInviteCodeScreen === 'function') initInviteCodeScreen();
-            setTimeout(function(){ if(inv) inv.classList.add('visible'); }, 600);
-          });
-          if (rb) rb.addEventListener('click', function(){ location.reload(); });
-          if (lb) lb.addEventListener('click', function(){ location.reload(); });
-          if (pb) pb.addEventListener('click', function(){ location.reload(); });
-        })();
-      }
-    }, 700);
-  } catch(e) { console.warn('Continue error:', e); location.reload(); }
+  } catch(e) { console.warn('Continue error:', e); }
 }
 
 // 全局安全获取 DOM 元素
@@ -8073,257 +7905,105 @@ function cityrailShowCitySelectScreen(delay = 0) {
 window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
 
 (function() {
-  const splash = document.getElementById('splash-screen');
-  const logoImg = document.getElementById('splash-logo-img');
-  const continueBtn = document.getElementById('splash-continue-btn');
+  let authEntryBound = false;
 
-  const canvas = document.getElementById('splash-canvas');
-
-  // 已初始化时的快速切换
-  function showAuthScreen() {
-    const a = $('auth-screen');
-    if (!a) { location.reload(); return; }
-    window.__CITYRAIL_SPLASH_STOP_REQUESTED__ = true;
-    if (typeof window.cityrailStopSplashAnimation === 'function') window.cityrailStopSplashAnimation();
-    splash.style.display = 'none';
-    splash.classList.remove('fade-out');
-    a.style.display = '';
-    a.classList.remove('fade-out');
-    a.classList.add('visible');
-    a.style.opacity = '0';
-    requestAnimationFrame(() => { a.style.opacity = '1'; });
-    a.style.transition = 'opacity 0.4s ease';
+  function showElement(el, display = 'flex') {
+    if (!el) return;
+    el.style.display = display;
+    el.style.visibility = 'visible';
+    el.style.opacity = '1';
+    el.style.pointerEvents = 'auto';
+    el.classList.remove('fade-out');
+    el.classList.add('visible');
   }
 
-  // 绑定认证页面内按钮的事件
-  function bindAuthEvents() {
-    const a = $('auth-screen');
-    if (!a) return;
+  function hideElement(el, delay = 460) {
+    if (!el) return;
+    el.classList.add('fade-out');
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+    setTimeout(() => {
+      el.style.display = 'none';
+      el.classList.remove('visible');
+    }, delay);
+  }
+
+  function resetRegisterForm() {
+    const ru = $('reg-username'); if (ru) ru.value = '';
+    const rp = $('reg-password'); if (rp) rp.value = '';
+    const rc = $('reg-confirm'); if (rc) rc.value = '';
+    if (typeof updateRegSubmitBtn === 'function') updateRegSubmitBtn();
+  }
+
+  function resetLoginForm() {
+    const lu = $('login-username'); if (lu) lu.value = '';
+    const lp = $('login-password'); if (lp) lp.value = '';
+    const le = $('login-error'); if (le) le.classList.remove('visible');
+  }
+
+  function bindAuthEntryEvents() {
+    if (authEntryBound) return;
+    authEntryBound = true;
+
+    const continueBtn = $('splash-continue-btn');
     const regBtn = $('auth-register-btn');
     const loginBtn = $('auth-login-btn');
     const inviteBtn = $('auth-invite-btn');
     const backBtn = $('auth-back-btn');
+    const regBack = $('reg-back-btn');
+    const loginBack = $('login-back-btn');
+    const payBack = $('pay-back-btn');
 
+    if (continueBtn) {
+      continueBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        window.cityrailOpenAuthEntry();
+      });
+    }
     if (backBtn) backBtn.addEventListener('click', () => { location.reload(); });
+    if (regBack) regBack.addEventListener('click', () => { location.reload(); });
+    if (loginBack) loginBack.addEventListener('click', () => { location.reload(); });
+    if (payBack) payBack.addEventListener('click', () => { location.reload(); });
 
     if (regBtn) {
       regBtn.addEventListener('click', () => {
-        a.classList.add('fade-out');
-        setTimeout(() => { a.style.display = 'none'; }, 500);
-        const rs = $('register-screen');
-        const ru = $('reg-username'); if (ru) ru.value = '';
-        const rp = $('reg-password'); if (rp) rp.value = '';
-        const rc = $('reg-confirm'); if (rc) rc.value = '';
-        if (typeof updateRegSubmitBtn === 'function') updateRegSubmitBtn();
-        setTimeout(() => { if (rs) rs.classList.add('visible'); }, 600);
+        hideElement($('auth-screen'), 500);
+        resetRegisterForm();
+        setTimeout(() => { showElement($('register-screen')); }, 600);
       });
     }
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
-        a.classList.add('fade-out');
-        setTimeout(() => { a.style.display = 'none'; }, 500);
-        const ls = $('login-screen');
-        const lu = $('login-username'); if (lu) lu.value = '';
-        const lp = $('login-password'); if (lp) lp.value = '';
-        const le = $('login-error'); if (le) le.classList.remove('visible');
-        setTimeout(() => { if (ls) ls.classList.add('visible'); }, 600);
+        hideElement($('auth-screen'), 500);
+        resetLoginForm();
+        setTimeout(() => { showElement($('login-screen')); }, 600);
       });
     }
     if (inviteBtn) {
       inviteBtn.addEventListener('click', () => {
-        a.classList.add('fade-out');
-        setTimeout(() => { a.style.display = 'none'; }, 500);
-        const inv = $('invite-code-screen');
+        hideElement($('auth-screen'), 500);
         if (typeof initInviteCodeScreen === 'function') initInviteCodeScreen();
-        setTimeout(() => { if (inv) inv.classList.add('visible'); }, 600);
+        setTimeout(() => { showElement($('invite-code-screen')); }, 600);
       });
     }
   }
 
-  // 首页首次初始化
-  function initAuthUI() {
-    splash.classList.add('fade-out');
-    window.__CITYRAIL_SPLASH_STOP_REQUESTED__ = true;
-    if (typeof window.cityrailStopSplashAnimation === 'function') window.cityrailStopSplashAnimation();
-    else cancelAnimationFrame(animId);
-    setTimeout(() => { splash.style.display = 'none'; }, 600);
-    const a = $('auth-screen');
-    setTimeout(() => { if (a) a.classList.add('visible'); }, 700);
-    bindAuthEvents();
+  window.cityrailOpenAuthEntry = function() {
+    const splash = $('splash-screen');
+    const auth = $('auth-screen');
+    if (!auth) return;
+    bindAuthEntryEvents();
+    hideElement(splash, 460);
+    setTimeout(() => { showElement(auth); }, 480);
+  };
+
+  window.cityrailBindAuthEntryEvents = bindAuthEntryEvents;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAuthEntryEvents, { once: true });
+  } else {
+    bindAuthEntryEvents();
   }
-
-  // Continue 入口：统一由 onclick 调用
-  let _authReady = false;
-  // 将内部函数暴露到全局，供外部 handleSplashContinue 调用
-  window._doShowAuthScreen = function() { showAuthScreen(); };
-  window._doInitAuthUI = function() { initAuthUI(); };
-  window._getAuthReady = function() { return _authReady; };
-  window._setAuthReady = function(v) { _authReady = v; };
-
-  // Logo uses a tiny local WebP; if image loading is blocked, keep a text fallback visible.
-  if (logoImg) {
-    const logoWrap = logoImg.closest('.splash-logo-wrap');
-    const logoFallbackTimer = setTimeout(() => {
-      if (!logoImg.complete && logoWrap) logoWrap.classList.add('logo-failed');
-    }, 2500);
-    logoImg.onload = () => {
-      clearTimeout(logoFallbackTimer);
-      if (logoWrap) logoWrap.classList.remove('logo-failed');
-    };
-    logoImg.onerror = () => {
-      clearTimeout(logoFallbackTimer);
-      if (logoWrap) logoWrap.classList.add('logo-failed');
-    };
-  }
-
-  // ===== Lightweight 3D-style city sandbox background =====
-  let animId; // 声明在外部，供 initAuthUI 引用
-  try {
-    const ctx = canvas.getContext('2d');
-    const splashScene = {
-      blocks: [],
-      tracks: [],
-      particles: [],
-      running: true,
-      time: 0,
-      last: 0,
-      dpr: 1
-    };
-    function resizeCanvas() {
-      splashScene.dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
-      canvas.width = Math.max(1, Math.round(innerWidth * splashScene.dpr));
-      canvas.height = Math.max(1, Math.round(innerHeight * splashScene.dpr));
-      canvas.style.width = innerWidth + 'px';
-      canvas.style.height = innerHeight + 'px';
-      ctx.setTransform(splashScene.dpr, 0, 0, splashScene.dpr, 0, 0);
-      buildSplashScene();
-    }
-    function projectIso(x, y, z) {
-      const scale = Math.min(innerWidth, innerHeight) / 980;
-      const cx = innerWidth * 0.5;
-      const cy = innerHeight * 0.61;
-      return {
-        x: cx + (x - y) * 0.82 * scale,
-        y: cy + (x + y) * 0.34 * scale - z * scale
-      };
-    }
-    function buildSplashScene() {
-      splashScene.blocks.length = 0;
-      splashScene.tracks.length = 0;
-      splashScene.particles.length = 0;
-      const grid = 7;
-      for (let gx = -grid; gx <= grid; gx++) {
-        for (let gy = -grid; gy <= grid; gy++) {
-          const skip = Math.abs(gx) < 2 || Math.abs(gy) < 2 || ((gx + gy) % 5 === 0);
-          if (skip || Math.random() < 0.28) continue;
-          const h = 14 + ((gx * 19 + gy * 31) & 7) * 9;
-          splashScene.blocks.push({ x: gx * 58, y: gy * 58, w: 34 + ((gx + 9) % 3) * 8, d: 32 + ((gy + 8) % 3) * 8, h });
-        }
-      }
-      const colors = ['#0a84ff', '#30d158', '#ff9f0a'];
-      for (let i = 0; i < 3; i++) {
-        const offset = (i - 1) * 72;
-        splashScene.tracks.push({
-          color: colors[i],
-          speed: 0.00013 + i * 0.000035,
-          pts: [
-            { x: -430, y: offset - 110, z: 16 },
-            { x: -190, y: offset - 40, z: 20 },
-            { x: 30, y: offset, z: 24 },
-            { x: 250, y: offset + 60, z: 20 },
-            { x: 430, y: offset + 120, z: 16 }
-          ]
-        });
-      }
-      for (let i = 0; i < 38; i++) {
-        splashScene.particles.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, v: 0.12 + Math.random() * 0.22, a: 0.08 + Math.random() * 0.16 });
-      }
-    }
-    function drawPrism(block) {
-      const x = block.x, y = block.y, w = block.w, d = block.d, h = block.h;
-      const p0 = projectIso(x - w, y - d, 0), p1 = projectIso(x + w, y - d, 0), p2 = projectIso(x + w, y + d, 0), p3 = projectIso(x - w, y + d, 0);
-      const t0 = projectIso(x - w, y - d, h), t1 = projectIso(x + w, y - d, h), t2 = projectIso(x + w, y + d, h), t3 = projectIso(x - w, y + d, h);
-      ctx.beginPath(); ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y); ctx.lineTo(t3.x, t3.y); ctx.closePath();
-      ctx.fillStyle = 'rgba(92,154,255,.16)'; ctx.fill(); ctx.strokeStyle = 'rgba(167,213,255,.16)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(t2.x, t2.y); ctx.closePath();
-      ctx.fillStyle = 'rgba(10,132,255,.075)'; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(t2.x, t2.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(t3.x, t3.y); ctx.closePath();
-      ctx.fillStyle = 'rgba(48,209,88,.045)'; ctx.fill();
-    }
-    function drawTrack(track) {
-      const pts = track.pts.map(p => projectIso(p.x, p.y, p.z));
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-      ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 5; ctx.stroke();
-      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-      ctx.strokeStyle = track.color + '99'; ctx.lineWidth = 2.2; ctx.stroke();
-      const t = (splashScene.time * track.speed) % 1;
-      const pos = t * (pts.length - 1), idx = Math.min(pts.length - 2, Math.floor(pos)), f = pos - idx;
-      const a = pts[idx], b = pts[idx + 1], x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
-      ctx.save(); ctx.shadowColor = track.color; ctx.shadowBlur = 18;
-      ctx.fillStyle = '#fff'; ctx.fillRect(x - 7, y - 3, 14, 6);
-      ctx.fillStyle = track.color; ctx.fillRect(x - 5, y - 5, 10, 4);
-      ctx.restore();
-    }
-    function drawBg(ts) {
-      if (!splashScene.running || !isSplashAnimationVisible()) {
-        stopSplashAnimation();
-        return;
-      }
-      const dt = Math.min(34, ts - (splashScene.last || ts || 0));
-      splashScene.last = ts || 0;
-      splashScene.time += dt || 16;
-      ctx.clearRect(0, 0, innerWidth, innerHeight);
-      const horizon = ctx.createLinearGradient(0, innerHeight * .08, 0, innerHeight);
-      horizon.addColorStop(0, 'rgba(10,132,255,.05)');
-      horizon.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = horizon; ctx.fillRect(0, 0, innerWidth, innerHeight);
-      ctx.strokeStyle = 'rgba(10,132,255,.045)'; ctx.lineWidth = 1;
-      for (let i = -9; i <= 9; i++) {
-        const a = projectIso(i * 70, -640, 0), b = projectIso(i * 70, 640, 0), c = projectIso(-640, i * 70, 0), d = projectIso(640, i * 70, 0);
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke();
-      }
-      splashScene.blocks.forEach(drawPrism);
-      splashScene.tracks.forEach(drawTrack);
-      splashScene.particles.forEach(p => {
-        p.y -= p.v; if (p.y < -10) { p.y = innerHeight + 10; p.x = Math.random() * innerWidth; }
-        ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); ctx.fillStyle = `rgba(140,205,255,${p.a})`; ctx.fill();
-      });
-      animId = requestAnimationFrame(drawBg);
-      window.__animId = animId;
-    }
-    function isSplashAnimationVisible() {
-      return !document.hidden &&
-        !window.__CITYRAIL_SPLASH_STOP_REQUESTED__ &&
-        splash &&
-        splash.style.display !== 'none' &&
-        !splash.classList.contains('fade-out');
-    }
-    function stopSplashAnimation() {
-      splashScene.running = false;
-      if (animId) {
-        cancelAnimationFrame(animId);
-        animId = 0;
-      }
-      window.__animId = 0;
-    }
-    function setSplashRunning() {
-      splashScene.running = isSplashAnimationVisible();
-      if (splashScene.running && !animId) animId = requestAnimationFrame(drawBg);
-      if (!splashScene.running && animId) { cancelAnimationFrame(animId); animId = 0; }
-      if (!splashScene.running) window.__animId = 0;
-    }
-    window.cityrailStopSplashAnimation = stopSplashAnimation;
-    window.cityrailRefreshSplashAnimation = setSplashRunning;
-    resizeCanvas(); addEventListener('resize', resizeCanvas);
-    document.addEventListener('visibilitychange', setSplashRunning);
-    animId = requestAnimationFrame(drawBg);
-  } catch(e) { /* ignore animation init errors */ }
-
-  // Start typing after logo loads
-  logoImg.onload = () => {};
-  logoImg.onerror = () => {};
 
   // 全局 API 地址
 	  const API_BASE = cityrailGetApiBase();
