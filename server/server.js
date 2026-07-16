@@ -14,6 +14,11 @@ const rawPort = Number(process.env.PORT);
 const PORT = Number.isInteger(rawPort) && rawPort > 0 && rawPort < 65536 ? rawPort : DEFAULT_PORT;
 const DATA_DIR = path.resolve(process.env.CITYRAIL_DATA_DIR || path.join(__dirname, '.data'));
 const STATIC_INDEX = path.join(ROOT_DIR, 'index.html');
+const HTML_SECURITY_HEADERS = {
+  'content-security-policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://cityrailgame.pages.dev https://cityrailgame.com https://api.xunhupay.com https://*.openstreetmap.org https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://*.arcgisonline.com https://*.autonavi.com https://*.amap.com https://*.qq.com; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://api.xunhupay.com; upgrade-insecure-requests",
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+};
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -280,6 +285,7 @@ async function serveStatic(req, res, pathname) {
       'content-type': MIME[ext] || 'application/octet-stream',
       'x-content-type-options': 'nosniff',
     };
+    if (ext === '.html') Object.assign(headers, HTML_SECURITY_HEADERS);
     if (filePath !== STATIC_INDEX && /\.(?:js|css|png|jpe?g|webp|svg|ico|json|wasm)$/i.test(filePath)) {
       headers['cache-control'] = 'public, max-age=31536000, immutable';
     } else {
