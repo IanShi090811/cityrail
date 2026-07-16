@@ -51,9 +51,9 @@
         "label": "macOS 安装包",
         "format": "dmg",
         "version": "1.0.0",
-        "url": "/releases/desktop/CityRail-1.0.0-arm64.dmg",
+        "url": "https://raw.githubusercontent.com/IanShi090811/cityrail/main/releases/desktop/CityRail-1.0.0-arm64.dmg",
         "size": "93.7 MB",
-        "sha256": "fe80999ebb5f86759b1ebabd91a1f9f6a5cbb814f437c33c7733a05f99968d16",
+        "sha256": "7fa9f318dead5dd83428ec7d847e4c904661517ca4f87cb9faa6fdc8a899de13",
         "instructions": [
           "下载 dmg",
           "打开 dmg",

@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "releases" / "latest.json"
 VALID_STATUS = {"available", "preparing", "app-store-required"}
+RAW_PREFIX = "https://raw.githubusercontent.com/IanShi090811/cityrail/main/"
 
 
 def sha256(path):
@@ -24,6 +25,14 @@ def human_size(path):
     if size < 1024 * 1024:
         return f"{size / 1024:.1f} KB"
     return f"{size / (1024 * 1024):.1f} MB"
+
+
+def path_for_release_url(url):
+    if url.startswith("/releases/"):
+        return ROOT / url.lstrip("/")
+    if url.startswith(RAW_PREFIX + "releases/"):
+        return ROOT / url.removeprefix(RAW_PREFIX)
+    return None
 
 
 def main():
@@ -51,10 +60,10 @@ def main():
                 errors.append(f"{platform_key}.{kind} has invalid status {status!r}")
             url = item.get("url") or ""
             if status == "available":
-                if not url.startswith("/releases/"):
-                    errors.append(f"{platform_key}.{kind} available item must use /releases/ url")
+                path = path_for_release_url(url)
+                if path is None:
+                    errors.append(f"{platform_key}.{kind} available item must use a controlled release url")
                     continue
-                path = ROOT / url.lstrip("/")
                 if not path.exists():
                     errors.append(f"{platform_key}.{kind} file does not exist: {url}")
                     continue

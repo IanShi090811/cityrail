@@ -47,10 +47,10 @@
       "shortcutName": "CityRail 轨道交通模拟器"
     },
     "publish": [
-      {
-        "provider": "generic",
-        "url": "https://cityrailgame.com/releases/desktop/"
-      }
-    ]
+    {
+      "provider": "generic",
+      "url": "https://raw.githubusercontent.com/IanShi090811/cityrail/main/releases/desktop/"
+    }
+  ]
   }
 }
