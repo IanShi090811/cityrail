@@ -36,6 +36,11 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml; charset=utf-8',
   '.wasm': 'application/wasm',
+  '.zip': 'application/zip',
+  '.dmg': 'application/x-apple-diskimage',
+  '.blockmap': 'application/octet-stream',
+  '.yml': 'application/yaml; charset=utf-8',
+  '.yaml': 'application/yaml; charset=utf-8',
 };
 
 const FUNCTION_ROUTES = [
@@ -292,6 +297,12 @@ async function serveStatic(req, res, pathname) {
       headers['cache-control'] = 'no-cache';
     } else if (relativePath === '/releases/latest.json') {
       headers['cache-control'] = 'no-store';
+    } else if (/^\/releases\/desktop\//.test(relativePath)) {
+      headers['cache-control'] = 'public, max-age=3600';
+      if (/\.(?:dmg|exe|msi|pkg)$/i.test(relativePath)) headers['content-disposition'] = 'attachment';
+    } else if (/^\/releases\/.*\.zip$/i.test(relativePath)) {
+      headers['cache-control'] = 'public, max-age=3600';
+      headers['content-disposition'] = 'attachment';
     } else if (filePath !== STATIC_INDEX && /\.(?:js|css|png|jpe?g|webp|svg|ico|json|wasm)$/i.test(filePath)) {
       headers['cache-control'] = 'public, max-age=31536000, immutable';
     } else {
