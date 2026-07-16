@@ -4,16 +4,16 @@
   "onlineUrl": "https://cityrailgame.com/",
   "notes": "桌面客户端加载官网版本，功能和远程更新与在线版保持一致。首次安装包打包后把 url 填入对应平台即可。",
   "windows": {
-    "version": "",
-    "url": "",
-    "size": "",
-    "sha256": ""
+    "version": "20260717-portable",
+    "url": "/releases/cityrail-portable-windows-20260717.zip",
+    "size": "1.3 KB",
+    "sha256": "01c558474c199de4c7125d56c910989345f82a667da446a39dcba877ff16d6af"
   },
   "macos": {
-    "version": "",
-    "url": "",
-    "size": "",
-    "sha256": ""
+    "version": "20260717-portable",
+    "url": "/releases/cityrail-portable-macos-20260717.zip",
+    "size": "1.3 KB",
+    "sha256": "50b7a4d94487d7562c606c7ac98113ebd0d9cf9cd66ca058f6f2f5a8d43d6c93"
   },
   "android": {
     "version": "",

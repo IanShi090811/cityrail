@@ -7,4 +7,6 @@ desktop/
 __pycache__/
 *.pyc
 *.zip
+!releases/*.zip
+!releases/**/*.zip
 server/users.json

@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 *.zip
+!releases/*.zip
+!releases/**/*.zip
 *.tar
 *.tar.gz
 node_modules/

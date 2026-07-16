@@ -9,6 +9,8 @@ server/users.json
 server/orders.json
 .DS_Store
 *.zip
+!releases/*.zip
+!releases/**/*.zip
 *.tar
 *.tar.gz
 __pycache__

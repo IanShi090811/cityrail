@@ -43,7 +43,6 @@
         <a class="btn primary" href="/" id="play-online">在线游玩</a>
         <a class="btn" href="#" id="install-pwa">安装网页版客户端</a>
       </div>
-      <p class="note">当前优先采用“先下载/安装，再登录或付费解锁”的模式。若平台或支付审核要求更严，可切换为“先付费，再开放安装包下载”。</p>
     </section>
     <aside class="panel" aria-label="下载客户端">
       <h2>桌面客户端下载</h2>
@@ -60,23 +59,46 @@
 </div>
 <script>
 (function(){
-  var deferredPrompt=null;
   var install=document.getElementById('install-pwa');
   var status=document.getElementById('release-status');
-  window.addEventListener('beforeinstallprompt',function(event){
-    event.preventDefault();
-    deferredPrompt=event;
-    if(install) install.textContent='安装到桌面';
-  });
+  var releaseManifest=null;
+  function platformKey(){
+    var ua=(navigator.userAgent||'').toLowerCase();
+    var platform=(navigator.platform||'').toLowerCase();
+    if(/android/.test(ua)) return 'android';
+    if(/iphone|ipad|ipod/.test(ua)) return 'ios';
+    if(/mac/.test(platform)||/mac os x/.test(ua)) return 'macos';
+    if(/win/.test(platform)||/windows/.test(ua)) return 'windows';
+    return 'windows';
+  }
+  function labelForPlatform(key){
+    if(key==='macos') return '下载 macOS 客户端';
+    if(key==='android') return '下载 Android 客户端';
+    if(key==='ios') return 'iOS 请使用在线版';
+    return '下载 Windows 客户端';
+  }
+  function clientForPlatform(manifest){
+    var key=platformKey();
+    if(key==='ios') return { key:key, item:null };
+    var item=manifest && manifest[key];
+    if(!item || !item.url) item=manifest && manifest.windows;
+    return { key:key, item:item };
+  }
   if(install){
+    install.textContent=labelForPlatform(platformKey());
     install.addEventListener('click',function(event){
       event.preventDefault();
-      if(deferredPrompt){
-        deferredPrompt.prompt();
-        deferredPrompt=null;
+      var selected=clientForPlatform(releaseManifest||{});
+      if(selected.key==='ios'){
+        status.textContent='iPhone / iPad 暂时使用在线版。iOS 客户端会走 App Store 单独发布。';
         return;
       }
-      status.textContent='如果浏览器没有弹出安装按钮，请使用浏览器菜单中的“安装应用”或“添加到桌面”。';
+      if(selected.item&&selected.item.url){
+        location.href=selected.item.url;
+        status.textContent='正在下载客户端压缩包。解压后打开里面的 CityRail 启动文件即可使用。';
+        return;
+      }
+      status.textContent='当前系统的客户端包还没有发布，请先使用在线版。';
     });
   }
   function applyLink(id,item){
@@ -87,9 +109,11 @@
     node.querySelector('span').textContent='版本 '+(item.version||'latest')+' · '+(item.size||'安装包');
   }
   fetch('releases/latest.json',{cache:'no-store'}).then(function(res){return res.json();}).then(function(manifest){
+    releaseManifest=manifest;
     applyLink('download-win',manifest.windows);
     applyLink('download-mac',manifest.macos);
     applyLink('download-android',manifest.android);
+    if(install) install.textContent=labelForPlatform(platformKey());
     status.textContent='当前官网版本 '+manifest.webVersion+'。下载客户端会远程加载官网版本，更新无需重新安装。';
   }).catch(function(){
     status.textContent='暂时无法读取发布清单。在线版仍可直接使用。';
