@@ -195,6 +195,12 @@ export async function requireSession(kv, token) {
   return username;
 }
 
+export async function requireRequestSession(kv, request, fallbackToken = '') {
+  const auth = String(request && request.headers && request.headers.get('authorization') || '').trim();
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return requireSession(kv, match ? match[1] : fallbackToken);
+}
+
 export function validateCredentials(username, password) {
   const u = normalizeUsername(username);
   const p = String(password || '');

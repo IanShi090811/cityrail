@@ -40,8 +40,12 @@
   function esc(value){
     return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
-  function stations(){ return Array.isArray(W.state && W.state.stations) ? W.state.stations : []; }
-  function lines(){ return Array.isArray(W.state && W.state.lines) ? W.state.lines : []; }
+  function appState(){
+    try { if (W.CityRail && W.CityRail.state && typeof W.CityRail.state.get === 'function') return W.CityRail.state.get(); } catch(e) {}
+    return W.state || {};
+  }
+  function stations(){ const st = appState(); return Array.isArray(st.stations) ? st.stations : []; }
+  function lines(){ const st = appState(); return Array.isArray(st.lines) ? st.lines : []; }
   function meters(a, b){
     if (!a || !b) return Infinity;
     try { if (typeof W.haversine === 'function') return W.haversine(num(a.lat), num(a.lng), num(b.lat), num(b.lng)) * 1000; } catch(e) {}
@@ -521,7 +525,8 @@
   }
   function hasVirtualTransfer(aId, bId, lineAId, lineBId){
     const key = transferPairKey(aId, bId, lineAId, lineBId);
-    return (Array.isArray(W.state && W.state.virtualTransfers) ? W.state.virtualTransfers : []).some(vt =>
+    const st = appState();
+    return (Array.isArray(st.virtualTransfers) ? st.virtualTransfers : []).some(vt =>
       transferPairKey(vt && (vt.stationA || vt.fromStationId || vt.from), vt && (vt.stationB || vt.toStationId || vt.to), vt && (vt.lineAId || vt.fromLineId || vt.lineA), vt && (vt.lineBId || vt.toLineId || vt.lineB)) === key
     );
   }
@@ -540,14 +545,15 @@
     const distanceM = meters(row.stationA, row.stationB);
     if (!Number.isFinite(distanceM) || distanceM > 600) return false;
     const info = transferInfoForDistance(distanceM);
-    W.state.virtualTransfers = Array.isArray(W.state.virtualTransfers) ? W.state.virtualTransfers : [];
+    const st = appState();
+    st.virtualTransfers = Array.isArray(st.virtualTransfers) ? st.virtualTransfers : [];
     row.stationA.__transferSameName = true;
     row.stationB.__transferSameName = true;
     row.stationA.__transferSameNameSourceId = row.stationB.id;
     row.stationB.__transferSameNameSourceId = row.stationA.id;
     row.stationA.__transferSameNameReason = 'real-network-platform-transfer';
     row.stationB.__transferSameNameReason = 'real-network-platform-transfer';
-    W.state.virtualTransfers.push({
+    st.virtualTransfers.push({
       stationA:row.stationA.id,
       stationB:row.stationB.id,
       lineAId:row.lineA.id,
@@ -653,14 +659,15 @@
         if (!pair || !pair.mainStation || !pair.branchStation) return;
         if (sid(pair.mainStation.id) === sid(pair.branchStation.id)) return;
         if (hasVirtualTransfer(pair.mainStation.id, pair.branchStation.id, main.line.id, row.line.id)) return;
-        W.state.virtualTransfers = Array.isArray(W.state.virtualTransfers) ? W.state.virtualTransfers : [];
+        const st = appState();
+        st.virtualTransfers = Array.isArray(st.virtualTransfers) ? st.virtualTransfers : [];
         pair.mainStation.__transferSameName = true;
         pair.branchStation.__transferSameName = true;
         pair.mainStation.__transferSameNameSourceId = pair.branchStation.id;
         pair.branchStation.__transferSameNameSourceId = pair.mainStation.id;
         pair.mainStation.__transferSameNameReason = 'real-network-branch-transfer';
         pair.branchStation.__transferSameNameReason = 'real-network-branch-transfer';
-        W.state.virtualTransfers.push({
+        st.virtualTransfers.push({
           stationA:pair.mainStation.id,
           stationB:pair.branchStation.id,
           lineAId:main.line.id,

@@ -1,11 +1,11 @@
 {
-  "name": "cityrail-v146-7-cloudflare-pages-functions",
-  "version": "146.7.0",
+  "name": "cityrail",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "node server/server.js",
     "check:server": "node --check server/server.js",
-    "check:syntax": "node --check js/cityrail-runtime.js && node --check js/cityrail-v146-single-control-owner.js",
+    "check:syntax": "find js -name \"*.js\" -print0 | xargs -0 -n1 node --check",
     "check:static": "python3 tests/static_check.py",
     "test:e2e": "python3 tests/cdp_smoke.py",
     "selfcheck": "npm run check:syntax && npm run check:functions && npm run check:server && npm run check:static && npm run test:e2e",

@@ -1,5 +1,5 @@
 import {
-  json, handleOptions, parseBody, requireKV, requireSession,
+  json, handleOptions, parseBody, requireKV, requireRequestSession,
   makeWorkshopId, workshopIndexKey, workshopItemKey, workshopUserKey
 } from '../../_shared/cityrail-cloudflare.js';
 
@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
   try {
     const kv = requireKV(context.env);
     const body = await parseBody(context.request);
-    const username = await requireSession(kv, body.token);
+    const username = await requireRequestSession(kv, context.request);
     const title = cleanText(body.title, 36);
     const description = cleanText(body.description, 360);
     const thumbnail = body.thumbnail && typeof body.thumbnail === 'object' ? body.thumbnail : null;

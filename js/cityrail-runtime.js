@@ -8804,6 +8804,12 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
   function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function token(){ try { return localStorage.getItem('cityrail_auth_token') || ''; } catch { return ''; } }
   function user(){ try { return localStorage.getItem('cityrail_auth_user') || ''; } catch { return ''; } }
+  function authHeaders(extra){
+    const headers = Object.assign({}, extra || {});
+    const t = token();
+    if(t) headers.Authorization = 'Bearer ' + t;
+    return headers;
+  }
   function avatarStorageKey(){ return 'cityrail_workshop_avatar:' + (user() || 'guest'); }
   function getAvatar(){ try { return localStorage.getItem(avatarStorageKey()) || ''; } catch { return ''; } }
   function setAvatar(value){ try { localStorage.setItem(avatarStorageKey(), value || ''); } catch {} }
@@ -9051,27 +9057,70 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
     if(!r.ok || d.error) throw new Error(d.error || '请求失败');
     return d;
   }
+  function clearNode(node){ while(node && node.firstChild) node.removeChild(node.firstChild); }
+  function textNode(tag, className, text){
+    const node = document.createElement(tag);
+    if(className) node.className = className;
+    node.textContent = String(text == null ? '' : text);
+    return node;
+  }
+  function setWorkshopEmpty(node, text){
+    if(!node) return;
+    clearNode(node);
+    node.appendChild(textNode('div', 'workshop-empty', text));
+  }
+  function appendPreview(node, preview){
+    if(!node) return;
+    clearNode(node);
+    const template = document.createElement('template');
+    template.innerHTML = renderPreview(preview);
+    node.appendChild(template.content);
+  }
   function renderCards(items){
     const grid = $('workshop-grid');
     if(!grid) return;
-    if(!items || !items.length){ grid.innerHTML = '<div class="workshop-empty">还没有玩家上传存档</div>'; return; }
-    grid.innerHTML = items.map(item => {
+    clearNode(grid);
+    if(!items || !items.length){ setWorkshopEmpty(grid, '还没有玩家上传存档'); return; }
+    items.forEach(item => {
       const s = item.summary || {};
-      return `<article class="workshop-card" data-id="${esc(item.id)}">
-        <div class="workshop-preview">${renderPreview(item.thumbnail)}</div>
-        <div class="workshop-card-body">
-          <h3>${esc(item.title)}</h3>
-          <p>${esc(item.description)}</p>
-          <div class="workshop-meta">${avatarMarkup(item.authorAvatar, item.author || '玩家')}<span>${esc(item.author||'玩家')}</span><span>${Number(s.stations)||0}站</span><span>${Number(s.lines)||0}线</span><span>${Number(item.downloads)||0}下载</span></div>
-        </div>
-      </article>`;
-    }).join('');
+      const card = document.createElement('article');
+      card.className = 'workshop-card';
+      card.dataset.id = String(item.id || '');
+      const preview = document.createElement('div');
+      preview.className = 'workshop-preview';
+      appendPreview(preview, item.thumbnail);
+      const body = document.createElement('div');
+      body.className = 'workshop-card-body';
+      body.appendChild(textNode('h3', '', item.title || '未命名作品'));
+      body.appendChild(textNode('p', '', item.description || ''));
+      const meta = document.createElement('div');
+      meta.className = 'workshop-meta';
+      const avatar = document.createElement('span');
+      avatar.className = 'workshop-author-avatar';
+      if(item.authorAvatar){
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = String(item.authorAvatar);
+        avatar.appendChild(img);
+      } else {
+        avatar.appendChild(textNode('span', '', userInitial(item.author || '玩家')));
+      }
+      meta.appendChild(avatar);
+      meta.appendChild(textNode('span', '', item.author || '玩家'));
+      meta.appendChild(textNode('span', '', (Number(s.stations) || 0) + '站'));
+      meta.appendChild(textNode('span', '', (Number(s.lines) || 0) + '线'));
+      meta.appendChild(textNode('span', '', (Number(item.downloads) || 0) + '下载'));
+      body.appendChild(meta);
+      card.appendChild(preview);
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
   }
   async function loadList(){
     const grid = $('workshop-grid');
-    if(grid) grid.innerHTML = '<div class="workshop-empty">正在载入创意工坊…</div>';
+    if(grid) setWorkshopEmpty(grid, '正在载入创意工坊…');
     try { const d = await api('/api/workshop/list'); renderCards(d.items || []); }
-    catch(e){ if(grid) grid.innerHTML = '<div class="workshop-empty">' + esc(e.message || '载入失败') + '</div>'; }
+    catch(e){ if(grid) setWorkshopEmpty(grid, e.message || '载入失败'); }
   }
   async function openItem(id){
     modalStatus('正在读取作品…');
@@ -9080,9 +9129,27 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
       currentItem = d.item;
       currentSave = currentItem.save;
       const s = currentItem.summary || summaryOf(currentSave);
-      $('workshop-modal-preview').innerHTML = renderPreview(currentItem.thumbnail);
+      appendPreview($('workshop-modal-preview'), currentItem.thumbnail);
       $('workshop-modal-title').textContent = currentItem.title || '未命名作品';
-      $('workshop-modal-meta').innerHTML = `${avatarMarkup(currentItem.authorAvatar, currentItem.author || '玩家')}<span>${esc(currentItem.author||'玩家')}</span><span>${Number(s.stations)||0}站</span><span>${Number(s.lines)||0}线</span><span>${Number(s.trains)||0}车</span>`;
+      const meta = $('workshop-modal-meta');
+      if(meta){
+        clearNode(meta);
+        const avatar = document.createElement('span');
+        avatar.className = 'workshop-author-avatar';
+        if(currentItem.authorAvatar){
+          const img = document.createElement('img');
+          img.alt = '';
+          img.src = String(currentItem.authorAvatar);
+          avatar.appendChild(img);
+        } else {
+          avatar.appendChild(textNode('span', '', userInitial(currentItem.author || '玩家')));
+        }
+        meta.appendChild(avatar);
+        meta.appendChild(textNode('span', '', currentItem.author || '玩家'));
+        meta.appendChild(textNode('span', '', (Number(s.stations) || 0) + '站'));
+        meta.appendChild(textNode('span', '', (Number(s.lines) || 0) + '线'));
+        meta.appendChild(textNode('span', '', (Number(s.trains) || 0) + '车'));
+      }
       $('workshop-modal-desc').textContent = currentItem.description || '';
       $('workshop-modal').classList.add('visible');
       modalStatus('');
@@ -9123,8 +9190,8 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
     status(rawSize > compactSize ? ('正在上传精简存档… ' + fmtBytes(rawSize) + ' → ' + fmtBytes(compactSize)) : '正在上传…');
     const d = await api('/api/workshop/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token(), title, description, thumbnail: normalizePreview(compactSave), authorAvatar: getAvatar(), save: compactSave })
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ title, description, thumbnail: normalizePreview(compactSave), authorAvatar: getAvatar(), save: compactSave })
     });
     status('上传成功：' + (d.item && d.item.title || title));
     await loadList();
@@ -9142,17 +9209,32 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
     if(!box) return;
     if(!isLoggedIn()){ showLoginPrompt(); return; }
     syncAuthUI('manage');
-    box.innerHTML = '<div class="workshop-empty">正在读取我的上传…</div>';
+    setWorkshopEmpty(box, '正在读取我的上传…');
     try{
-      const d = await api('/api/workshop/mine?token=' + encodeURIComponent(token()));
+      const d = await api('/api/workshop/mine', { headers: authHeaders() });
       const items = d.items || [];
-      box.innerHTML = items.length ? items.map(item => `<div class="workshop-manage-row"><div><b>${esc(item.title)}</b><div class="workshop-meta">${esc(item.id)}</div></div><button class="workshop-delete" data-delete="${esc(item.id)}">删除</button></div>`).join('') : '<div class="workshop-empty">你还没有上传作品</div>';
-    }catch(e){ box.innerHTML = '<div class="workshop-empty">' + esc(e.message || '读取失败') + '</div>'; }
+      clearNode(box);
+      if(!items.length){ setWorkshopEmpty(box, '你还没有上传作品'); return; }
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'workshop-manage-row';
+        const info = document.createElement('div');
+        info.appendChild(textNode('b', '', item.title || '未命名作品'));
+        info.appendChild(textNode('div', 'workshop-meta', item.id || ''));
+        const button = document.createElement('button');
+        button.className = 'workshop-delete';
+        button.dataset.delete = String(item.id || '');
+        button.textContent = '删除';
+        row.appendChild(info);
+        row.appendChild(button);
+        box.appendChild(row);
+      });
+    }catch(e){ setWorkshopEmpty(box, e.message || '读取失败'); }
   }
   async function deleteMine(id){
     if(!confirm('确定删除这个上传作品吗？')) return;
     try{
-      await api('/api/workshop/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: token(), id }) });
+      await api('/api/workshop/delete', { method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ id }) });
       toast('已删除');
       await loadMine();
       await loadList();
@@ -19466,6 +19548,34 @@ function buildStationDistMatrix() {
   return _stationDistMatrix;
 }
 
+function cityrailDemandContributorRegistry() {
+  const W = window;
+  W.CityRail = W.CityRail || {};
+  const demand = W.CityRail.demand = W.CityRail.demand || {};
+  if (!Array.isArray(demand.contributors)) demand.contributors = [];
+  if (typeof demand.registerContributor !== 'function') {
+    demand.registerContributor = function registerContributor(id, apply) {
+      if (!id || typeof apply !== 'function') throw new Error('invalid demand contributor');
+      const key = String(id);
+      const existing = demand.contributors.find(item => item && item.id === key);
+      if (existing) existing.apply = apply;
+      else demand.contributors.push({ id:key, apply });
+      return key;
+    };
+  }
+  return demand;
+}
+
+function cityrailApplyDemandContributors(result) {
+  const demand = cityrailDemandContributorRegistry();
+  let current = result;
+  demand.contributors.forEach(item => {
+    if (!item || typeof item.apply !== 'function') return;
+    current = item.apply(current) || current;
+  });
+  return current;
+}
+
 // 基于站点功能区的 OD 矩阵构建（不含时间因子，由 generatePassengers 统一缩放）
 // 使用重力模型 + 站点覆盖面积 + 距离衰减 + 路线可到达校验
 function buildZoneODMatrix() {
@@ -19707,7 +19817,7 @@ function buildZoneODMatrix() {
       matrix[i][j] = Math.max(1, rawFlow);
     }
   }
-  return { matrix, stations, _targetTripKm:targetTripKm, _avgStationSpacingKm:avgStationSpacingKm, _extentKm:extentKm };
+  return cityrailApplyDemandContributors({ matrix, stations, _targetTripKm:targetTripKm, _avgStationSpacingKm:avgStationSpacingKm, _extentKm:extentKm });
 }
 let odMatrixCache = null; // cached OD matrix for current network
 
@@ -41290,23 +41400,16 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     report(){ clearBusyIfIdle(); return Object.assign({},S,{busy:S.active||S.dragging||now()<S.stableUntil}); }
   };
 
-  // Guard innerHTML: avoid identical full-DOM rebuilds, a major cause of flicker/jump.
-  function installInnerHTMLGuard(){
-    if(W.__cityrailV143InnerHTMLGuard) return;
-    const desc=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
-    if(!desc||!desc.set||!desc.get) return;
-    Object.defineProperty(Element.prototype,'innerHTML',{
-      configurable:true,
-      enumerable:desc.enumerable,
-      get:function(){ return desc.get.call(this); },
-      set:function(v){
-        const next=String(v==null?'':v);
-        // Skip only exact no-op writes. This keeps behavior unchanged while removing redundant reflows.
-        if(desc.get.call(this)===next) return;
-        return desc.set.call(this,v);
-      }
-    });
-    W.__cityrailV143InnerHTMLGuard=true;
+  function installStableHtmlApi(){
+    if(W.cityrailSetStableHTML) return;
+    W.cityrailSetStableHTML=function(el,html){
+      if(!el) return false;
+      const next=String(html==null?'':html);
+      if(el.innerHTML===next) return false;
+      el.innerHTML=next;
+      return true;
+    };
+    W.__cityrailStableHTMLApi=true;
   }
 
   // Major panel renderers must not rebuild while user is dragging, scrolling, typing or holding pointer.
@@ -41446,7 +41549,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       return Object.assign({},base,{
         version:VERSION,
         interactionStability:true,
-        innerHTMLGuard:!!W.__cityrailV143InnerHTMLGuard,
+        stableHTMLApi:!!W.__cityrailStableHTMLApi,
         dragStability:!!W.__cityrailV143DragStability,
         renderSuppression:S.suppressedRenders,
         liveLineUpdates:S.liveLineUpdates,
@@ -41458,7 +41561,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     };
     W.cityrailSelfCheck=W.cityrailV143Report;
   }
-  function boot(){ installInnerHTMLGuard(); installCSS(); wrapRenderers(); installDragStability(); patchFinishDrag(); installMutationStabilityProbe(); installReport(); if(!W.__CITYRAIL_QUIET__) console.log('[CityRail v143] interaction stability installed. Run cityrailV143Report().'); }
+  function boot(){ installStableHtmlApi(); installCSS(); wrapRenderers(); installDragStability(); patchFinishDrag(); installMutationStabilityProbe(); installReport(); if(!W.__CITYRAIL_QUIET__) console.log('[CityRail v143] interaction stability installed. Run cityrailV143Report().'); }
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
   setTimeout(boot,500); setTimeout(boot,1800);
 })();

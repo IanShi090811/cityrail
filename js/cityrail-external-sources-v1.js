@@ -32,7 +32,10 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const esc = v => sid(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const fmt = v => Math.max(0, Math.round(num(v))).toLocaleString('zh-CN');
-  const S = () => W.state || {};
+  const S = () => {
+    try { if (W.CityRail && W.CityRail.state && typeof W.CityRail.state.get === 'function') return W.CityRail.state.get(); } catch(e) {}
+    return W.state || {};
+  };
   const stations = () => Array.isArray(S().stations) ? S().stations : [];
   let sourceLayers = {};
   let rangeLayers = {};
@@ -326,20 +329,26 @@
     return result;
   }
 
-  function installODPatch() {
-    const original = W.buildZoneODMatrix || (typeof buildZoneODMatrix === 'function' ? buildZoneODMatrix : null);
-    if (!original || original.__cityrailExternalSourcesV1) return false;
-    const wrapped = function(){
-      const result = original.apply(this, arguments);
+  function registerDemandContributor() {
+    W.CityRail = W.CityRail || {};
+    const demand = W.CityRail.demand = W.CityRail.demand || {};
+    if (!Array.isArray(demand.contributors)) demand.contributors = [];
+    if (typeof demand.registerContributor !== 'function') {
+      demand.registerContributor = function(id, apply) {
+        if (!id || typeof apply !== 'function') throw new Error('invalid demand contributor');
+        const key = sid(id);
+        const existing = demand.contributors.find(item => item && item.id === key);
+        if (existing) existing.apply = apply;
+        else demand.contributors.push({ id:key, apply });
+        return key;
+      };
+    }
+    demand.registerContributor('external-passenger-sources', result => {
       try { return applyExternalDemand(result) || result; } catch(e) {
         W.__cityrailExternalSourcesLastError = 'od:' + ((e && e.message) || e);
         return result;
       }
-    };
-    wrapped.__cityrailExternalSourcesV1 = true;
-    wrapped.__cityrailExternalSourcesOriginal = original;
-    try { W.buildZoneODMatrix = wrapped; } catch(e) {}
-    try { buildZoneODMatrix = wrapped; } catch(e) {}
+    });
     return true;
   }
 
@@ -934,7 +943,7 @@
     ensureTip();
     ensureBuildMenuCard();
     installBuildMenuClickGuard();
-    installODPatch();
+    registerDemandContributor();
     installMapScaleWatch();
     if (W.map && W.map.getContainer) W.map.getContainer().addEventListener('click', mapCaptureClick, true);
     renderSources('boot');
@@ -962,7 +971,7 @@
         version: VERSION,
         sources: ensureState().length,
         selectedId,
-        odPatched: !!((W.buildZoneODMatrix || {}). __cityrailExternalSourcesV1),
+        demandRegistered: !!(W.CityRail && W.CityRail.demand && Array.isArray(W.CityRail.demand.contributors) && W.CityRail.demand.contributors.some(item => item && item.id === 'external-passenger-sources')),
         stats: S().externalPassengerSourceStats || []
       };
     }

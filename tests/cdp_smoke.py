@@ -84,7 +84,7 @@ def main():
             time.sleep(0.5)
             html=(ROOT/'index.html').read_text(encoding='utf-8')
             js=(ROOT/'js/cityrail-runtime.js').read_text(encoding='utf-8')
-            js_v145=(ROOT/'js/cityrail-v146-single-control-owner.js').read_text(encoding='utf-8')
+            js_v145=(ROOT/'js/cityrail-control-center.js').read_text(encoding='utf-8')
             css=(ROOT/'css/cityrail.css').read_text(encoding='utf-8')
             import json as _json, re as _re
             html2=_re.sub(r'<script[^>]*src=["\'][^"\']+["\'][^>]*></script>','',html,flags=_re.I)
@@ -111,8 +111,23 @@ def main():
         local_scripts=c.eval('Array.from(document.scripts).filter(s=>/\\/js\\//.test(s.src)||/\\.\\/js\\//.test(s.getAttribute("src")||"")).map(s=>s.getAttribute("src")||s.src)')
         local_styles=c.eval('Array.from(document.querySelectorAll("link[rel=stylesheet]")).filter(l=>/\\/css\\//.test(l.href)||/\\.\\/css\\//.test(l.getAttribute("href")||"")).map(l=>l.getAttribute("href")||l.href)')
         if legacy_scripts: errors.append(f'legacy script tags exist: {legacy_scripts}')
-        if href!='about:blank' and (len(local_scripts)!=2 or 'cityrail-runtime.js' not in local_scripts[0] or 'cityrail-v146-single-control-owner.js' not in local_scripts[1]): errors.append(f'unexpected local scripts: {local_scripts}')
-        if href!='about:blank' and (len(local_styles)!=1 or 'cityrail.css' not in local_styles[0]): errors.append(f'unexpected local styles: {local_styles}')
+        expected_scripts=[
+            'cityrail-runtime.js',
+            'cityrail-control-center.js',
+            'cityrail-apple-spatial-ui-authority.js',
+            'cityrail-maplibre-pmtiles-authority.js',
+            'cityrail-living-city.js',
+            'cityrail-external-sources-v1.js',
+            'cityrail-real-network-importer.js',
+            'cityrail-schematic-map.js',
+            'cityrail-performance-authority.js',
+        ]
+        local_script_names=[src.split('?',1)[0].rsplit('/',1)[-1] for src in local_scripts]
+        if href!='about:blank' and local_script_names!=expected_scripts: errors.append(f'unexpected local scripts: {local_scripts}')
+        inline_css_present=c.eval('!!document.getElementById("cityrail-inline-css")')
+        local_style_names=[href.split('?',1)[0].rsplit('/',1)[-1] for href in local_styles]
+        external_css_ok=local_style_names==['cityrail.css']
+        if href!='about:blank' and not (external_css_ok or inline_css_present): errors.append(f'unexpected local styles: {local_styles}')
         # Old UI text and bad actions.
         old_text_count=c.eval('(()=>{const bad=[String.fromCharCode(21040,22320,22270,36873,25321,20572,31449),String.fromCharCode(26087)+"ATS",String.fromCharCode(26087,32447,36335,36816,33829),"线路级ATS调度界面","双线运行","终点折返线"];return bad.map(t=>({t,c:Array.from(document.body.querySelectorAll("*")).filter(e=>(e.textContent||"").trim()===t).length}));})()')
         bad=[x for x in old_text_count if x['c']]

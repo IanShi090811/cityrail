@@ -1,5 +1,5 @@
 import {
-  json, handleOptions, requireKV, requireSession,
+  json, handleOptions, requireKV, requireRequestSession,
   workshopUserKey, workshopItemKey
 } from '../../_shared/cityrail-cloudflare.js';
 
@@ -8,8 +8,7 @@ export async function onRequestOptions() { return handleOptions(); }
 export async function onRequestGet(context) {
   try {
     const kv = requireKV(context.env);
-    const url = new URL(context.request.url);
-    const username = await requireSession(kv, url.searchParams.get('token'));
+    const username = await requireRequestSession(kv, context.request);
     const mineText = await kv.get(workshopUserKey(username));
     const ids = mineText ? JSON.parse(mineText) : [];
     const items = [];

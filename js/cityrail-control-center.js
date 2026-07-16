@@ -455,7 +455,7 @@
     return snap;
   }
   function setText(id,value){ const el=byId(id),next=sid(value); if(el&&el.textContent!==next) el.textContent=next; }
-  function setHTML(id,html){ const el=byId(id); if(!el||el.innerHTML===html) return; const wrap=el.parentElement,top=wrap&&wrap.scrollTop,left=wrap&&wrap.scrollLeft; el.innerHTML=html; if(wrap){wrap.scrollTop=top;wrap.scrollLeft=left;} }
+  function setHTML(id,html){ const el=byId(id); if(!el) return; const wrap=el.parentElement,top=wrap&&wrap.scrollTop,left=wrap&&wrap.scrollLeft; if(W.cityrailSetStableHTML) W.cityrailSetStableHTML(el,html); else if(el.innerHTML!==html) el.innerHTML=html; if(wrap){wrap.scrollTop=top;wrap.scrollLeft=left;} }
   function findStableChild(root,selector,id){
     const target=sid(id);
     return Array.from(root.querySelectorAll(selector)).find(el=>sid(el.dataset.lineId)===target)||null;

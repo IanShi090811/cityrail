@@ -5,6 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 idx=(ROOT/'index.html').read_text(encoding='utf-8')
 js=(ROOT/'js/cityrail-runtime.js').read_text(encoding='utf-8')
 css=(ROOT/'css/cityrail.css').read_text(encoding='utf-8')
+headers=(ROOT/'_headers').read_text(encoding='utf-8')
 errors=[]
 script_srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 if any('js/legacy/' in src for src in script_srcs): errors.append('index still loads js/legacy')
@@ -12,13 +13,14 @@ local_js=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 local_js=[x for x in local_js if './js/' in x or '/js/' in x or x.startswith('js/')]
 expected_js=[
     'cityrail-runtime.js',
-    'cityrail-v146-single-control-owner.js',
+    'cityrail-control-center.js',
     'cityrail-apple-spatial-ui-authority.js',
     'cityrail-maplibre-pmtiles-authority.js',
     'cityrail-living-city.js',
     'cityrail-external-sources-v1.js',
     'cityrail-real-network-importer.js',
-    'cityrail-performance-authority-v400.js',
+    'cityrail-schematic-map.js',
+    'cityrail-performance-authority.js',
 ]
 inline_js=(
     'id="cityrail-inline-runtime"' in idx
@@ -40,9 +42,16 @@ for bad in bad_text:
 archive=[p.name for p in ROOT.iterdir() if p.is_file() and (p.suffix=='.md' or p.name.endswith('.bak') or p.name=='refactor-manifest.json')]
 if archive: errors.append(f'archive docs remain in release root: {archive}')
 # Required exported self-check names and strict control bridge.
-for req in ['cityrailV143Report','cityrailSelfCheck','CityRailInteractionV143','__cityrailV143InnerHTMLGuard','__cityrailV143DragStability','CityRailStationDragCore']:
+for req in ['cityrailV143Report','cityrailSelfCheck','CityRailInteractionV143','cityrailSetStableHTML','__cityrailStableHTMLApi','__cityrailV143DragStability','CityRailStationDragCore']:
     if req not in js: errors.append(f'missing required v143 symbol: {req}')
-v145=(ROOT/'js/cityrail-v146-single-control-owner.js').read_text(encoding='utf-8')
+if 'Object.defineProperty(Element.prototype' in js:
+    errors.append('runtime still monkey-patches Element.prototype')
+for forbidden in ['workshop/mine?token=', 'token: token()', 'cityrail-v146-single-control-owner.js', 'cityrail-performance-authority-v400.js']:
+    if forbidden in idx + js + headers:
+        errors.append(f'forbidden legacy/security pattern remains: {forbidden}')
+if 'Content-Security-Policy:' not in headers or "object-src 'none'" not in headers or "frame-ancestors 'none'" not in headers:
+    errors.append('security headers missing baseline CSP protections')
+v145=(ROOT/'js/cityrail-control-center.js').read_text(encoding='utf-8')
 for req in ['cityrailV145Report','__v145StableOwner','snapshotOwner','CityRailStationDragCore']:
     if req not in v145: errors.append(f'missing required v145 symbol: {req}')
 for req in ['__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__','legacyControlSuppressed','singleControlOwner','CITYRAIL_BUILD_VERSION']:

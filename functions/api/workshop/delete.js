@@ -1,5 +1,5 @@
 import {
-  json, handleOptions, parseBody, requireKV, requireSession,
+  json, handleOptions, parseBody, requireKV, requireRequestSession,
   workshopIndexKey, workshopItemKey, workshopUserKey
 } from '../../_shared/cityrail-cloudflare.js';
 
@@ -9,7 +9,7 @@ export async function onRequestPost(context) {
   try {
     const kv = requireKV(context.env);
     const body = await parseBody(context.request);
-    const username = await requireSession(kv, body.token);
+    const username = await requireRequestSession(kv, context.request);
     const id = String(body.id || '').trim();
     if (!id) return json({ error: '缺少作品 ID' }, 400);
     const text = await kv.get(workshopItemKey(id));

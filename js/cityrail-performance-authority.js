@@ -13,7 +13,10 @@
 
   const now = () => (W.performance && W.performance.now) ? W.performance.now() : Date.now();
   const sid = v => String(v == null ? '' : v);
-  const state = () => W.state || {};
+  const state = () => {
+    try { if (W.CityRail && W.CityRail.state && typeof W.CityRail.state.get === 'function') return W.CityRail.state.get(); } catch(e) {}
+    return W.state || {};
+  };
   const byId = id => D.getElementById(id);
   const visible = el => {
     if (!el || (el.classList && el.classList.contains('hidden'))) return false;
