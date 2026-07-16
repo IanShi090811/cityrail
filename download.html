@@ -11,9 +11,8 @@
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 8%,rgba(10,132,255,.28),transparent 34%),linear-gradient(140deg,#020b18 0%,#081421 48%,#06111d 100%);color:#eef7ff;}
   .page{min-height:100vh;display:flex;align-items:center;padding:36px 22px;}
-  .wrap{width:min(900px,100%);margin:0 auto;display:block;}
-  .brand{font-size:18px;font-weight:900;letter-spacing:0;margin-bottom:44px;color:rgba(238,247,255,.78)}
-  .brand span{color:#0a84ff}
+  .wrap{width:min(1220px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,380px);gap:58px;align-items:center;}
+  .content{min-width:0;}
   h1{margin:0;font-size:clamp(42px,7vw,82px);line-height:.98;letter-spacing:0;font-weight:950;}
   .lede{margin:22px 0 0;max-width:720px;color:rgba(238,247,255,.72);font-size:18px;line-height:1.75;}
   .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px;}
@@ -22,14 +21,24 @@
   .btn[aria-disabled="true"]{opacity:.52;cursor:not-allowed}
   .note{margin-top:18px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.7;}
   .status{margin-top:18px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.7;}
-  @media(max-width:860px){.page{align-items:flex-start}.brand{margin-bottom:30px}}
+  .logo-stage{position:relative;min-height:390px;display:flex;align-items:center;justify-content:center;}
+  .logo-stage::before{content:"";position:absolute;width:min(420px,72vw);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(10,132,255,.26),rgba(10,132,255,.08) 42%,transparent 70%);filter:blur(2px);}
+  .logo-stage::after{content:"";position:absolute;inset:16%;border:1px solid rgba(125,212,255,.14);border-radius:34px;transform:rotate(-8deg);opacity:.72;}
+  .logo-img{position:relative;z-index:1;width:min(340px,76vw);height:auto;border-radius:34px;box-shadow:0 34px 100px rgba(0,0,0,.42),0 0 80px rgba(10,132,255,.16);}
+  @media(max-width:920px){
+    .page{align-items:flex-start}
+    .wrap{grid-template-columns:1fr;gap:34px}
+    .logo-stage{min-height:auto;order:-1;justify-content:flex-start}
+    .logo-stage::before{width:240px}
+    .logo-stage::after{display:none}
+    .logo-img{width:132px;border-radius:22px;box-shadow:0 18px 52px rgba(0,0,0,.35)}
+  }
 </style>
 </head>
 <body>
 <main class="page">
   <div class="wrap">
-    <section>
-      <div class="brand">City<span>Rail</span></div>
+    <section class="content">
       <h1>下载或在线使用<br>同一套 CityRail</h1>
       <p class="lede">下载至桌面游玩，性能表现更稳定，同时可正常接收版本更新。付费状态与在线版本通用，无需重复付费。</p>
       <div class="actions">
@@ -38,6 +47,9 @@
       </div>
       <div class="status" id="release-status">正在读取发布清单…</div>
     </section>
+    <aside class="logo-stage" aria-label="CityRail Logo">
+      <img class="logo-img" src="logo.webp" alt="CityRail 轨道交通模拟器 Logo" width="512" height="512" decoding="async">
+    </aside>
   </div>
 </main>
 <script>
