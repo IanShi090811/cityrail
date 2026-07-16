@@ -1,24 +1,114 @@
 {
-  "webVersion": "20260717-download-hub",
+  "schemaVersion": 2,
+  "webVersion": "20260717-home-entry-runtime-ready",
+  "releaseVersion": "20260717-desktop-release-plan",
   "paymentMode": "download-first-then-unlock",
   "onlineUrl": "https://cityrailgame.com/",
-  "notes": "桌面客户端加载官网版本，功能和远程更新与在线版保持一致。首次安装包打包后把 url 填入对应平台即可。",
-  "windows": {
-    "version": "20260717-portable",
-    "url": "/releases/cityrail-portable-windows-20260717.zip",
-    "size": "1.3 KB",
-    "sha256": "01c558474c199de4c7125d56c910989345f82a667da446a39dcba877ff16d6af"
+  "desktop": {
+    "contentMode": "remote-web",
+    "updateMode": "remote-web-plus-installer",
+    "notes": "桌面客户端加载官网版本。核心功能、付费状态和在线版保持一致；桌面壳更新通过正式安装包发布。"
   },
-  "macos": {
-    "version": "20260717-portable",
-    "url": "/releases/cityrail-portable-macos-20260717.zip",
-    "size": "1.3 KB",
-    "sha256": "50b7a4d94487d7562c606c7ac98113ebd0d9cf9cd66ca058f6f2f5a8d43d6c93"
-  },
-  "android": {
-    "version": "",
-    "url": "",
-    "size": "",
-    "sha256": ""
+  "platforms": {
+    "windows": {
+      "displayName": "Windows",
+      "recommended": "installer",
+      "installer": {
+        "status": "preparing",
+        "label": "Windows 安装包",
+        "format": "exe",
+        "version": "",
+        "url": "",
+        "size": "",
+        "sha256": "",
+        "instructions": [
+          "下载安装包",
+          "双击 .exe",
+          "按安装向导完成安装",
+          "从开始菜单或桌面图标打开 CityRail"
+        ]
+      },
+      "portable": {
+        "status": "available",
+        "label": "Windows 便携版",
+        "format": "zip",
+        "version": "20260717-portable",
+        "url": "/releases/cityrail-portable-windows-20260717.zip",
+        "size": "1.3 KB",
+        "sha256": "0f2e8639dfe0db22d21a3ed8fad3905493e6c60ef91628a9b3c8309b9477fa3c",
+        "instructions": [
+          "下载 zip",
+          "解压文件夹",
+          "双击 Open-CityRail.cmd"
+        ]
+      }
+    },
+    "macos": {
+      "displayName": "macOS",
+      "recommended": "installer",
+      "installer": {
+        "status": "available",
+        "label": "macOS 安装包",
+        "format": "dmg",
+        "version": "1.0.0",
+        "url": "/releases/desktop/CityRail-1.0.0-arm64.dmg",
+        "size": "93.7 MB",
+        "sha256": "fe80999ebb5f86759b1ebabd91a1f9f6a5cbb814f437c33c7733a05f99968d16",
+        "instructions": [
+          "下载 dmg",
+          "打开 dmg",
+          "把 CityRail 拖入 Applications",
+          "从应用程序打开 CityRail"
+        ]
+      },
+      "portable": {
+        "status": "available",
+        "label": "macOS 便携版",
+        "format": "zip",
+        "version": "20260717-portable",
+        "url": "/releases/cityrail-portable-macos-20260717.zip",
+        "size": "1.3 KB",
+        "sha256": "fb5e5b5b2be9f36845d94373825a6635bbcf01420ee7978fb73340aa0a5e9320",
+        "instructions": [
+          "下载 zip",
+          "解压文件夹",
+          "右键打开 Open-CityRail.command"
+        ]
+      }
+    },
+    "android": {
+      "displayName": "Android",
+      "recommended": "installer",
+      "installer": {
+        "status": "preparing",
+        "label": "Android 安装包",
+        "format": "apk",
+        "version": "",
+        "url": "",
+        "size": "",
+        "sha256": "",
+        "instructions": [
+          "等待正式 APK 发布",
+          "下载后按系统提示安装"
+        ]
+      }
+    },
+    "ios": {
+      "displayName": "iOS",
+      "recommended": "online",
+      "installer": {
+        "status": "app-store-required",
+        "label": "iOS 版本",
+        "format": "app-store",
+        "version": "",
+        "url": "",
+        "size": "",
+        "sha256": "",
+        "instructions": [
+          "iPhone 和 iPad 暂时使用在线版",
+          "iOS 客户端后续通过 App Store 发布"
+        ]
+      }
+    }
   }
 }

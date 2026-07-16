@@ -7,7 +7,9 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:win": "electron-builder --win nsis"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -20,19 +22,29 @@
     "appId": "com.cityrail.desktop",
     "productName": "CityRail 轨道交通模拟器",
     "asar": true,
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "src/**",
       "package.json"
     ],
     "win": {
-      "target": ["nsis"]
+      "target": ["nsis"],
+      "artifactName": "CityRail-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": ["dmg"]
+      "target": ["dmg"],
+      "category": "public.app-category.education",
+      "identity": null,
+      "artifactName": "CityRail-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CityRail 轨道交通模拟器"
     },
     "publish": [
       {

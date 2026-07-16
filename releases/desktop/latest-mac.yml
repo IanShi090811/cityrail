@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: CityRail-1.0.0-arm64.dmg
+    sha512: 13D430s8Tx29z3M6qR05tS2PrgP5iYR/ZwhuwddBHHRBgOGGF7gMr34JVzgVMK51S0+axcSzU3xMpA2kUIVgVQ==
+    size: 98244490
+path: CityRail-1.0.0-arm64.dmg
+sha512: 13D430s8Tx29z3M6qR05tS2PrgP5iYR/ZwhuwddBHHRBgOGGF7gMr34JVzgVMK51S0+axcSzU3xMpA2kUIVgVQ==
+releaseDate: '2026-07-16T20:14:51.532Z'

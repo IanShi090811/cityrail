@@ -18,9 +18,14 @@
   .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px;}
   .btn{min-width:210px;height:58px;border-radius:16px;padding:0 28px;display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;font-size:18px;font-weight:900;line-height:1;color:#fff;background:#0a84ff;border:1px solid #54b8ff;box-shadow:0 18px 46px rgba(10,132,255,.32);vertical-align:middle;}
   .btn.primary{background:#0a84ff;border-color:#54b8ff;box-shadow:0 18px 46px rgba(10,132,255,.32);}
-  .btn[aria-disabled="true"]{opacity:.52;cursor:not-allowed}
+  .btn.secondary{background:rgba(255,255,255,.08);border-color:rgba(238,247,255,.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+  .btn[aria-disabled="true"]{opacity:.52;cursor:not-allowed;box-shadow:none}
   .note{margin-top:18px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.7;}
   .status{margin-top:18px;color:rgba(238,247,255,.58);font-size:13px;line-height:1.7;}
+  .install-card{margin-top:20px;max-width:720px;border:1px solid rgba(238,247,255,.14);border-radius:16px;background:rgba(255,255,255,.055);padding:18px 18px 16px;}
+  .install-card h2{margin:0 0 10px;font-size:17px;line-height:1.35;}
+  .install-card ol{margin:0;padding-left:20px;color:rgba(238,247,255,.68);line-height:1.7;font-size:13px;}
+  .install-card[hidden]{display:none}
   .logo-stage{position:relative;min-height:390px;display:flex;align-items:center;justify-content:center;}
   .logo-stage::before{content:"";position:absolute;width:min(420px,72vw);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(10,132,255,.26),rgba(10,132,255,.08) 42%,transparent 70%);filter:blur(2px);}
   .logo-stage::after{content:"";position:absolute;inset:16%;border:1px solid rgba(125,212,255,.14);border-radius:34px;transform:rotate(-8deg);opacity:.72;}
@@ -39,13 +44,18 @@
 <main class="page">
   <div class="wrap">
     <section class="content">
-      <h1>下载或在线使用<br>同一套 CityRail</h1>
-      <p class="lede">下载至桌面游玩，性能表现更稳定，同时可正常接收版本更新。付费状态与在线版本通用，无需重复付费。</p>
+      <h1>下载安装包<br>或在线使用</h1>
+      <p class="lede">下载至桌面使用，性能表现更稳定，同时可正常接收版本更新。付费状态与在线版本通用，无需重复付费。</p>
       <div class="actions">
         <a class="btn primary" href="/" id="play-online">在线游玩</a>
-        <a class="btn" href="#" id="install-pwa">安装网页版客户端</a>
+        <a class="btn" href="#" id="download-installer">读取安装包…</a>
+        <a class="btn secondary" href="#" id="download-portable" hidden>下载便携版</a>
       </div>
       <div class="status" id="release-status">正在读取发布清单…</div>
+      <section class="install-card" id="install-card" hidden>
+        <h2 id="install-title">安装说明</h2>
+        <ol id="install-steps"></ol>
+      </section>
     </section>
     <aside class="logo-stage" aria-label="CityRail Logo">
       <img class="logo-img" src="logo.webp" alt="CityRail 轨道交通模拟器 Logo" width="512" height="512" decoding="async">
@@ -54,8 +64,12 @@
 </main>
 <script>
 (function(){
-  var install=document.getElementById('install-pwa');
+  var installer=document.getElementById('download-installer');
+  var portable=document.getElementById('download-portable');
   var status=document.getElementById('release-status');
+  var installCard=document.getElementById('install-card');
+  var installTitle=document.getElementById('install-title');
+  var installSteps=document.getElementById('install-steps');
   var releaseManifest=null;
   function platformKey(){
     var ua=(navigator.userAgent||'').toLowerCase();
@@ -66,46 +80,108 @@
     if(/win/.test(platform)||/windows/.test(ua)) return 'windows';
     return 'windows';
   }
-  function labelForPlatform(key){
-    if(key==='macos') return '下载 macOS 客户端';
-    if(key==='android') return '下载 Android 客户端';
-    if(key==='ios') return 'iOS 请使用在线版';
-    return '下载 Windows 客户端';
-  }
-  function clientForPlatform(manifest){
+  function platformRelease(manifest){
     var key=platformKey();
-    if(key==='ios') return { key:key, item:null };
-    var item=manifest && manifest[key];
-    if(!item || !item.url) item=manifest && manifest.windows;
-    return { key:key, item:item };
+    var platforms=manifest && manifest.platforms ? manifest.platforms : {};
+    return { key:key, platform:platforms[key] || null };
   }
-  if(install){
-    install.textContent=labelForPlatform(platformKey());
-    install.addEventListener('click',function(event){
+  function isAvailable(item){
+    return !!(item && item.status==='available' && item.url);
+  }
+  function setDisabled(el, disabled){
+    if(!el) return;
+    el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    el.tabIndex = disabled ? -1 : 0;
+  }
+  function renderSteps(title, steps){
+    if(!installCard || !installTitle || !installSteps) return;
+    installTitle.textContent=title || '安装说明';
+    installSteps.innerHTML='';
+    (steps||[]).forEach(function(step){
+      var li=document.createElement('li');
+      li.textContent=step;
+      installSteps.appendChild(li);
+    });
+    installCard.hidden = !(steps && steps.length);
+  }
+  function renderRelease(){
+    var selected=platformRelease(releaseManifest||{});
+    var platform=selected.platform;
+    if(!platform){
+      if(installer) installer.textContent='当前系统暂未支持安装包';
+      if(portable) portable.hidden=true;
+      setDisabled(installer,true);
+      status.textContent='当前系统暂未发布桌面客户端，请先使用在线版。';
+      renderSteps('',[]);
+      return;
+    }
+    var installItem=platform.installer;
+    var portableItem=platform.portable;
+    var displayName=platform.displayName || selected.key;
+
+    if(installer){
+      installer.textContent=installItem && installItem.label ? '下载 '+installItem.label : '下载 '+displayName+' 安装包';
+      setDisabled(installer,!isAvailable(installItem));
+    }
+    if(portable){
+      portable.hidden=!isAvailable(portableItem);
+      portable.textContent=portableItem && portableItem.label ? '下载 '+portableItem.label : '下载便携版';
+      setDisabled(portable,!isAvailable(portableItem));
+    }
+
+    if(isAvailable(installItem)){
+      status.textContent='当前官网版本 '+releaseManifest.webVersion+'。推荐下载正式安装包；安装后会自动加载官网最新版。';
+      renderSteps(installItem.label+'安装步骤', installItem.instructions);
+    }else if(isAvailable(portableItem)){
+      status.textContent=displayName+' 正式安装包正在准备中。现在可使用便携版：下载后解压文件夹，双击启动文件即可使用。';
+      renderSteps(portableItem.label+'使用步骤', portableItem.instructions);
+    }else if(selected.key==='ios'){
+      status.textContent='iPhone / iPad 暂时使用在线版。iOS 客户端后续通过 App Store 发布。';
+      renderSteps('iOS 使用方式', installItem && installItem.instructions);
+    }else{
+      status.textContent=displayName+' 客户端正在准备中，请先使用在线版。';
+      renderSteps(installItem && installItem.label ? installItem.label : displayName+' 安装包', installItem && installItem.instructions);
+    }
+  }
+  function downloadItem(item, kind){
+    if(isAvailable(item)){
+      location.href=item.url;
+      status.textContent=kind==='portable'
+        ? '正在下载便携版。下载后解压文件夹，按页面步骤打开。'
+        : '正在下载安装包。下载完成后按安装向导完成安装。';
+      return;
+    }
+    status.textContent=kind==='portable' ? '当前系统暂未发布便携版。' : '当前系统的正式安装包正在准备中，请先使用在线版。';
+  }
+  if(installer){
+    installer.addEventListener('click',function(event){
       event.preventDefault();
-      var selected=clientForPlatform(releaseManifest||{});
-      if(selected.key==='ios'){
-        status.textContent='iPhone / iPad 暂时使用在线版。iOS 客户端会走 App Store 单独发布。';
-        return;
-      }
-      if(selected.item&&selected.item.url){
-        location.href=selected.item.url;
-        status.textContent='正在下载客户端压缩包。解压后打开里面的 CityRail 启动文件即可使用。';
-        return;
-      }
-      status.textContent='当前系统的客户端包还没有发布，请先使用在线版。';
+      var selected=platformRelease(releaseManifest||{});
+      downloadItem(selected.platform && selected.platform.installer, 'installer');
     });
   }
-  fetch('releases/latest.json',{cache:'no-store'}).then(function(res){return res.json();}).then(function(manifest){
-    releaseManifest=manifest;
-    if(install) install.textContent=labelForPlatform(platformKey());
-    status.textContent='当前官网版本 '+manifest.webVersion+'。下载客户端会远程加载官网版本，更新无需重新安装。';
-  }).catch(function(){
-    status.textContent='暂时无法读取发布清单。在线版仍可直接使用。';
-  });
-  if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
-    window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+  if(portable){
+    portable.addEventListener('click',function(event){
+      event.preventDefault();
+      var selected=platformRelease(releaseManifest||{});
+      downloadItem(selected.platform && selected.platform.portable, 'portable');
+    });
   }
+  fetch('releases/latest.json',{cache:'no-store'}).then(function(res){
+    if(!res.ok) throw new Error('manifest '+res.status);
+    return res.json();
+  }).then(function(manifest){
+    releaseManifest=manifest;
+    renderRelease();
+  }).catch(function(){
+    if(installer){
+      installer.textContent='暂时无法读取安装包';
+      setDisabled(installer,true);
+    }
+    if(portable) portable.hidden=true;
+    status.textContent='暂时无法读取发布清单。在线版仍可直接使用。';
+    renderSteps('',[]);
+  });
 })();
 </script>
 </body>

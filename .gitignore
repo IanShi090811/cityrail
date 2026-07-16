@@ -11,6 +11,7 @@ node_modules/
 android/.gradle/
 android/build/
 android/app/build/
+desktop/dist/
 server/.data/
 server/.env
 server/users.json
