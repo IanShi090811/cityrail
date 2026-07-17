@@ -5,6 +5,12 @@ import {
 
 export async function onRequestOptions() { return handleOptions(); }
 
+function amountCents(value) {
+  const n = Number(String(value || '').trim());
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 100);
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
@@ -25,7 +31,7 @@ export async function onRequestPost(context) {
       return text('success');
     }
 
-    if (String(order.amount) !== String(cfg.amount) || String(body.total_fee || '') !== String(cfg.amount)) {
+    if (amountCents(order.amount) !== amountCents(cfg.amount) || amountCents(body.total_fee) !== amountCents(cfg.amount)) {
       order.status = 'amount_mismatch';
       order.expectedAmount = cfg.amount;
       order.lastNotify = body;
