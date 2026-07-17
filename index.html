@@ -2270,6 +2270,22 @@ html.cityrail-light-ui .depot-actions .danger {
 .splash-continue-btn:active {
   transform: translateY(0) scale(0.99);
 }
+.splash-download-btn[aria-disabled="true"] {
+  color: rgba(255,255,255,0.48);
+  background: linear-gradient(135deg, rgba(148,163,184,0.32), rgba(100,116,139,0.28));
+  border-color: rgba(148,163,184,0.28);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.62;
+}
+.splash-download-btn[aria-disabled="true"]:hover,
+.splash-download-btn[aria-disabled="true"]:active {
+  background: linear-gradient(135deg, rgba(148,163,184,0.32), rgba(100,116,139,0.28));
+  border-color: rgba(148,163,184,0.28);
+  box-shadow: none;
+  transform: none;
+}
 .splash-version-note {
   margin-top: 30px;
   color: rgba(214,229,249,0.52);
@@ -7330,7 +7346,7 @@ html:not(.cityrail-light-ui) .cityrail-system-card{
       </div>
       <div class="splash-action-row">
         <button class="splash-continue-btn" id="splash-continue-btn" type="button" data-action="splash-continue-btn">在线游玩</button>
-        <a class="splash-continue-btn splash-download-btn" href="download.html" data-action="splash-download-btn">下载客户端</a>
+        <a class="splash-continue-btn splash-download-btn" aria-disabled="true" tabindex="-1" data-action="splash-download-btn">下载客户端</a>
       </div>
       <div class="splash-version-note">当前官网版本 20260717-download-hub。下载客户端会远程加载官网版本，更新无需重新安装。</div>
     </section>

@@ -2684,6 +2684,27 @@ html.cityrail-light-ui .depot-actions .danger {
 .splash-continue-btn:active {
   transform: translateY(0) scale(0.98);
 }
+.splash-download-btn[aria-disabled="true"] {
+  color: rgba(255,255,255,0.48);
+  background: linear-gradient(135deg, rgba(148,163,184,0.32), rgba(100,116,139,0.28));
+  border-color: rgba(148,163,184,0.28);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.62;
+}
+.splash-download-btn[aria-disabled="true"]::before,
+.splash-download-btn[aria-disabled="true"]::after {
+  animation: none;
+  opacity: 0;
+}
+.splash-download-btn[aria-disabled="true"]:hover,
+.splash-download-btn[aria-disabled="true"]:active {
+  background: linear-gradient(135deg, rgba(148,163,184,0.32), rgba(100,116,139,0.28));
+  border-color: rgba(148,163,184,0.28);
+  box-shadow: none;
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .splash-continue-btn {
     opacity: 1 !important;
