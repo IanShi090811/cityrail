@@ -7172,6 +7172,12 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   const esc = v => sid(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let sortMode = 'line';
 
+  function stationDataVisible(){
+    const ov = byId('ctrl-center-overlay');
+    if(!ov || ov.classList.contains('hidden')) return false;
+    return ov.getAttribute('data-active-tab') === 'station-data';
+  }
+
   function installStyle(){
     if(byId('cr207-station-data-style')) return;
     const style = D.createElement('style');
