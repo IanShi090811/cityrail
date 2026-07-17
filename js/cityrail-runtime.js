@@ -36567,6 +36567,35 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     return out;
   }
 
+  function fastIndexedCandidatesFor(train, line, stationIdx, direction){
+    const s = ensureState(); if(!s) return [];
+    const out = [];
+    const seen = new Set();
+    for(const bucketKey of passengerExchangeBucketKeys(train, line, stationIdx, direction)){
+      const ids = s._waitingIndexV9 && s._waitingIndexV9[bucketKey];
+      if(!ids || !ids.length) continue;
+      let write = 0;
+      for(const id of ids){
+        const b = s._batchMap && s._batchMap[id];
+        if(!b || b.state !== 'waiting' || b.trainId != null || countOf(b) <= 0) continue;
+        ids[write++] = id;
+        const leg = currentLeg(b);
+        const canBoard = leg && serviceCanBoard(train, line, leg)
+          && (typeof window.cityrailCanPassengerLegBoardOnLine === 'function'
+            ? window.cityrailCanPassengerLegBoardOnLine(line, leg, direction, stationIdx)
+            : (same(leg.lineId, line.id) && num(leg.boardIdx) === stationIdx && legDirection(leg) === direction));
+        if(canBoard){
+          if(!seen.has(b.id)){
+            seen.add(b.id);
+            out.push(b);
+          }
+        }
+      }
+      ids.length = write;
+    }
+    return out;
+  }
+
   function nextBatchIdSafe(){
     try{
       if(typeof window.nextBatchId !== 'undefined') return window.nextBatchId++;
@@ -36806,12 +36835,34 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if(stationIdx < 0 || !Array.isArray(line.stationIds) || stationIdx >= line.stationIds.length) return 0;
     const stationId = stationIdAt(line, stationIdx);
     const pool = poolOf(stationId);
-    const actualBefore = reconcileStationPool(stationId, reason);
     const capacity = Math.max(1, num(train.maxLoad || train.capacity || 1600));
     let load = getLoad(train);
     if(load >= capacity) return 0;
 
     const direction = effectiveDirection(train, line, stationIdx);
+    if(Array.isArray(s.batches) && s.batches.length > 5000 && s._waitingIndexV9 && s._waitingIndexV9.__v74WaitingReady){
+      const candidates = fastIndexedCandidatesFor(train, line, stationIdx, direction);
+      let space = capacity - load;
+      let boarded = 0;
+      for(const b of candidates){
+        if(space <= 0) break;
+        const c = countOf(b); if(c <= 0) continue;
+        const n = splitAndBoard(train, b, Math.min(c, space), pool);
+        boarded += n;
+        space -= n;
+      }
+      getLoad(train);
+      train.overloaded = train.load >= capacity * 0.95;
+      if(boarded > 0){
+        STATS.boardEvents++;
+        log('fast-board-' + train.id + '-' + stationIdx,
+          'boarded indexed passengers without full ledger scan',
+          { reason, trainId: train.id, lineId: line.id, stationIdx, stationId, direction, boarded, candidates:candidates.length, loadAfter: train.load, capacity });
+      }
+      return boarded;
+    }
+
+    const actualBefore = reconcileStationPool(stationId, reason);
     const lineDirKeys = passengerExchangeLineDirKeys(train, line, stationIdx, direction);
     const realForThisLineDir = lineDirKeys.reduce((sum,key)=>sum+num(actualBefore.byLineDir && actualBefore.byLineDir[key]),0);
     const repairsBeforeCandidates = STATS.repairedLegs;
