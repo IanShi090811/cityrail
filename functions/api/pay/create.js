@@ -29,7 +29,13 @@ export async function onRequestPost(context) {
       if (existingText) {
         const existing = JSON.parse(existingText);
         if (existing.status === 'pending' && Date.now() - existing.createdAt < 10 * 60 * 1000) {
-          return json({ success: true, reused: true, ...existing.clientResponse, order: maskOrder(existing) });
+          if (String(existing.amount) === String(cfg.amount)) {
+            return json({ success: true, reused: true, ...existing.clientResponse, order: maskOrder(existing) });
+          }
+          existing.status = 'stale_price';
+          existing.expectedAmount = cfg.amount;
+          existing.updatedAt = Date.now();
+          await kv.put(orderKey(existingOrderId), JSON.stringify(existing), { expirationTtl: 60 * 60 * 24 });
         }
       }
     }

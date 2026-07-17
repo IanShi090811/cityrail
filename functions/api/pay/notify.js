@@ -25,8 +25,9 @@ export async function onRequestPost(context) {
       return text('success');
     }
 
-    if (String(body.total_fee || order.amount) !== String(order.amount)) {
+    if (String(order.amount) !== String(cfg.amount) || String(body.total_fee || '') !== String(cfg.amount)) {
       order.status = 'amount_mismatch';
+      order.expectedAmount = cfg.amount;
       order.lastNotify = body;
       await kv.put(orderKey(tradeId), JSON.stringify(order), { expirationTtl: 60 * 60 * 24 });
       return text('amount_mismatch', 400);
