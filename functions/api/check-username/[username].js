@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
     const username = normalizeUsername(params.username);
     const active = await kv.get(userKey(username));
     const pending = await kv.get(pendingUserKey(username));
-    return json({ taken: !!active || !!pending });
+    return json({ taken: !!active || !!pending, active: !!active, pending: !!pending });
   } catch (err) {
     return json({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500);
   }

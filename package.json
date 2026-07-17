@@ -8,9 +8,10 @@
     "check:syntax": "find js -name \"*.js\" -print0 | xargs -0 -n1 node --check",
     "check:static": "python3 tests/static_check.py",
     "test:e2e": "python3 tests/cdp_smoke.py",
-    "selfcheck": "npm run check:syntax && npm run check:functions && npm run check:server && npm run check:static && npm run check:releases && npm run test:e2e",
+    "selfcheck": "find js -name \"*.js\" -print0 | xargs -0 -n1 node --check && find functions -name \"*.js\" -print0 | xargs -0 -n1 node --check && node --check server/server.js && python3 tests/static_check.py && python3 tests/release_manifest_check.py && node tests/payment_flow_regression.mjs && python3 tests/cdp_smoke.py",
     "check:functions": "find functions -name \"*.js\" -print0 | xargs -0 -n1 node --check",
     "check:releases": "python3 tests/release_manifest_check.py",
+    "test:payment": "node tests/payment_flow_regression.mjs",
     "desktop:install": "pnpm --dir desktop install",
     "desktop:dist:mac": "pnpm --dir desktop dist:mac",
     "desktop:dist:win": "pnpm --dir desktop dist:win"

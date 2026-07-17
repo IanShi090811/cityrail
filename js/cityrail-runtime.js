@@ -8340,6 +8340,13 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
       try {
         const r = await fetch(API_BASE + '/api/pay/status?trade_order_id=' + encodeURIComponent(orderId));
 	        const d = await r.json();
+	        if (!r.ok && d && d.error) {
+	          if (status) status.textContent = d.error;
+	          if (r.status >= 400 && r.status < 500) {
+	            clearInterval(_payPollTimer); _payPollTimer = null;
+	          }
+	          return;
+	        }
 	        if (d && d.paid) {
 	          if (d.token) {
 	            try { localStorage.setItem('cityrail_auth_token', d.token); } catch {}

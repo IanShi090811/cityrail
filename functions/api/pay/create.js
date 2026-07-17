@@ -30,6 +30,10 @@ export async function onRequestPost(context) {
         const existing = JSON.parse(existingText);
         if (existing.status === 'pending' && Date.now() - existing.createdAt < 10 * 60 * 1000) {
           if (String(existing.amount) === String(cfg.amount)) {
+            existing.passwordHash = await hashPassword(password);
+            existing.payChannel = payChannel;
+            existing.updatedAt = Date.now();
+            await kv.put(orderKey(existingOrderId), JSON.stringify(existing), { expirationTtl: 60 * 60 * 24 });
             return json({ success: true, reused: true, ...existing.clientResponse, order: maskOrder(existing) });
           }
           existing.status = 'stale_price';

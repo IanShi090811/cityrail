@@ -24,6 +24,8 @@ export async function onRequestPost(context) {
     if (!orderText) return text('order_not_found', 404);
     const order = JSON.parse(orderText);
 
+    if (order.status === 'paid') return text('success');
+
     if (String(body.status || '') !== 'OD') {
       order.status = String(body.status || 'unknown');
       order.lastNotify = body;
@@ -38,6 +40,8 @@ export async function onRequestPost(context) {
       await kv.put(orderKey(tradeId), JSON.stringify(order), { expirationTtl: 60 * 60 * 24 });
       return text('amount_mismatch', 400);
     }
+
+    if (!order.passwordHash) return text('missing_password_hash', 409);
 
     const user = {
       username: order.username,
