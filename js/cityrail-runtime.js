@@ -799,6 +799,30 @@ function cityrailDailyFlow(profile) {
 function cityrailNetworkKm(profile) {
   return cityrailNumber(profile && (profile.networkKm || profile.lengthKm), 0);
 }
+function cityrailOfficialDemandProfile(key) {
+  const id = String(key == null ? '' : key).toLowerCase();
+  if (id === 'shanghai' || key === '上海') return { daily:10180600, annual:372102000, networkKm:906, intensity:1.12, targetIntensity:11236, numStations:508, expectedImportedRoutes:28 };
+  if (id === 'beijing' || key === '北京') return { daily:9796400, annual:358548000, networkKm:909, intensity:1.08, targetIntensity:10777, numStations:490, expectedImportedRoutes:33 };
+  if (id === 'guangzhou' || key === '广州') return { daily:9332000, annual:341151000, networkKm:805.9, intensity:1.26, targetIntensity:12600, numStations:330, expectedImportedRoutes:34 };
+  if (id === 'hongkong' || key === '香港') return { daily:5600000, annual:204400000, networkKm:271, intensity:2.07, targetIntensity:20700 };
+  return null;
+}
+function cityrailApplyOfficialDemandProfile(profile) {
+  if (!profile) return false;
+  const official = cityrailOfficialDemandProfile(profile.id || profile.key || profile.zh || profile.name);
+  if (!official) return false;
+  profile.dailyRidership10k = official.daily / 10000;
+  profile.annualRidership10k = Math.round(official.annual / 10000);
+  profile.networkKm = official.networkKm;
+  profile.intensity10kPerKmDay = official.intensity;
+  profile.totalDailyFlow = official.daily;
+  profile.numStations = official.numStations || profile.numStations;
+  profile.expectedImportedRoutes = official.expectedImportedRoutes || profile.expectedImportedRoutes;
+  profile.targetIntensityPerKm = official.targetIntensity;
+  profile.legacyDemandScale = cityrailNumber(profile.legacyDemandScale, cityrailNumber(profile.demandScale, 1));
+  profile.demandScale = 1;
+  return true;
+}
 function cityrailCityText(profile) {
   return [profile && profile.id, profile && profile.key, profile && profile.zh, profile && profile.en, profile && profile.majorHubs].filter(Boolean).join(' ');
 }
@@ -900,6 +924,7 @@ function cityrailMergeObjects(base, extra) {
 function cityrailEnsureCityWeights(profile) {
   if (!profile) return null;
   profile.key = profile.key || profile.id || profile.zh || profile.en;
+  cityrailApplyOfficialDemandProfile(profile);
   profile.totalDailyFlow = cityrailDailyFlow(profile);
   const derived = cityrailDerivedCityWeights(profile);
   const supplied = profile.gameplayWeights || {};
@@ -921,6 +946,10 @@ function cityrailEnsureCityWeights(profile) {
   if (!Array.isArray(profile.hourly) || profile.hourly.length < 24) profile.hourly = cityrailBuildHourlyByWeights(merged);
   return merged;
 }
+try {
+  window.cityrailOfficialDemandProfile = cityrailOfficialDemandProfile;
+  window.cityrailApplyOfficialDemandProfile = cityrailApplyOfficialDemandProfile;
+} catch(e) {}
 cityrailApplyPassengerShapeProfiles();
 
 ;/* CityRail Help: Apple-style FAQ / changelog owner. */
@@ -1914,43 +1943,45 @@ cityrailApplyPassengerShapeProfiles();
       else refreshConnectorsForStation('', reason || 'rebuild-line-topology');
     });
   }
-  function boostCityProfile(profile){
-    if(!profile) return false;
-    const id = sid(profile.id || profile.key || profile.zh).toLowerCase();
-    const zh = sid(profile.zh || profile.name);
-    let target = null;
-    if(id === 'beijing' || zh === '北京') target = { daily:1260, annual:460000, intensity:1.32, total:12600000, targetIntensity:19800 };
-    if(id === 'hongkong' || zh === '香港') target = { daily:560, annual:204400, intensity:2.07, total:5600000, targetIntensity:24000 };
-    if(!target) return false;
-    profile.dailyRidership10k = Math.max(num(profile.dailyRidership10k, 0), target.daily);
-    profile.annualRidership10k = Math.max(num(profile.annualRidership10k, 0), target.annual);
-    profile.intensity10kPerKmDay = Math.max(num(profile.intensity10kPerKmDay, 0), target.intensity);
-    profile.totalDailyFlow = Math.max(num(profile.totalDailyFlow, 0), target.total);
-    profile.targetIntensityPerKm = Math.max(num(profile.targetIntensityPerKm, 0), target.targetIntensity);
-    profile.legacyDemandScale = num(profile.legacyDemandScale, num(profile.demandScale, 1));
-    profile.demandScale = 1;
-    profile.__cityrailDemandBoost = VERSION;
-    return true;
+  function syncOfficialCityProfile(profile){
+    if(!profile || typeof W.cityrailApplyOfficialDemandProfile !== 'function') return false;
+    const before = [
+      profile.totalDailyFlow,
+      profile.dailyRidership10k,
+      profile.networkKm,
+      profile.targetIntensityPerKm
+    ].join('|');
+    if(!W.cityrailApplyOfficialDemandProfile(profile)) return false;
+    profile.__cityrailDemandProfileVersion = VERSION;
+    return before !== [
+      profile.totalDailyFlow,
+      profile.dailyRidership10k,
+      profile.networkKm,
+      profile.targetIntensityPerKm
+    ].join('|');
   }
   function boostCityDemand(reason){
     let changed = 0;
     try {
-      Object.values(W.CITYRAIL_CITY_PROFILES || {}).forEach(p => { if(boostCityProfile(p)) changed++; });
+      Object.values(W.CITYRAIL_CITY_PROFILES || {}).forEach(p => { if(syncOfficialCityProfile(p)) changed++; });
     } catch(e) {}
     try {
       if(W.CityRailCityProfilesV175 && typeof W.CityRailCityProfilesV175.profiles === 'function') {
-        W.CityRailCityProfilesV175.profiles().forEach(p => { if(boostCityProfile(p)) changed++; });
+        W.CityRailCityProfilesV175.profiles().forEach(p => { if(syncOfficialCityProfile(p)) changed++; });
       }
     } catch(e) {}
-    try { if(boostCityProfile(S().cityProfile)) changed++; } catch(e) {}
+    try { if(syncOfficialCityProfile(S().cityProfile)) changed++; } catch(e) {}
     try {
       const p = S().cityProfile || W.__cityrailCurrentCityProfile;
-      if(p && boostCityProfile(p)){
+      if(p && syncOfficialCityProfile(p)){
         S().cityDemandProfile = Object.assign({}, S().cityDemandProfile || {}, {
           key:p.id || p.key,
           zh:p.zh || p.name,
           totalDailyFlow:p.totalDailyFlow,
-          targetIntensityPerKm:p.targetIntensityPerKm
+          targetIntensityPerKm:p.targetIntensityPerKm,
+          networkKm:p.networkKm,
+          numStations:p.numStations,
+          expectedImportedRoutes:p.expectedImportedRoutes
         });
         changed++;
       }
@@ -11100,7 +11131,7 @@ const CITYRAIL_BASE_INTENSITY_PER_KM = 15000;
 const CITYRAIL_CITY_PROFILES = {
   shanghai: {
     key: 'shanghai', zh: '上海', en: 'Shanghai', available: true,
-    center: [31.2304, 121.4737], zoom: 11, totalDailyFlow: 10150000, numStations: 508,
+    center: [31.2304, 121.4737], zoom: 11, totalDailyFlow: 10180600, numStations: 508, networkKm: 906, expectedImportedRoutes: 28,
     stationNames: null,
     zones: [
       { zone:'office', lat:31.2304, lng:121.4737, r:5.2 },
@@ -11118,7 +11149,7 @@ const CITYRAIL_CITY_PROFILES = {
   },
   beijing: {
     key: 'beijing', zh: '北京', en: 'Beijing', available: true,
-    center: [39.9042, 116.4074], zoom: 11, totalDailyFlow: 12600000, numStations: 490,
+    center: [39.9042, 116.4074], zoom: 11, totalDailyFlow: 9796400, numStations: 490, networkKm: 909, expectedImportedRoutes: 33,
     stationNames: ['国贸','西单','东单','王府井','复兴门','建国门','北京站','北京西站','北京南站','北京北站','三元桥','望京','中关村','五道口','西直门','东直门','宋家庄','草桥','大兴机场','首都机场','奥林匹克公园','六里桥','十里河','通州北苑','亦庄桥','清河站','金融街','CBD','亮马桥','回龙观','天通苑','良乡大学城','环球度假区','丰台科技园','海淀黄庄','知春路','潘家园','九龙山','大望路','生命科学园'],
     zones: [
       { zone:'office', lat:39.9042, lng:116.4074, r:5.5 }, { zone:'office', lat:39.9149, lng:116.4617, r:4.4 },
@@ -11131,7 +11162,7 @@ const CITYRAIL_CITY_PROFILES = {
   },
   guangzhou: {
     key: 'guangzhou', zh: '广州', en: 'Guangzhou', available: true,
-    center: [23.1291, 113.2644], zoom: 11, totalDailyFlow: 8905100, numStations: 330,
+    center: [23.1291, 113.2644], zoom: 11, totalDailyFlow: 9332000, numStations: 330, networkKm: 805.9, expectedImportedRoutes: 34,
     stationNames: ['公园前','体育西路','珠江新城','广州东站','广州南站','广州火车站','客村','岗顶','琶洲','万胜围','嘉禾望岗','机场南','机场北','大学城南','大学城北','车陂南','黄埔大道','金融城','猎德','北京路','陈家祠','长寿路','芳村','番禺广场','汉溪长隆','南沙客运港','白云文化广场','同和','燕塘','鱼珠','西塱','沙园','知识城','镇龙','新塘','增城广场','花都广场','从化客运站','磨碟沙','大石'],
     zones: [
       { zone:'office', lat:23.1207, lng:113.3186, r:4.8 }, { zone:'office', lat:23.1291, lng:113.2644, r:4.5 },
@@ -11181,7 +11212,7 @@ const CITYRAIL_CITY_PROFILES = {
 };
 Object.values(CITYRAIL_CITY_PROFILES).forEach(profile => {
   profile.ridershipScale = profile.totalDailyFlow / CITYRAIL_BASE_DAILY_FLOW;
-  profile.targetIntensityPerKm = Math.round(CITYRAIL_BASE_INTENSITY_PER_KM * profile.ridershipScale);
+  profile.targetIntensityPerKm = Math.round(profile.networkKm ? profile.totalDailyFlow / profile.networkKm : CITYRAIL_BASE_INTENSITY_PER_KM * profile.ridershipScale);
   profile.hourly = profile.hourly || PVCGN.globalHourly;
   cityrailEnsureCityWeights(profile);
 });
@@ -11245,6 +11276,9 @@ function setCityRailActiveCity(key) {
       zh: profile.zh,
       totalDailyFlow: profile.totalDailyFlow || Math.round((profile.dailyRidership10k || 0) * 10000),
       targetIntensityPerKm: profile.targetIntensityPerKm || Math.round((profile.intensity10kPerKmDay || 0) * 10000),
+      networkKm: profile.networkKm || 0,
+      numStations: profile.numStations || 0,
+      expectedImportedRoutes: profile.expectedImportedRoutes || 0,
       gameplayWeights: profile.gameplayWeights || null
     };
     try { odMatrixCache = null; } catch(e) {}
@@ -30422,7 +30456,7 @@ function cityrailResolveBlankCityProfile(cityKey = 'shanghai') {
   const profile = profiles[key]
     || fullProfiles.find(c => c && (c.id === key || c.key === key || c.zh === key || c.en === key))
     || profiles.shanghai
-    || { key:'shanghai', zh:'上海', center:[31.2304,121.4737], zoom:11, totalDailyFlow:10150000, targetIntensityPerKm:15000 };
+    || { key:'shanghai', zh:'上海', center:[31.2304,121.4737], zoom:11, totalDailyFlow:10180600, networkKm:906, targetIntensityPerKm:11236 };
   try { if (typeof window.cityrailEnsureCityWeights === 'function') window.cityrailEnsureCityWeights(profile); } catch(e) {}
   return profile;
 }
@@ -30489,6 +30523,9 @@ function initBlankCityMap(cityKey = 'shanghai', options = {}) {
       zh: profile.zh,
       totalDailyFlow: profile.totalDailyFlow || Math.round((profile.dailyRidership10k || 0) * 10000),
       targetIntensityPerKm: profile.targetIntensityPerKm || Math.round((profile.intensity10kPerKmDay || 0) * 10000),
+      networkKm: profile.networkKm || 0,
+      numStations: profile.numStations || 0,
+      expectedImportedRoutes: profile.expectedImportedRoutes || 0,
       gameplayWeights: profile.gameplayWeights || null
     };
   }
@@ -37012,6 +37049,47 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     }catch(e){}
     return TARGET_INTENSITY_PER_KM;
   }
+  function activeDemandProfile(){
+    const s=S();
+    try{
+      const p = typeof window.getActiveCityProfile === 'function' ? window.getActiveCityProfile() : null;
+      if(p) return p;
+    }catch(e){}
+    return (s && (s.cityProfile || s.cityDemandProfile)) || null;
+  }
+  function profileDailyTarget(profile){
+    const daily = num(profile && profile.totalDailyFlow)
+      || Math.round(num(profile && profile.dailyRidership10k) * 10000);
+    return Math.max(0, daily);
+  }
+  function profileExpectedRoutes(profile){
+    return Math.max(0, num(profile && (profile.expectedImportedRoutes || profile.expectedRoutes || profile.expectedLines || profile.lineCount)));
+  }
+  function profileCoverage(profile){
+    const s=S();
+    if(!s || !profile) return 0;
+    const stationCount=Array.isArray(s.stations) ? s.stations.length : 0;
+    const lineCount=Array.isArray(s.lines) ? s.lines.filter(line => line && Array.isArray(line.stationIds) && line.stationIds.length>1).length : 0;
+    if(stationCount < 60 || lineCount < 4) return 0;
+    const expectedStations=Math.max(0, num(profile.numStations || profile.stationCount));
+    const expectedRoutes=profileExpectedRoutes(profile);
+    const stationCoverage=expectedStations>0 ? Math.max(0.08, Math.min(1, stationCount / expectedStations)) : 1;
+    const routeCoverage=expectedRoutes>0 ? Math.max(0.08, Math.min(1, lineCount / expectedRoutes)) : 1;
+    let coverage=Math.sqrt(stationCoverage * routeCoverage);
+    if(expectedStations>0 && expectedRoutes>0 && stationCount>=expectedStations*0.75 && lineCount>=expectedRoutes*0.75){
+      coverage=Math.max(coverage, 0.92);
+    }
+    return Math.max(0.08, Math.min(1, coverage));
+  }
+  function demandDailyTarget(lengthKm){
+    const lengthTarget=Math.max(0, num(lengthKm) * targetIntensityPerKm());
+    const profile=activeDemandProfile();
+    const daily=profileDailyTarget(profile);
+    const coverage=profileCoverage(profile);
+    const profileTarget=daily>0 && coverage>0 ? daily * coverage : 0;
+    if(profileTarget>0) return Math.max(profileTarget, Math.min(lengthTarget, profileTarget * 1.04));
+    return Math.max(lengthTarget, profileTarget);
+  }
   function fareDemandMultiplier(){
     try{
       if(typeof window.cityrailFareDemandMultiplier === 'function') return Math.max(0.70, Math.min(1.30, num(window.cityrailFareDemandMultiplier())));
@@ -37105,6 +37183,40 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     dailyWeightIntegralCache = Math.max(0.0001,sum);
     return dailyWeightIntegralCache;
   }
+  function activeStationContext(){
+    const s=S();
+    if(!s || !Array.isArray(s.lines)) return { openIds:new Set(), lineCountByStation:Object.create(null), openCount:0, serviceLines:0, dailyTarget:0, perStationPeak:0 };
+    const key=[
+      Array.isArray(s.lines)?s.lines.length:0,
+      Array.isArray(s.stations)?s.stations.length:0,
+      Math.floor(num(s.simulationHour) * 12),
+      Math.round(getLineLengthKm() * 10)
+    ].join('|');
+    if(s.__v78ActiveStationContext && s.__v78ActiveStationContext.key===key) return s.__v78ActiveStationContext;
+    const openIds=new Set();
+    const lineCountByStation=Object.create(null);
+    let serviceLines=0;
+    for(const line of s.lines){
+      if(!lineAcceptsOD(line)) continue;
+      const ids=Array.isArray(line.stationIds)?line.stationIds:[];
+      if(ids.length<2) continue;
+      serviceLines++;
+      const seen=new Set();
+      for(let i=0;i<ids.length;i++){
+        const id=str(ids[i]);
+        if(!id || seen.has(id)) continue;
+        seen.add(id);
+        openIds.add(id);
+        lineCountByStation[id]=(lineCountByStation[id]||0)+1;
+      }
+    }
+    const dailyTarget=demandDailyTarget(getLineLengthKm());
+    const peakWeight=Math.max(1.2, weightAtHour(8), weightAtHour(18), weightAtHour(num(s.simulationHour)));
+    const perStationPeak=dailyTarget>0 && openIds.size>0 ? dailyTarget * peakWeight / dailyWeightIntegral() / openIds.size : 0;
+    const ctx={ key, openIds, lineCountByStation, openCount:openIds.size, serviceLines, dailyTarget, perStationPeak };
+    s.__v78ActiveStationContext=ctx;
+    return ctx;
+  }
   function profileMatchesKey(profile,key){
     const target=str(key);
     if(!profile||!target) return false;
@@ -37151,6 +37263,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         zh:s.activeCityName,
         totalDailyFlow:num(profile.totalDailyFlow,Math.round(num(profile.dailyRidership10k)*10000)),
         targetIntensityPerKm:num(profile.targetIntensityPerKm,Math.round(num(profile.intensity10kPerKmDay)*10000)),
+        networkKm:num(profile.networkKm),
+        numStations:num(profile.numStations),
+        expectedImportedRoutes:profileExpectedRoutes(profile),
         gameplayWeights:profile.gameplayWeights||null
       };
       try{ if(typeof window.cityrailSetCityBadge==='function') window.cityrailSetCityBadge(profile); }catch(e){}
@@ -37218,6 +37333,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     try{ _routeGraphStale=true; _routePairCache=new Map(); _routeTreeCache=new Map(); }catch(e){}
     s.__passengerLegCache=null;
     s.__runSimulationIndexCache=null;
+    s.__v78ActiveStationContext=null;
+    s.__v78PairDemandDebt=0;
     s.__cityrailDemandRuntimeInvalidatedAt=Date.now();
     s.__cityrailDemandRuntimeInvalidatedReason=reason||'demand-service';
   }
@@ -37253,25 +37370,10 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     return s.__cityrailDemandRuntimeReady;
   }
   function buildOpenStationSet(){
-    const s=S();
-    const openIds=new Set();
-    if(!s || !Array.isArray(s.lines)) return openIds;
-    for(const line of s.lines){
-      if(!lineAcceptsOD(line)) continue;
-      const ids=Array.isArray(line.stationIds)?line.stationIds:[];
-      for(let i=0;i<ids.length;i++) openIds.add(str(ids[i]));
-    }
-    return openIds;
+    return activeStationContext().openIds;
   }
   function stationLineCount(stationId){
-    const s=S(); if(!s || !Array.isArray(s.lines)) return 0;
-    let count=0;
-    for(const line of s.lines){
-      if(!lineAcceptsOD(line)) continue;
-      const ids=Array.isArray(line && line.stationIds)?line.stationIds:[];
-      if(ids.map(str).includes(str(stationId))) count++;
-    }
-    return count;
+    return activeStationContext().lineCountByStation[str(stationId)] || 0;
   }
   function stationWaiting(stationId){
     const s=S(); if(!s) return 0;
@@ -37286,23 +37388,29 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     const shoulder=(hour>=6&&hour<7)||(hour>=9.5&&hour<11)||(hour>=16&&hour<17)||(hour>=19.5&&hour<21);
     const lineCount=Math.max(1, stationLineCount(stationId));
     const base=peak ? 30 : (shoulder ? 22 : 14);
-    return Math.round(Math.min(54, base + (lineCount - 1) * 8) * fareDemandMultiplier());
+    const flowFloor=Math.round(activeStationContext().perStationPeak / 60 * (peak ? 1.15 : shoulder ? 0.82 : 0.48));
+    return Math.round(Math.min(260, Math.max(base + (lineCount - 1) * 8, flowFloor)) * fareDemandMultiplier());
   }
   function stationSoftCeiling(stationId){
+    const ctx=activeStationContext();
     const lineCount=Math.max(1, stationLineCount(stationId));
-    return 520 + (lineCount - 1) * 260;
+    const stationDayShare=ctx.dailyTarget > 0 && ctx.openCount > 0
+      ? (ctx.dailyTarget / ctx.openCount) * Math.max(0.65, Math.min(2.35, getStationFlowFactor(stationId))) * Math.sqrt(lineCount)
+      : 0;
+    const flowCeiling=stationDayShare > 0 ? Math.round(stationDayShare * 1.85) : 0;
+    return Math.max(520 + (lineCount - 1) * 260, 900 + (lineCount - 1) * 360 + flowCeiling);
   }
   function stationHardCeiling(stationId){
-    return stationSoftCeiling(stationId) * 2.2;
+    return stationSoftCeiling(stationId) * 3.2;
   }
   function originPressureFactor(stationId){
     const waiting=stationWaiting(stationId);
     const soft=stationSoftCeiling(stationId);
     const hard=stationHardCeiling(stationId);
     if(waiting <= soft) return 1;
-    if(waiting >= hard) return 0.06;
+    if(waiting >= hard) return 0.18;
     const t=(waiting - soft) / Math.max(1, hard - soft);
-    return Math.max(0.06, 1 - t * 0.88);
+    return Math.max(0.18, 1 - t * 0.82);
   }
   function activeLinesForStation(stationId){
     const s=S(); if(!s || !Array.isArray(s.lines)) return [];
@@ -37488,7 +37596,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     if(lengthKm<=0) return;
     const targetIntensity = targetIntensityPerKm();
     const demandByFare=fareDemandMultiplier();
-    const targetDaily=lengthKm*targetIntensity;
+    const targetDaily=demandDailyTarget(lengthKm);
     const hour=num(s.simulationHour);
     const dtHours=Math.max(0,num(dtGameSec))/3600;
     const w=weightAtHour(hour);
@@ -37513,6 +37621,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     let cursor=odCache._activePairsV78Cursor||0;
     const totalWeight=odCache._activePairsV78TotalWeight;
     const avgFactor=Math.max(0.0001, odCache._activePairsV78AvgFactor||1);
+    const debt=Math.max(0, num(s.__v78PairDemandDebt));
+    const debtUse=Math.min(debt, targetTick * 12);
+    const effectivePairTargetTick=pairTargetTick + debtUse;
     let generated=0, attempts=0;
     if(s.batches.length>=MAX_LIVE_BATCHES && window.CityRailNoLossPassengerPerfV159 && typeof window.CityRailNoLossPassengerPerfV159.compact === 'function'){
       try{ window.CityRailNoLossPassengerPerfV159.compact(); }catch(e){}
@@ -37524,7 +37635,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       const pressureFactor=originPressureFactor(origin && origin.id);
       const localFareDemand=odFareDemandMultiplier(origin && origin.id, dest && dest.id);
       // Station factor changes distribution, then normalized by avgFactor so network total remains targetDaily.
-      const expected=pairTargetTick * (odVal/totalWeight) * (originFactor/avgFactor) * pressureFactor * localFareDemand * multiplier;
+      const expected=effectivePairTargetTick * (odVal/totalWeight) * (originFactor/avgFactor) * pressureFactor * localFareDemand * multiplier;
       const key=origin.id+'_'+dest.id;
       s._batchAccum[key]=(s._batchAccum[key]||0)+expected;
       let toCreate=Math.floor(s._batchAccum[key]);
@@ -37534,6 +37645,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       generated += addRealBatch(origin,dest,toCreate,originFactor);
     }
     odCache._activePairsV78Cursor=cursor;
+    s.__v78PairDemandDebt=Math.min(targetDaily * 0.25, Math.max(0, debt + pairTargetTick - generated));
     const baselineMade=seedBaselineDemand(odCache, baselineBudget + Math.max(0, attempts - generated));
     if(generated<=0 && baselineMade<=0 && totalWaitingPassengers()<=0){
       seedBaselineDemand(odCache, Math.max(24, openStationCount * 2.4));
@@ -37587,7 +37699,9 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
           ready:s&&s.__cityrailDemandRuntimeReady||null,
           targetIntensityPerKm:targetIntensityPerKm(),
           networkLengthKm:+len.toFixed(3),
-          targetDailyPassengers:Math.round(len*targetIntensityPerKm()*fareDemandMultiplier()),
+          targetDailyPassengers:Math.round(demandDailyTarget(len)*fareDemandMultiplier()),
+          profileDailyPassengers:profileDailyTarget(activeDemandProfile()),
+          profileCoverage:+profileCoverage(activeDemandProfile()).toFixed(3),
           fareDemandMultiplier:+fareDemandMultiplier().toFixed(3),
           totalGenerated:s?Math.round(s._totalGenerated||0):0,
           currentIntensity:s&&len>0?Math.round((s._totalGenerated||0)/len):0,
@@ -41930,7 +42044,10 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         W.state.cityDemandProfile=Object.assign({},W.state.cityDemandProfile||{},{
           key, zh:p.zh||key,
           totalDailyFlow:n(p.totalDailyFlow,Math.round(n(p.dailyRidership10k,0)*10000)),
-          targetIntensityPerKm:n(p.targetIntensityPerKm,Math.round(n(p.intensity10kPerKmDay,0)*10000))
+          targetIntensityPerKm:n(p.targetIntensityPerKm,Math.round(n(p.intensity10kPerKmDay,0)*10000)),
+          networkKm:n(p.networkKm,0),
+          numStations:n(p.numStations,0),
+          expectedImportedRoutes:n(p.expectedImportedRoutes||p.expectedRoutes||p.expectedLines,0)
         });
       }else{
         W.__cityrailActiveCityKey='';
@@ -45050,31 +45167,20 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       try { W.rebuildLineTopology = rebuildLineTopology = wrappedRebuild; } catch(e) { W.rebuildLineTopology = wrappedRebuild; }
     }
   }
-  function bumpBeijingProfiles(){
+  function applyOfficialDemandProfiles(){
     try {
       const profiles = W.CITYRAIL_CITY_PROFILES || {};
-      const p = profiles.beijing || profiles['北京'];
-      if (p) {
-        p.totalDailyFlow = Math.max(num(p.totalDailyFlow, 0), 12600000);
-        p.dailyRidership10k = Math.max(num(p.dailyRidership10k, 0), 1260);
-        p.demandScale = Math.max(num(p.demandScale, 0), 1);
-        p.ridershipScale = Math.max(num(p.ridershipScale, 0), 12600000 / 10150000);
-        p.targetIntensityPerKm = Math.max(num(p.targetIntensityPerKm, 0), 19800);
-      }
-      const hk = profiles.hongkong || profiles['香港'];
-      if (hk) {
-        hk.totalDailyFlow = Math.max(num(hk.totalDailyFlow, 0), 5600000);
-        hk.dailyRidership10k = Math.max(num(hk.dailyRidership10k, 0), 560);
-        hk.demandScale = Math.max(num(hk.demandScale, 0), 1);
-        hk.ridershipScale = Math.max(num(hk.ridershipScale, 0), 5600000 / 10150000);
-        hk.targetIntensityPerKm = Math.max(num(hk.targetIntensityPerKm, 0), 24000);
-      }
+      Object.values(profiles).forEach(p => {
+        if (p && typeof W.cityrailApplyOfficialDemandProfile === 'function' && W.cityrailApplyOfficialDemandProfile(p)) {
+          p.ridershipScale = num(p.totalDailyFlow, 0) / 10150000;
+        }
+      });
     } catch(e) {}
   }
   let lastInstallRestoreKey = '';
   let lastInstallRestoreAt = 0;
   function install(){
-    bumpBeijingProfiles();
+    applyOfficialDemandProfiles();
     installFleetGuards();
     installDemandRefresh();
     const st = S();
