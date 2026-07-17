@@ -49,32 +49,59 @@ function cityrailMapTileProxyUrl(provider, pattern) {
 function cityrailLineSortText(line) {
   return String((line && (line.name || line.label || line.code || line.no || line.number || line.id)) || '');
 }
-function cityrailLineSortNumber(line) {
-  const explicit = Number(line && (line.no ?? line.number));
-  if (Number.isFinite(explicit)) return explicit;
+const cityrailLineSortKeyCache = new WeakMap();
+const cityrailLineSortCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+let cityrailSortedLinesCache = null;
+function cityrailLineSortKey(line) {
   const text = cityrailLineSortText(line);
+  const explicitRaw = line && (line.no ?? line.number);
+  const sig = String(explicitRaw) + '|' + text;
+  if (line && typeof line === 'object') {
+    const cached = cityrailLineSortKeyCache.get(line);
+    if (cached && cached.sig === sig) return cached;
+  }
+  const explicit = Number(explicitRaw);
   const match = text.match(/\d+/);
-  return match ? Number(match[0]) : Infinity;
+  const number = Number.isFinite(explicit) ? explicit : (match ? Number(match[0]) : Infinity);
+  const prefix = (match ? text.slice(0, match.index) : text).trim().toUpperCase();
+  const key = { sig, number, prefix, text };
+  if (line && typeof line === 'object') cityrailLineSortKeyCache.set(line, key);
+  return key;
+}
+function cityrailLineSortNumber(line) {
+  return cityrailLineSortKey(line).number;
 }
 function cityrailLineSortPrefix(line) {
-  const text = cityrailLineSortText(line).trim();
-  const match = text.match(/\d+/);
-  return match ? text.slice(0, match.index).trim().toUpperCase() : text.toUpperCase();
+  return cityrailLineSortKey(line).prefix;
 }
 function cityrailCompareLinesByNumber(a, b) {
-  const an = cityrailLineSortNumber(a);
-  const bn = cityrailLineSortNumber(b);
+  const ak = cityrailLineSortKey(a);
+  const bk = cityrailLineSortKey(b);
+  const an = ak.number;
+  const bn = bk.number;
   const afinite = Number.isFinite(an);
   const bfinite = Number.isFinite(bn);
   if (afinite !== bfinite) return afinite ? -1 : 1;
   if (afinite && an !== bn) return an - bn;
-  const ap = cityrailLineSortPrefix(a);
-  const bp = cityrailLineSortPrefix(b);
-  if (ap !== bp) return ap.localeCompare(bp, 'zh-CN', { numeric: true, sensitivity: 'base' });
-  return cityrailLineSortText(a).localeCompare(cityrailLineSortText(b), 'zh-CN', { numeric: true, sensitivity: 'base' });
+  if (ak.prefix !== bk.prefix) return cityrailLineSortCollator.compare(ak.prefix, bk.prefix);
+  return cityrailLineSortCollator.compare(ak.text, bk.text);
+}
+function cityrailSortedLinesSignature(lines) {
+  if (!Array.isArray(lines) || !lines.length) return '0';
+  return lines.map(line => {
+    const key = cityrailLineSortKey(line);
+    return [line && line.id, key.sig, line && line._topologyVersion].join(':');
+  }).join('|');
 }
 function cityrailSortedLinesByNumber(lines) {
-  return (Array.isArray(lines) ? lines.slice() : []).sort(cityrailCompareLinesByNumber);
+  if (!Array.isArray(lines)) return [];
+  const sig = cityrailSortedLinesSignature(lines);
+  if (cityrailSortedLinesCache && cityrailSortedLinesCache.linesRef === lines && cityrailSortedLinesCache.sig === sig) {
+    return cityrailSortedLinesCache.sorted.slice();
+  }
+  const sorted = lines.slice().sort(cityrailCompareLinesByNumber);
+  cityrailSortedLinesCache = { linesRef:lines, sig, sorted };
+  return sorted.slice();
 }
 const CITYRAIL_MAP_ZOOM_PROFILE = {
   zoomSnap: 0,
@@ -1278,6 +1305,7 @@ cityrailApplyPassengerShapeProfiles();
     });
     return out;
   }
+  const cleanTransferNameCache = new Map();
   function stripConstructionSuffix(raw){
     return sid(raw)
       .replace(/[（(][^）)]*在建[^）)]*[）)]/gu, '')
@@ -1289,13 +1317,18 @@ cityrailApplyPassengerShapeProfiles();
     return /(火车站|汽车站)$/u.test(text) ? text : text.replace(/站$/u, '');
   }
   function cleanTransferName(raw){
-    let text = stripConstructionSuffix(raw).replace(/\s+/g, '');
+    const key = sid(raw);
+    if(cleanTransferNameCache.has(key)) return cleanTransferNameCache.get(key);
+    if(cleanTransferNameCache.size > 8000) cleanTransferNameCache.clear();
+    let text = stripConstructionSuffix(key).replace(/\s+/g, '');
     text = text.replace(/[（(]\s*\d+\s*[）)]$/u, '');
     text = text.replace(/(?:站)?[._-]?\d+$/u, '站');
     text = text.replace(/([^\d])\d+$/u, '$1');
     text = text.replace(/站站$/u, '站');
     text = stripGenericStationSuffix(text);
-    return text || stripGenericStationSuffix(stripConstructionSuffix(raw));
+    const result = text || stripGenericStationSuffix(stripConstructionSuffix(key));
+    cleanTransferNameCache.set(key, result);
+    return result;
   }
   try { W.cityrailCleanTransferStationName = cleanTransferName; } catch(e) {}
   function transferBaseName(raw){
@@ -1667,7 +1700,7 @@ cityrailApplyPassengerShapeProfiles();
       Object.keys(line.depotAssignments).forEach(key => { if(lineKeyBelongsToRemovedLine(key, removedLineIds)) delete line.depotAssignments[key]; });
     });
     try { if(typeof _routeGraphStale !== 'undefined') _routeGraphStale = true; } catch(e) {}
-    try { if(typeof _routePairCache !== 'undefined') _routePairCache = new Map(); } catch(e) {}
+    try { if(typeof _routePairCache !== 'undefined') _routePairCache = new Map(); if(typeof _routeTreeCache !== 'undefined') _routeTreeCache = new Map(); } catch(e) {}
     try { if(W.CityRailStatsCacheV114 && typeof W.CityRailStatsCacheV114.markDirty === 'function') W.CityRailStatsCacheV114.markDirty('delete-line-cascade'); } catch(e) {}
     try { if(W.CityRailExpressRouteChoiceV32 && typeof W.CityRailExpressRouteChoiceV32.invalidate === 'function') W.CityRailExpressRouteChoiceV32.invalidate(); } catch(e) {}
     try{ if(typeof odMatrixCache !== 'undefined') odMatrixCache = null; }catch(e){}
@@ -5254,7 +5287,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     } catch(e) { return 0; }
   }
   function cleanupDomTrainMarkers() {
-    const canvas = D.getElementById('cityrail-train-canvas-v114');
+    const canvas = D.getElementById('cityrail-train-canvas-v500') || D.getElementById('cityrail-train-canvas-v114');
     if (!canvas || !W.trainMarkers) return 0;
     let removed = 0;
     Object.keys(W.trainMarkers).forEach(id => {
@@ -5300,8 +5333,9 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     cleanup: cleanupDomTrainMarkers,
     report: () => ({
       version: VERSION,
+      canvasV500: !!D.getElementById('cityrail-train-canvas-v500'),
       canvasV114: !!D.getElementById('cityrail-train-canvas-v114'),
-      renderIsCanvas: !!(W.renderAllTrainMarkers && W.renderAllTrainMarkers.__v114Canvas),
+      renderIsCanvas: !!(W.renderAllTrainMarkers && (W.renderAllTrainMarkers.__v500Canvas || W.renderAllTrainMarkers.__v114Canvas)),
       domTrainMarkers: countDomTrainMarkers()
     })
   };
@@ -6847,6 +6881,12 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     return card;
   }
 
+  function stationDataVisible(){
+    const ov = byId('ctrl-center-overlay');
+    if(!ov || ov.classList.contains('hidden')) return false;
+    return ov.getAttribute('data-active-tab') === 'station-data';
+  }
+
   function rhythmCard(){
     const svg = byId('cct-hourly-flow-svg');
     return svg && svg.closest ? svg.closest('.ctrl-card') : null;
@@ -7381,6 +7421,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   }
 
   function render(){
+    if(!stationDataVisible()) return;
     installStyle();
     ensureNav();
     const card = ensureCard();
@@ -7460,8 +7501,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
     ensureNav();
     ensureCard();
     bind();
-    const ov = byId('ctrl-center-overlay');
-    if(ov && ov.getAttribute('data-active-tab') === 'station-data') render();
+    if(stationDataVisible()) render();
   }
 
   if(D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot, { once:true });
@@ -7470,7 +7510,7 @@ const CITYRAIL_CLEANUP_LEGACY_REDRAW_V239_MARKER = 'cleanup-legacy-redraw-v239-2
   setTimeout(boot, 1800);
   try { W.addEventListener('cityrail-save-loaded', () => setTimeout(boot, 80)); } catch(e) {}
   try { D.addEventListener('visibilitychange', () => { if(!D.hidden) boot(); }, { passive:true }); } catch(e) {}
-  W.CityRailStationDataViewV207 = { version: VERSION, render, report: () => ({ version: VERSION, sortMode, nav: !!(byId('ctrl-nav') && byId('ctrl-nav').querySelector('[data-tab="station-data"]')), card: !!byId('cct-station-data-card'), rows: rowData().length }) };
+  W.CityRailStationDataViewV207 = { version: VERSION, render, report: () => ({ version: VERSION, sortMode, nav: !!(byId('ctrl-nav') && byId('ctrl-nav').querySelector('[data-tab="station-data"]')), card: !!byId('cct-station-data-card'), visible: stationDataVisible() }) };
 })();
 
 ;/* ===== CityRail v144 final runtime owner / Apple shell ===== */
@@ -11312,10 +11352,12 @@ const PASSENGER_BATCH_SCALE = 2;       // v46: 恢复到 v42 客流倍率（5 �
 let _routeGraphCache = null;           // 缓存的路由图（避免每乘客重建）
 let _routeGraphStale = true;           // 图是否需要重建
 let _routePairCache = new Map();        // 缓存 OD 对路径，避免大客流首批生成重复跑 Dijkstra
+let _routeTreeCache = new Map();        // 起点级最短路树缓存，同一起点多目的地只跑一次 Dijkstra
 let _passengerLineByIdCache = null;
 let _passengerLineByIdSource = null;
 let _passengerLineByIdCount = 0;
 const CITYRAIL_ROUTE_PAIR_CACHE_LIMIT = 180000;
+const CITYRAIL_ROUTE_TREE_CACHE_LIMIT = 6000;
 const CITYRAIL_PASSENGER_LEG_CACHE_LIMIT = 180000;
 const CITYRAIL_OPERATIONAL_ROUTE_CACHE_LIMIT = 140000;
 
@@ -11468,8 +11510,8 @@ function computePassengerRoute(p) {
     const line = passengerLineByIdV350(leg.lineId);
     if (!line) return null;
     // 校验 boardIdx / alightIdx 有效性
-    const boardIdx = line.stationIds.indexOf(leg.fromStation);
-    const alightIdx = line.stationIds.indexOf(leg.toStation);
+    const boardIdx = cityrailLineStationIndex(line, leg.fromStation);
+    const alightIdx = cityrailLineStationIndex(line, leg.toStation);
     if (boardIdx < 0 || alightIdx < 0) return null;
     return annotatePassengerLegForLine(line, { lineId: leg.lineId, boardIdx, alightIdx });
   }).filter(l => l !== null);
@@ -11488,6 +11530,7 @@ function findRouteCached(fromId, toId, pref) {
     _routeGraphCache = buildWeightedGraph();
     _routeGraphStale = false;
     _routePairCache = new Map();
+    _routeTreeCache = new Map();
   }
   const prefKey = pref ? (pref._routePreferenceKey || cityrailRoutePreferenceKey(pref)) : 'standard';
   const routeKey = String(fromId) + '>' + String(toId) + '|' + prefKey;
@@ -11495,8 +11538,13 @@ function findRouteCached(fromId, toId, pref) {
     const cached = cityrailBoundedMapGet(_routePairCache, routeKey);
     return cached === false ? null : cached;
   }
-  // 复用 findRoute 逻辑但传入缓存图
-  const route = _findRouteWithGraph(fromId, toId, _routeGraphCache, pref);
+  const treeKey = String(fromId) + '|' + prefKey;
+  let tree = cityrailBoundedMapGet(_routeTreeCache, treeKey);
+  if (!tree) {
+    tree = _buildRouteTreeWithGraph(fromId, _routeGraphCache, pref);
+    cityrailBoundedMapSet(_routeTreeCache, treeKey, tree || false, CITYRAIL_ROUTE_TREE_CACHE_LIMIT);
+  }
+  const route = tree && tree !== false ? _routeFromTree(toId, tree) : _findRouteWithGraph(fromId, toId, _routeGraphCache, pref);
   cityrailBoundedMapSet(_routePairCache, routeKey, route || false, CITYRAIL_ROUTE_PAIR_CACHE_LIMIT);
   return route;
 }
@@ -11508,16 +11556,168 @@ try {
       return {
         routeCacheSize: _routePairCache ? _routePairCache.size : 0,
         routeCacheLimit: CITYRAIL_ROUTE_PAIR_CACHE_LIMIT,
+        routeTreeCacheSize: _routeTreeCache ? _routeTreeCache.size : 0,
+        routeTreeCacheLimit: CITYRAIL_ROUTE_TREE_CACHE_LIMIT,
         legCacheSize: state && state.__passengerLegCache ? state.__passengerLegCache.size : 0,
         legCacheLimit: CITYRAIL_PASSENGER_LEG_CACHE_LIMIT
       };
     },
     clear: function(){
       _routePairCache = new Map();
+      _routeTreeCache = new Map();
       if (state) state.__passengerLegCache = null;
     }
   };
 } catch(e) {}
+
+function _routeSearchHelpers(graph) {
+  const stationById = graph.__stationById || cityrailRouteGraphIndex().stationById;
+  const transferPenaltyCache = graph.__transferPenaltyCache || new Map();
+  const transferAllowedCache = graph.__transferAllowedCache || new Map();
+  const connectorPairCache = graph.__connectorPairCache || new Map();
+  return {
+    stationById,
+    transferPenaltyFor(prevLineId, nextLineId, stationId, isVirtualTransfer) {
+      if (isVirtualTransfer || !prevLineId || prevLineId === nextLineId || prevLineId === VT_LINE_ID || nextLineId === VT_LINE_ID) return 0;
+      const key = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+      if (transferPenaltyCache.has(key)) return transferPenaltyCache.get(key);
+      const value = getTransferPenalty(prevLineId, nextLineId, stationId);
+      transferPenaltyCache.set(key, value);
+      return value;
+    },
+    connectorPairFor(prevLineId, nextLineId, stationId) {
+      const key = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+      if (connectorPairCache.has(key)) return connectorPairCache.get(key);
+      const value = cityrailIsConnectorThroughPair(prevLineId, nextLineId, stationId);
+      connectorPairCache.set(key, value);
+      return value;
+    },
+    transferAllowedFor(stationId, prevLineId, nextLineId) {
+      const key = String(stationId || '') + '|' + String(prevLineId || '') + '|' + String(nextLineId || '');
+      if (transferAllowedCache.has(key)) return transferAllowedCache.get(key);
+      const value = cityrailIsTransferAllowed(stationId, stationId, prevLineId, nextLineId);
+      transferAllowedCache.set(key, value);
+      return value;
+    }
+  };
+}
+
+function _routeEdgeAllowed(cur, edge, helpers) {
+  const edgeLineId = edge.actualLineId || edge.lineId;
+  if (cur.pendingTransferToLine && !edge.isVirtualTransfer && String(edgeLineId) !== String(cur.pendingTransferToLine)) return false;
+  if (edge.isVirtualTransfer && cur.prevLine && edge.transferFromLineId && String(cur.prevLine) !== String(edge.transferFromLineId)) return false;
+  if (cur.prevLine !== null && cur.prevLine !== edge.lineId && cur.prevLine !== VT_LINE_ID && edge.lineId !== VT_LINE_ID && !edge.isVirtualTransfer && !helpers.connectorPairFor(cur.prevLine, edge.lineId, cur.node)) {
+    if (!helpers.transferAllowedFor(cur.node, cur.prevLine, edge.lineId)) return false;
+    const stn = helpers.stationById.get(String(cur.node));
+    if (stn && stn._disabledTransferPairs) {
+      const key = cur.prevLine < edge.lineId ? cur.prevLine + '_' + edge.lineId : edge.lineId + '_' + cur.prevLine;
+      if (stn._disabledTransferPairs[key]) return false;
+    }
+  }
+  return true;
+}
+
+function _routeHeapPush(heap, item) {
+  heap.push(item);
+  let i = heap.length - 1;
+  while (i > 0) {
+    const p = (i - 1) >> 1;
+    if (heap[p].cost <= item.cost) break;
+    heap[i] = heap[p];
+    i = p;
+  }
+  heap[i] = item;
+}
+
+function _routeHeapPop(heap) {
+  if (!heap.length) return null;
+  const top = heap[0];
+  const last = heap.pop();
+  if (heap.length && last) {
+    let i = 0;
+    while (true) {
+      let child = i * 2 + 1;
+      if (child >= heap.length) break;
+      if (child + 1 < heap.length && heap[child + 1].cost < heap[child].cost) child++;
+      if (heap[child].cost >= last.cost) break;
+      heap[i] = heap[child];
+      i = child;
+    }
+    heap[i] = last;
+  }
+  return top;
+}
+
+function _routeFromTree(toId, tree) {
+  if (!tree || !tree.bestEnd) return null;
+  const endKey = tree.bestEnd.get(String(toId));
+  if (!endKey) return null;
+  const endItem = tree.bestItem.get(endKey);
+  if (!endItem) return null;
+  const path = [];
+  const linePath = [];
+  let key = endKey;
+  while (key && tree.prev.has(key)) {
+    const rec = tree.prev.get(key);
+    path.push(rec.node);
+    linePath.push(rec.lineId);
+    key = rec.prevKey;
+  }
+  path.push(tree.fromId);
+  path.reverse();
+  linePath.reverse();
+  return {
+    path,
+    linePath,
+    totalDistKm: endItem.distKm,
+    totalTimeMin: endItem.cost,
+    transfers: endItem.transfers
+  };
+}
+
+function _buildRouteTreeWithGraph(fromId, graph, pref) {
+  if (!graph[fromId]) return null;
+  const helpers = _routeSearchHelpers(graph);
+  const heap = [];
+  const best = new Map();
+  const bestEnd = new Map();
+  const bestItem = new Map();
+  const prev = new Map();
+  const startKey = fromId + '|_|';
+  best.set(startKey, 0);
+  _routeHeapPush(heap, { key:startKey, node: fromId, cost: 0, prevLine: null, pendingTransferToLine: null, distKm: 0, transfers: 0 });
+  while (heap.length > 0) {
+    const cur = _routeHeapPop(heap);
+    if (!cur) break;
+    if (cur.cost !== best.get(cur.key)) continue;
+    const nodeKey = String(cur.node);
+    const existing = bestEnd.get(nodeKey);
+    if (!existing || cur.cost < (bestItem.get(existing) && bestItem.get(existing).cost || Infinity)) bestEnd.set(nodeKey, cur.key);
+    bestItem.set(cur.key, cur);
+    for (const edge of (graph[cur.node] || [])) {
+      if (!_routeEdgeAllowed(cur, edge, helpers)) continue;
+      const isVTTransfer = !!edge.isVirtualTransfer;
+      const transferPenalty = helpers.transferPenaltyFor(cur.prevLine, edge.lineId, cur.node, isVTTransfer);
+      const newCost = cur.cost + cityrailPreferenceEdgeCost(edge, transferPenalty, pref);
+      const nextPendingTransferToLine = isVTTransfer ? (edge.transferToLineId || null) : null;
+      const key = edge.to + '|' + edge.lineId + '|' + (nextPendingTransferToLine || '');
+      if (!best.has(key) || newCost < best.get(key)) {
+        best.set(key, newCost);
+        prev.set(key, { prevKey: cur.key, node: edge.to, lineId: edge.lineId });
+        _routeHeapPush(heap, {
+          key,
+          node: edge.to,
+          cost: newCost,
+          prevLine: edge.lineId,
+          pendingTransferToLine: nextPendingTransferToLine,
+          distKm: cur.distKm + edge.distKm,
+          transfers: cur.transfers + ((transferPenalty > 0 || isVTTransfer) ? 1 : 0)
+        });
+      }
+    }
+  }
+  return { fromId, prev, bestEnd, bestItem };
+}
 
 // 使用给定图的 Dijkstra（不重建图）
 function _findRouteWithGraph(fromId, toId, graph, pref) {
@@ -11525,6 +11725,10 @@ function _findRouteWithGraph(fromId, toId, graph, pref) {
   const heap = [];
   const best = new Map();
   const prev = new Map();
+  const stationById = graph.__stationById || cityrailRouteGraphIndex().stationById;
+  const transferPenaltyCache = graph.__transferPenaltyCache || new Map();
+  const transferAllowedCache = graph.__transferAllowedCache || new Map();
+  const connectorPairCache = graph.__connectorPairCache || new Map();
   const startKey = fromId + '|_|';
   best.set(startKey, 0);
 
@@ -11578,6 +11782,28 @@ function _findRouteWithGraph(fromId, toId, graph, pref) {
       transfers: endItem.transfers
     };
   }
+  function transferPenaltyFor(prevLineId, nextLineId, stationId, isVirtualTransfer) {
+    if (isVirtualTransfer || !prevLineId || prevLineId === nextLineId || prevLineId === VT_LINE_ID || nextLineId === VT_LINE_ID) return 0;
+    const key = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+    if (transferPenaltyCache.has(key)) return transferPenaltyCache.get(key);
+    const value = getTransferPenalty(prevLineId, nextLineId, stationId);
+    transferPenaltyCache.set(key, value);
+    return value;
+  }
+  function connectorPairFor(prevLineId, nextLineId, stationId) {
+    const key = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+    if (connectorPairCache.has(key)) return connectorPairCache.get(key);
+    const value = cityrailIsConnectorThroughPair(prevLineId, nextLineId, stationId);
+    connectorPairCache.set(key, value);
+    return value;
+  }
+  function transferAllowedFor(stationId, prevLineId, nextLineId) {
+    const key = String(stationId || '') + '|' + String(prevLineId || '') + '|' + String(nextLineId || '');
+    if (transferAllowedCache.has(key)) return transferAllowedCache.get(key);
+    const value = cityrailIsTransferAllowed(stationId, stationId, prevLineId, nextLineId);
+    transferAllowedCache.set(key, value);
+    return value;
+  }
 
   push({ key:startKey, node: fromId, cost: 0, prevLine: null, pendingTransferToLine: null, distKm: 0, transfers: 0 });
 
@@ -11593,16 +11819,16 @@ function _findRouteWithGraph(fromId, toId, graph, pref) {
       if (cur.pendingTransferToLine && !edge.isVirtualTransfer && String(edgeLineId) !== String(cur.pendingTransferToLine)) continue;
       if (edge.isVirtualTransfer && cur.prevLine && edge.transferFromLineId && String(cur.prevLine) !== String(edge.transferFromLineId)) continue;
       // 检查当前站是否禁用了在此线路间换乘
-      if (cur.prevLine !== null && cur.prevLine !== edge.lineId && cur.prevLine !== VT_LINE_ID && edge.lineId !== VT_LINE_ID && !edge.isVirtualTransfer && !cityrailIsConnectorThroughPair(cur.prevLine, edge.lineId, cur.node)) {
-        if (!cityrailIsTransferAllowed(cur.node, cur.node, cur.prevLine, edge.lineId)) continue;
-        const stn = state.stations.find(s => s.id === cur.node);
+      if (cur.prevLine !== null && cur.prevLine !== edge.lineId && cur.prevLine !== VT_LINE_ID && edge.lineId !== VT_LINE_ID && !edge.isVirtualTransfer && !connectorPairFor(cur.prevLine, edge.lineId, cur.node)) {
+        if (!transferAllowedFor(cur.node, cur.prevLine, edge.lineId)) continue;
+        const stn = stationById.get(String(cur.node));
         if (stn && stn._disabledTransferPairs) {
           const key = cur.prevLine < edge.lineId ? cur.prevLine + '_' + edge.lineId : edge.lineId + '_' + cur.prevLine;
           if (stn._disabledTransferPairs[key]) continue;
         }
       }
-      const transferPenalty = edge.isVirtualTransfer ? 0 : getTransferPenalty(cur.prevLine, edge.lineId, cur.node);
       const isVTTransfer = !!edge.isVirtualTransfer;
+      const transferPenalty = transferPenaltyFor(cur.prevLine, edge.lineId, cur.node, isVTTransfer);
       const newCost = cur.cost + cityrailPreferenceEdgeCost(edge, transferPenalty, pref);
       const nextPendingTransferToLine = isVTTransfer ? (edge.transferToLineId || null) : null;
       const key = edge.to + '|' + edge.lineId + '|' + (nextPendingTransferToLine || '');
@@ -19700,8 +19926,9 @@ function invalidateFlowCache() {
   state.lineLengthCache = {}; // invalidate line lengths too
   state.__runSimulationIndexCache = null;
   state.__passengerLegCache = null;
-  // Distance cache is guarded by station geometry signature; keep it for zone/source/timetable changes.
+  // Route caches depend on topology, transfer policy, and passenger preferences.
   _routePairCache = new Map();
+  _routeTreeCache = new Map();
 }
 
 // ==================== TRAIN SYSTEM ====================
@@ -23206,7 +23433,20 @@ function cityrailTrainMarkerRouteLine(train, baseLine) {
     ? train.routePlan
     : null;
   if (!route || !baseLine) return baseLine;
-  return Object.assign({}, baseLine, {
+  const key = [
+    baseLine.id,
+    route.routeId || '',
+    route.connectorLineId || '',
+    route.branchLineId || '',
+    baseLine._topologyVersion || 0,
+    baseLine._geometryVersion || 0,
+    route.stationIds.length,
+    route.stationIds[0] || '',
+    route.stationIds[route.stationIds.length - 1] || '',
+    Array.isArray(route.waypoints) ? route.waypoints.length : 0
+  ].join('|');
+  if (train && train.__cityrailMarkerRouteKey === key && train.__cityrailMarkerRouteLine) return train.__cityrailMarkerRouteLine;
+  const runtimeLine = Object.assign({}, baseLine, {
     stationIds: route.stationIds.slice(),
     waypoints: Array.isArray(route.waypoints) ? route.waypoints.map(w => Object.assign({}, w)) : [],
     expressService: route.expressService || baseLine.expressService,
@@ -23214,6 +23454,50 @@ function cityrailTrainMarkerRouteLine(train, baseLine) {
     _runtimeParentLineId: baseLine.id,
     _runtimeRouteId: route.routeId || ('train-route:' + String(train.id || '') + ':' + String(route.connectorLineId || route.branchLineId || ''))
   });
+  if (train) {
+    train.__cityrailMarkerRouteKey = key;
+    train.__cityrailMarkerRouteLine = runtimeLine;
+  }
+  return runtimeLine;
+}
+
+function cityrailTrainMarkerLineNodes(line, cache) {
+  if (!line || line.id == null) return [];
+  const key = [
+    line.id,
+    line._runtimeRouteId || '',
+    line._topologyVersion || 0,
+    line._geometryVersion || 0,
+    Array.isArray(line.stationIds) ? line.stationIds.length : 0,
+    Array.isArray(line.waypoints) ? line.waypoints.length : 0,
+    line.pathMode || ''
+  ].join('|');
+  if (cache && cache.has(key)) return cache.get(key);
+  const nodes = getLineTrainNodes(line);
+  if (cache) cache.set(key, nodes);
+  return nodes;
+}
+
+function cityrailTrainMarkerIsRenderable(train) {
+  if (!train) return false;
+  const stateName = String(train.state || '');
+  return stateName !== 'waiting' && stateName !== 'done' && stateName !== 'removed' && stateName !== 'inactive';
+}
+
+function cityrailClearTrainMarkers() {
+  Object.values(trainMarkers).forEach(m => {
+    try { map.removeLayer(m); } catch(e) {}
+  });
+  trainMarkers = {};
+}
+
+function cityrailPruneTrainMarkers(activeIds) {
+  for (const tid in trainMarkers) {
+    if (!activeIds.has(tid)) {
+      try { map.removeLayer(trainMarkers[tid]); } catch(e) {}
+      delete trainMarkers[tid];
+    }
+  }
 }
 
 function cityrailTrainRouteTouchesLine(train, line) {
@@ -23245,111 +23529,165 @@ function applyTrainHeadingV48(marker, heading) {
   }
 }
 
-// Render all train markers — 优化版：缓存 DOM 引用，减少 querySelector
-// 列车已与 visual polyline 共用同一 dense path，位置精确贴合
+const cityrailTrainCanvasState = { canvas:null, ctx:null, w:0, h:0, dpr:1, hits:[], bound:false, raf:0, lastPopupTrainId:'' };
+
+function cityrailEnsureTrainCanvas() {
+  if (!map || !map.getContainer) return null;
+  const container = map.getContainer();
+  let canvas = cityrailTrainCanvasState.canvas || document.getElementById('cityrail-train-canvas-v500');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'cityrail-train-canvas-v500';
+    canvas.className = 'cityrail-train-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;z-index:690;pointer-events:none;contain:layout paint size;';
+    container.appendChild(canvas);
+  }
+  cityrailTrainCanvasState.canvas = canvas;
+  cityrailTrainCanvasState.ctx = cityrailTrainCanvasState.ctx || canvas.getContext('2d', { alpha:true, desynchronized:true });
+  const size = map.getSize ? map.getSize() : { x:container.clientWidth || 1, y:container.clientHeight || 1 };
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  if (cityrailTrainCanvasState.w !== size.x || cityrailTrainCanvasState.h !== size.y || cityrailTrainCanvasState.dpr !== dpr) {
+    cityrailTrainCanvasState.w = size.x;
+    cityrailTrainCanvasState.h = size.y;
+    cityrailTrainCanvasState.dpr = dpr;
+    canvas.width = Math.max(1, Math.round(size.x * dpr));
+    canvas.height = Math.max(1, Math.round(size.y * dpr));
+    canvas.style.width = size.x + 'px';
+    canvas.style.height = size.y + 'px';
+    cityrailTrainCanvasState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  if (!cityrailTrainCanvasState.bound) {
+    cityrailTrainCanvasState.bound = true;
+    const schedule = () => {
+      if (cityrailTrainCanvasState.raf) return;
+      cityrailTrainCanvasState.raf = requestAnimationFrame(() => {
+        cityrailTrainCanvasState.raf = 0;
+        try { renderAllTrainMarkers(); } catch(e) {}
+      });
+    };
+    ['move','zoom','moveend','zoomend','resize','viewreset'].forEach(ev => {
+      try { map.on(ev, schedule); } catch(e) {}
+    });
+    try {
+      map.on('click', ev => cityrailOpenTrainCanvasPopup(ev));
+    } catch(e) {}
+  }
+  return canvas;
+}
+
+function cityrailClearTrainCanvas() {
+  const ctx = cityrailTrainCanvasState.ctx;
+  if (ctx) ctx.clearRect(0, 0, cityrailTrainCanvasState.w, cityrailTrainCanvasState.h);
+  cityrailTrainCanvasState.hits = [];
+}
+
+function cityrailTrainCanvasPoint(lat, lng) {
+  try {
+    const p = map.latLngToContainerPoint(L.latLng(lat, lng));
+    return { x:p.x, y:p.y };
+  } catch(e) {
+    return null;
+  }
+}
+
+function cityrailPointVisible(p, pad = 24) {
+  return p && p.x >= -pad && p.y >= -pad && p.x <= cityrailTrainCanvasState.w + pad && p.y <= cityrailTrainCanvasState.h + pad;
+}
+
+function cityrailDrawTrainCanvasMarker(train, line, point, heading) {
+  const ctx = cityrailTrainCanvasState.ctx;
+  if (!ctx || !point) return;
+  const color = line.color || '#0a84ff';
+  const rad = (Number(heading) || 0) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(point.x, point.y);
+  ctx.rotate(rad);
+  ctx.shadowColor = color;
+  ctx.shadowBlur = train.overloaded ? 8 : 3;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(0, -6);
+  ctx.lineTo(-4.5, 3.5);
+  ctx.lineTo(0, 1.1);
+  ctx.lineTo(4.5, 3.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  if (train.overloaded) {
+    ctx.strokeStyle = 'rgba(255,59,48,.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function cityrailOpenTrainCanvasPopup(ev) {
+  if (!ev || !ev.containerPoint || !map || !L) return false;
+  const p = ev.containerPoint;
+  let best = null;
+  for (const hit of cityrailTrainCanvasState.hits) {
+    const d2 = (hit.x - p.x) * (hit.x - p.x) + (hit.y - p.y) * (hit.y - p.y);
+    if (d2 <= 144 && (!best || d2 < best.d2)) best = Object.assign({ d2 }, hit);
+  }
+  if (!best) return false;
+  cityrailTrainCanvasState.lastPopupTrainId = String(best.train && best.train.id || '');
+  try {
+    L.popup({ className:'train-info-popup', closeButton:true, autoClose:false })
+      .setLatLng(ev.latlng)
+      .setContent(buildTrainPopupHTML(best.train, best.line))
+      .openOn(map);
+  } catch(e) {}
+  return true;
+}
+
+// Render active train markers only. Route and node caches are scoped to this frame.
 function renderAllTrainMarkers() {
   if (!cityrailShouldRenderTrainsAtCurrentZoom()) {
-    Object.values(trainMarkers).forEach(m => map.removeLayer(m));
-    trainMarkers = {};
+    cityrailClearTrainMarkers();
+    cityrailClearTrainCanvas();
     return;
   }
 	  const activeIds = new Set();
 	  const runtimeIndexes = cityrailGetRuntimeIndexes();
 	  const lineMap = runtimeIndexes.lineById;
 	  const stationMap = runtimeIndexes.stationById;
-	  const lineNodesMap = {};
-	  for (const line of state.lines) {
-	    if (line && line.id != null) lineNodesMap[String(line.id)] = getLineTrainNodes(line);
-	  }
+  const nodesCache = new Map();
+  const trains = Array.isArray(state.trains) ? state.trains : [];
+  if (!cityrailEnsureTrainCanvas()) return;
+  cityrailClearTrainMarkers();
+  cityrailClearTrainCanvas();
 
-  state.trains.forEach(train => {
-    if (train.state === 'waiting' || train.state === 'done') return;
-    activeIds.add(train.id);
+  for (let i = 0; i < trains.length; i++) {
+    const train = trains[i];
+    if (!cityrailTrainMarkerIsRenderable(train)) continue;
+    activeIds.add(String(train.id));
 
 	    const line = lineMap.get(String(train.lineId));
-    if (!line) return;
+    if (!line) continue;
 
     const markerLine = cityrailTrainMarkerRouteLine(train, line);
-    const nodes = markerLine === line
-      ? lineNodesMap[line.id]
-      : getLineTrainNodes(markerLine);
+    const nodes = cityrailTrainMarkerLineNodes(markerLine, nodesCache);
     const markerPos = cityrailResolveTrainMarkerPosition(train, markerLine, nodes, stationMap);
-    if (!markerPos) return;
+    if (!markerPos) continue;
     const { lat, lng, nodeA, nodeB } = markerPos;
-
-    let marker = trainMarkers[train.id];
-    if (marker) {
-      // 更新位置
-      marker.setLatLng([lat, lng]);
-
-      // v48: 停站、折返、快慢车跳站时也要持续校正车头，确保永远朝向实际运行方向。
-      const heading = Number.isFinite(markerPos.heading) ? markerPos.heading : computeTrainHeadingV48(train, markerLine, nodes, nodeA, nodeB, lat, lng);
-      applyTrainHeadingV48(marker, heading);
-      train._lastRenderLatV48 = lat;
-      train._lastRenderLngV48 = lng;
-
-      // 超载状态变更
-      if (train.overloaded !== marker._wasOverloaded) {
-        const el = marker.getElement();
-        if (el) {
-          el.classList.toggle('train-marker-overload', train.overloaded);
-        }
-        marker._wasOverloaded = train.overloaded;
-      }
-
-      // 若弹窗已打开，实时刷新内容
-      if (marker._popupOpen) {
-        marker.setPopupContent(buildTrainPopupHTML(train, markerLine));
-      }
-    } else {
-      // 仅创建一次 marker
-      // v48: 初次创建也按实际运动/下一目标站方向确定车头，避免停站或折返时反向。
-      let heading = Number.isFinite(markerPos.heading) ? markerPos.heading : computeTrainHeadingV48(train, markerLine, nodes, nodeA, nodeB, lat, lng);
-      train._lastRenderLatV48 = lat;
-      train._lastRenderLngV48 = lng;
-      const triangleSVG = `<svg width="12" height="12" viewBox="-6 -6 12 12" style="display:block;">
-        <polygon points="0,-5.5 -4,2.5 0,0 4,2.5" fill="${markerLine.color}" stroke="#fff" stroke-width="0.7"
-          transform="rotate(${heading})"
-          style="filter:drop-shadow(0 0 1.5px ${markerLine.color}88);" />
-      </svg>`;
-      const divIcon = L.divIcon({
-        className: 'train-marker' + (train.overloaded ? ' train-marker-overload' : ''),
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
-        html: triangleSVG,
-      });
-      marker = L.marker([lat, lng], {
-        icon: divIcon,
-        interactive: true,
-        zIndexOffset: 8000,
-      }).addTo(map);
-      marker._wasOverloaded = train.overloaded;
-      marker._lastHeading = heading;
-      // 缓存 polygon 引用
-      const el = marker.getElement();
-      if (el) marker._cachedPolygon = el.querySelector('polygon');
-
-      // 点击列车显示信息弹窗
-      const popupContent = buildTrainPopupHTML(train, markerLine);
-      marker.bindPopup(popupContent, { className: 'train-info-popup', closeButton: true, autoClose: false });
-      marker.on('click', () => {
-        marker._popupOpen = true;
-        marker.openPopup();
-      });
-      marker.on('popupclose', () => { marker._popupOpen = false; });
-
-      trainMarkers[train.id] = marker;
-    }
-  });
-
-  // 移除失效的 marker
-  for (const tid in trainMarkers) {
-    if (!activeIds.has(tid)) {
-      map.removeLayer(trainMarkers[tid]);
-      delete trainMarkers[tid];
-    }
+    const heading = Number.isFinite(markerPos.heading) ? markerPos.heading : computeTrainHeadingV48(train, markerLine, nodes, nodeA, nodeB, lat, lng);
+    const point = cityrailTrainCanvasPoint(lat, lng);
+    if (!cityrailPointVisible(point)) continue;
+    train._lastRenderLatV48 = lat;
+    train._lastRenderLngV48 = lng;
+    cityrailDrawTrainCanvasMarker(train, markerLine, point, heading);
+    cityrailTrainCanvasState.hits.push({ id:String(train.id), train, line:markerLine, x:point.x, y:point.y });
   }
+
+  cityrailPruneTrainMarkers(activeIds);
 }
+renderAllTrainMarkers.__v500Canvas = true;
+renderAllTrainMarkers.__v114Canvas = true;
 
 // ==================== LINE METRICS ====================
 function computeLineLengths() {
@@ -23384,29 +23722,19 @@ function recomputeLineLengthsNow() {
 try { window.recomputeLineLengthsNow = recomputeLineLengthsNow; } catch(e) {}
 function cityrailLineLengthTopologySignature(st) {
   st = st || state || {};
-  const stationMap = new Map((Array.isArray(st.stations) ? st.stations : []).map(function(station) {
-    return [String(station && station.id), station];
-  }));
   return (Array.isArray(st.lines) ? st.lines : []).map(function(line) {
     if (!line) return '';
-    const stationCoordSig = Array.isArray(line.stationIds) ? line.stationIds.map(function(id) {
-      const station = stationMap.get(String(id));
-      if (!station) return String(id) + ':missing';
-      return [
-        String(id),
-        Math.round(Number(station.lat || 0) * 1e6),
-        Math.round(Number(station.lng || 0) * 1e6),
-        station._geometryVersion || 0,
-        station._topologyVersion || 0
-      ].join(':');
-    }).join(',') : '';
+    const ids = Array.isArray(line.stationIds) ? line.stationIds : [];
+    const waypoints = Array.isArray(line.waypoints) ? line.waypoints : [];
     return [
       line.id,
-      Array.isArray(line.stationIds) ? line.stationIds.join(',') : '',
-      stationCoordSig,
-      Array.isArray(line.waypoints) ? line.waypoints.map(function(w) {
-        return [w && w.id, w && w.segIdx, w && w.order, Math.round(Number(w && w.lat || 0) * 1e6), Math.round(Number(w && w.lng || 0) * 1e6)].join(':');
-      }).join('.') : '',
+      ids.length,
+      ids[0] || '',
+      ids[ids.length - 1] || '',
+      waypoints.length,
+      line.pathMode || '',
+      line.isLoop ? 1 : 0,
+      line.loopMode || '',
       line._topologyVersion || 0,
       line._geometryVersion || 0
     ].join('|');
@@ -28523,6 +28851,53 @@ async function checkAndUpdateVirtualTransferOnMove(movedStationId) {
   }
 }
 
+let cityrailRouteGraphIndexCache = null;
+function cityrailRouteGraphIndex() {
+  const runtime = typeof cityrailGetRuntimeIndexes === 'function' ? cityrailGetRuntimeIndexes() : null;
+  const lines = Array.isArray(state && state.lines) ? state.lines : [];
+  const stations = Array.isArray(state && state.stations) ? state.stations : [];
+  const lineSig = typeof cityrailRuntimeCollectionSig === 'function' ? cityrailRuntimeCollectionSig(lines) : String(lines.length);
+  const stationSig = typeof cityrailRuntimeCollectionSig === 'function' ? cityrailRuntimeCollectionSig(stations) : String(stations.length);
+  if (cityrailRouteGraphIndexCache &&
+      cityrailRouteGraphIndexCache.linesRef === lines &&
+      cityrailRouteGraphIndexCache.stationsRef === stations &&
+      cityrailRouteGraphIndexCache.lineSig === lineSig &&
+      cityrailRouteGraphIndexCache.stationSig === stationSig) {
+    return cityrailRouteGraphIndexCache;
+  }
+  const lineById = runtime && runtime.lineById ? runtime.lineById : new Map();
+  const stationById = runtime && runtime.stationById ? runtime.stationById : new Map();
+  if (!runtime) {
+    for (const line of lines) if (line && line.id != null) lineById.set(String(line.id), line);
+    for (const station of stations) if (station && station.id != null) stationById.set(String(station.id), station);
+  }
+  cityrailRouteGraphIndexCache = { linesRef:lines, stationsRef:stations, lineSig, stationSig, lineById, stationById };
+  return cityrailRouteGraphIndexCache;
+}
+
+function cityrailLineStationIndex(line, stationId) {
+  if (!line || !Array.isArray(line.stationIds)) return -1;
+  const ids = line.stationIds;
+  const key = [
+    line.id == null ? '' : String(line.id),
+    line._topologyVersion || 0,
+    line._geometryVersion || 0,
+    ids.length,
+    ids[0] == null ? '' : String(ids[0]),
+    ids[ids.length - 1] == null ? '' : String(ids[ids.length - 1])
+  ].join('|');
+  if (!line.__cityrailStationIndex || line.__cityrailStationIndex.key !== key) {
+    const map = new Map();
+    for (let i = 0; i < ids.length; i++) {
+      if (ids[i] != null && !map.has(String(ids[i]))) map.set(String(ids[i]), i);
+    }
+    line.__cityrailStationIndex = { key, map };
+  }
+  const idx = line.__cityrailStationIndex.map.get(String(stationId));
+  return idx == null ? -1 : idx;
+}
+try { window.cityrailLineStationIndex = cityrailLineStationIndex; } catch(e) {}
+
 // 获取两条线路之间的换乘惩罚时间（分钟）
 // 支线与主线之间换乘只需2分钟，其他线路间换乘为默认5分钟
 // 虚拟换乘边的罚时已包含在边cost中，此处返回0
@@ -28535,8 +28910,9 @@ function getTransferPenalty(prevLineId, nextLineId, stationId) {
     const byDistance = cityrailStationTransferPenaltyByDistance(stationId, prevLineId, nextLineId);
     if (Number.isFinite(Number(byDistance))) return Number(byDistance);
   }
-  const prevLine = state.lines.find(l => l.id === prevLineId);
-  const nextLine = state.lines.find(l => l.id === nextLineId);
+  const routeIndex = cityrailRouteGraphIndex();
+  const prevLine = routeIndex.lineById.get(String(prevLineId));
+  const nextLine = routeIndex.lineById.get(String(nextLineId));
   if (!prevLine || !nextLine) return TRANSFER_PENALTY_MIN;
   // 检查是否为支线-主线关系（双向检查）
   const isBranchPair =
@@ -28563,18 +28939,46 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 // including all waypoints in between. This gives the real segment length
 // rather than the straight-line (crow-flies) distance.
 function getLineSegmentDistance(line, segIdx) {
+  if (!line || !Array.isArray(line.stationIds)) return 0;
+  const segmentIndex = Math.round(Number(segIdx) || 0);
+  const ids = line.stationIds;
+  const wps = Array.isArray(line.waypoints) ? line.waypoints : [];
+  const cacheKey = [
+    line.id == null ? '' : String(line.id),
+    line._topologyVersion || 0,
+    line._geometryVersion || 0,
+    line.pathMode || '',
+    hasLoopTopology(line) ? 1 : 0,
+    ids.length,
+    ids[0] == null ? '' : String(ids[0]),
+    ids[ids.length - 1] == null ? '' : String(ids[ids.length - 1]),
+    wps.length
+  ].join('|');
+  if (!line.__cityrailSegmentDistanceCache || line.__cityrailSegmentDistanceCache.key !== cacheKey) {
+    const bySeg = new Map();
+    for (const wp of wps) {
+      const idx = Math.round(Number(wp && wp.segIdx) || 0);
+      if (!bySeg.has(idx)) bySeg.set(idx, []);
+      bySeg.get(idx).push(wp);
+    }
+    bySeg.forEach(list => list.sort((a, b) => Number(a.order || 0) - Number(b.order || 0)));
+    line.__cityrailSegmentDistanceCache = { key:cacheKey, values:Object.create(null), waypointsBySeg:bySeg };
+  }
+  const cached = line.__cityrailSegmentDistanceCache.values[segmentIndex];
+  if (Number.isFinite(cached)) return cached;
   const endpoints = lineSegmentEndpointPositions(line, segIdx);
   if (!endpoints) return 0;
 
-  const wps = (line.waypoints || []).filter(w => w.segIdx === segIdx).sort((a, b) => a.order - b.order);
+  const segmentWaypoints = line.__cityrailSegmentDistanceCache.waypointsBySeg.get(segmentIndex) || [];
   let total = 0;
   let prevLat = endpoints.from.lat, prevLng = endpoints.from.lng;
-  for (const wp of wps) {
+  for (const wp of segmentWaypoints) {
     total += haversineKm(prevLat, prevLng, wp.lat, wp.lng);
     prevLat = wp.lat;
     prevLng = wp.lng;
   }
   total += haversineKm(prevLat, prevLng, endpoints.to.lat, endpoints.to.lng);
+  line.__cityrailSegmentDistanceCache.values[segmentIndex] = total;
   return total;
 }
 
@@ -28632,7 +29036,15 @@ function routeSegmentCoords(seg) {
 
 function buildWeightedGraph() {
   const graph = {};
+  const routeIndex = cityrailRouteGraphIndex();
+  const stationById = routeIndex.stationById;
+  const lineById = routeIndex.lineById;
   state.stations.forEach(s => { graph[s.id] = []; });
+  graph.__stationById = stationById;
+  graph.__lineById = lineById;
+  graph.__transferPenaltyCache = new Map();
+  graph.__transferAllowedCache = new Map();
+  graph.__connectorPairCache = new Map();
   state.lines.forEach(line => {
     if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) return;
     if (cityrailIsConnectorLine(line) && !cityrailConnectorThroughEnabled(line)) return;
@@ -28645,8 +29057,8 @@ function buildWeightedGraph() {
       if (!endpoints) continue;
       const sidA = endpoints.from;
       const sidB = endpoints.to;
-      const sa = state.stations.find(s => s.id === sidA);
-      const sb = state.stations.find(s => s.id === sidB);
+      const sa = stationById.get(String(sidA));
+      const sb = stationById.get(String(sidB));
       if (!sa || !sb) continue;
       const distKm = getLineSegmentDistance(line, i);
       const timeMin = distKm / speed * 60;
@@ -28662,10 +29074,16 @@ function buildWeightedGraph() {
   // 添加虚拟换乘边（不同车站之间的换乘通道）
   for (const vt of state.virtualTransfers) {
     if (!graph[vt.stationA] || !graph[vt.stationB]) continue;
-    const stA = state.stations.find(st => String(st && st.id) === String(vt.stationA));
-    const stB = state.stations.find(st => String(st && st.id) === String(vt.stationB));
+    const stA = stationById.get(String(vt.stationA));
+    const stB = stationById.get(String(vt.stationB));
     if (cityrailIsPlaceholderTransferName(stA || '') || cityrailIsPlaceholderTransferName(stB || '')) continue;
-    if (!cityrailIsTransferAllowed(vt.stationA, vt.stationB, vt.lineAId || VT_LINE_ID, vt.lineBId || VT_LINE_ID)) continue;
+    const vtAllowedKey = cityrailTransferRelationKey(vt.stationA, vt.stationB, vt.lineAId || VT_LINE_ID, vt.lineBId || VT_LINE_ID);
+    let vtAllowed = graph.__transferAllowedCache.get(vtAllowedKey);
+    if (vtAllowed == null) {
+      vtAllowed = cityrailIsTransferAllowed(vt.stationA, vt.stationB, vt.lineAId || VT_LINE_ID, vt.lineBId || VT_LINE_ID);
+      graph.__transferAllowedCache.set(vtAllowedKey, vtAllowed);
+    }
+    if (!vtAllowed) continue;
     // 双向边：cost 即为换乘罚时
     graph[vt.stationA].push({
       to: vt.stationB,
@@ -28693,6 +29111,31 @@ function buildWeightedGraph() {
 function findRoute(fromId, toId) {
   const graph = buildWeightedGraph();
   if (!graph[fromId] || !graph[toId]) return null;
+  const transferPenaltyCache = graph.__transferPenaltyCache || new Map();
+  const transferAllowedCache = graph.__transferAllowedCache || new Map();
+  const connectorPairCache = graph.__connectorPairCache || new Map();
+  function transferPenaltyFor(prevLineId, nextLineId, stationId, isVirtualTransfer) {
+    if (isVirtualTransfer || !prevLineId || prevLineId === nextLineId || prevLineId === VT_LINE_ID || nextLineId === VT_LINE_ID) return 0;
+    const cacheKey = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+    if (transferPenaltyCache.has(cacheKey)) return transferPenaltyCache.get(cacheKey);
+    const value = getTransferPenalty(prevLineId, nextLineId, stationId);
+    transferPenaltyCache.set(cacheKey, value);
+    return value;
+  }
+  function connectorPairFor(prevLineId, nextLineId, stationId) {
+    const cacheKey = String(prevLineId) + '|' + String(nextLineId) + '|' + String(stationId || '');
+    if (connectorPairCache.has(cacheKey)) return connectorPairCache.get(cacheKey);
+    const value = cityrailIsConnectorThroughPair(prevLineId, nextLineId, stationId);
+    connectorPairCache.set(cacheKey, value);
+    return value;
+  }
+  function transferAllowedFor(stationId, prevLineId, nextLineId) {
+    const cacheKey = String(stationId || '') + '|' + String(prevLineId || '') + '|' + String(nextLineId || '');
+    if (transferAllowedCache.has(cacheKey)) return transferAllowedCache.get(cacheKey);
+    const value = cityrailIsTransferAllowed(stationId, stationId, prevLineId, nextLineId);
+    transferAllowedCache.set(cacheKey, value);
+    return value;
+  }
 
   // Dijkstra with transfer penalty: { node, cost, prevLine, path, linePath, distKm, transfers }
   const pq = [{ node: fromId, cost: 0, prevLine: null, pendingTransferToLine: null, path: [fromId], linePath: [], distKm: 0, transfers: 0 }];
@@ -28715,17 +29158,17 @@ function findRoute(fromId, toId) {
       if (cur.pendingTransferToLine && !edge.isVirtualTransfer && String(edgeLineId) !== String(cur.pendingTransferToLine)) continue;
       if (edge.isVirtualTransfer && cur.prevLine && edge.transferFromLineId && String(cur.prevLine) !== String(edge.transferFromLineId)) continue;
       // 检查当前站是否禁用了在此线路间换乘
-      if (cur.prevLine !== null && cur.prevLine !== edge.lineId && cur.prevLine !== VT_LINE_ID && edge.lineId !== VT_LINE_ID && !edge.isVirtualTransfer && !cityrailIsConnectorThroughPair(cur.prevLine, edge.lineId, cur.node)) {
-        if (!cityrailIsTransferAllowed(cur.node, cur.node, cur.prevLine, edge.lineId)) continue;
-        const station = state.stations.find(s => s.id === cur.node);
+      if (cur.prevLine !== null && cur.prevLine !== edge.lineId && cur.prevLine !== VT_LINE_ID && edge.lineId !== VT_LINE_ID && !edge.isVirtualTransfer && !connectorPairFor(cur.prevLine, edge.lineId, cur.node)) {
+        if (!transferAllowedFor(cur.node, cur.prevLine, edge.lineId)) continue;
+        const station = graph.__stationById ? graph.__stationById.get(String(cur.node)) : cityrailStationByIdFast(cur.node);
         if (station && station._disabledTransferPairs) {
           const key = cur.prevLine < edge.lineId ? cur.prevLine + '_' + edge.lineId : edge.lineId + '_' + cur.prevLine;
           if (station._disabledTransferPairs[key]) continue;
         }
       }
-      const transferPenalty = edge.isVirtualTransfer ? 0 : getTransferPenalty(cur.prevLine, edge.lineId, cur.node);
       // 虚拟换乘边也算一次换乘（即使罚时在edge.cost中）
       const isVTTransfer = !!edge.isVirtualTransfer;
+      const transferPenalty = transferPenaltyFor(cur.prevLine, edge.lineId, cur.node, isVTTransfer);
       const newCost = cur.cost + edge.cost + transferPenalty;
       const nextPendingTransferToLine = isVTTransfer ? (edge.transferToLineId || null) : null;
       const key = edge.to + '|' + edge.lineId + '|' + (nextPendingTransferToLine || '');
@@ -35798,8 +36241,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     for(const leg of compact){
       const line = lineById(leg.lineId);
       if(!line || !Array.isArray(line.stationIds)) continue;
-      let boardIdx = line.stationIds.findIndex(id => same(id, leg.fromStation));
-      let alightIdx = line.stationIds.findIndex(id => same(id, leg.toStation));
+      let boardIdx = typeof window.cityrailLineStationIndex === 'function' ? window.cityrailLineStationIndex(line, leg.fromStation) : line.stationIds.findIndex(id => same(id, leg.fromStation));
+      let alightIdx = typeof window.cityrailLineStationIndex === 'function' ? window.cityrailLineStationIndex(line, leg.toStation) : line.stationIds.findIndex(id => same(id, leg.toStation));
       // v74: route nodes may use the transfer platform id from the other line.
       // Match by physical station alias before declaring the leg invalid.
       if(boardIdx < 0) boardIdx = line.stationIds.findIndex(id => samePhysicalStation(id, leg.fromStation));
@@ -36348,8 +36791,8 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     for(const lg of compact){
       const line = lineById(lg.lineId);
       if(!line || !Array.isArray(line.stationIds)) continue;
-      let boardIdx = line.stationIds.findIndex(id => same(id, lg.fromStation));
-      let alightIdx = line.stationIds.findIndex(id => same(id, lg.toStation));
+      let boardIdx = typeof window.cityrailLineStationIndex === 'function' ? window.cityrailLineStationIndex(line, lg.fromStation) : line.stationIds.findIndex(id => same(id, lg.fromStation));
+      let alightIdx = typeof window.cityrailLineStationIndex === 'function' ? window.cityrailLineStationIndex(line, lg.toStation) : line.stationIds.findIndex(id => same(id, lg.toStation));
       // Physical transfer alias fallback: same-name / non-virtual transfer platforms.
       if(boardIdx < 0) boardIdx = line.stationIds.findIndex(id => samePhysicalStation(id, lg.fromStation));
       if(alightIdx < 0) alightIdx = line.stationIds.findIndex(id => samePhysicalStation(id, lg.toStation));
@@ -36366,18 +36809,44 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function fixedComputePassengerRoute(p){
     if(!p) return;
     if(same(p.originId, p.destinationId)){ p.state = 'arrived'; return; }
+    const s = S();
     let route = null;
     let pref = null;
     try{
       if(typeof cityrailPassengerRoutePreference === 'function') pref = cityrailPassengerRoutePreference(p);
     }catch(e){}
+    const prefKey = pref ? (pref._routePreferenceKey || (typeof cityrailRoutePreferenceKey === 'function' ? cityrailRoutePreferenceKey(pref) : 'standard')) : 'standard';
+    const legCacheKey = str(p.originId) + '>' + str(p.destinationId) + '|' + prefKey;
+    if(s){
+      if(!s.__passengerLegCache) s.__passengerLegCache = new Map();
+      if(s.__passengerLegCache.has(legCacheKey)){
+        const cached = typeof cityrailBoundedMapGet === 'function'
+          ? cityrailBoundedMapGet(s.__passengerLegCache, legCacheKey)
+          : s.__passengerLegCache.get(legCacheKey);
+        if(!cached || !cached.length){ p.state = 'arrived'; return; }
+        p.legs = cached.map(leg => Object.assign({}, leg));
+        return;
+      }
+    }
     try{
       if(typeof window.findRouteCached === 'function') route = window.findRouteCached(p.originId, p.destinationId, pref);
     }catch(e){}
     if(!route) route = findRouteAny(p.originId, p.destinationId);
-    if(!route || !route.path || route.path.length < 2){ p.state = 'arrived'; return; }
+    if(!route || !route.path || route.path.length < 2){
+      if(s && s.__passengerLegCache){
+        if(typeof cityrailBoundedMapSet === 'function') cityrailBoundedMapSet(s.__passengerLegCache, legCacheKey, false, CITYRAIL_PASSENGER_LEG_CACHE_LIMIT);
+        else s.__passengerLegCache.set(legCacheKey, false);
+      }
+      p.state = 'arrived';
+      return;
+    }
     const legs = legsFromRouteFixed(route);
     p.legs = legs;
+    if(s && s.__passengerLegCache){
+      const value = legs.length ? legs.map(leg => Object.assign({}, leg)) : false;
+      if(typeof cityrailBoundedMapSet === 'function') cityrailBoundedMapSet(s.__passengerLegCache, legCacheKey, value, CITYRAIL_PASSENGER_LEG_CACHE_LIMIT);
+      else s.__passengerLegCache.set(legCacheKey, value);
+    }
     if(!legs.length) p.state = 'arrived';
   }
 
@@ -36659,7 +37128,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     odMatrixCache=null;
     try{ window.odMatrixCache=null; }catch(e){}
     try{ _stationDistMatrix=null; _stationDistMatrixSig=''; _stationDistMatrixSize=0; _stationDistOrder=null; }catch(e){}
-    try{ _routeGraphStale=true; _routePairCache=new Map(); }catch(e){}
+    try{ _routeGraphStale=true; _routePairCache=new Map(); _routeTreeCache=new Map(); }catch(e){}
     s.__passengerLegCache=null;
     s.__runSimulationIndexCache=null;
     s.__cityrailDemandRuntimeInvalidatedAt=Date.now();
@@ -36681,7 +37150,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     invalidatePassengerDemandCaches(reason);
     try{ if(typeof buildODMatrix==='function') buildODMatrix(); }catch(e){}
     try{ if(typeof window.cityrailRebuildPassengerIndexesV74==='function') window.cityrailRebuildPassengerIndexesV74(); }catch(e){}
-    try{ if(typeof window.invalidateFlowCache==='function') window.invalidateFlowCache(); }catch(e){}
     const odCache=(typeof odMatrixCache!=='undefined')?odMatrixCache:window.odMatrixCache;
     const pairs=odCache?ensureActivePairs(odCache):{length:0};
     s.__cityrailDemandRuntimeReady={
@@ -39514,8 +39982,20 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   const getLines=()=>Array.isArray(S().lines)?S().lines:[];
   const getStations=()=>Array.isArray(S().stations)?S().stations:[];
   const getTrains=()=>Array.isArray(S().trains)?S().trains:[];
-  const lineById=id=>getLines().find(l=>sid(l.id)===sid(id));
-  const stationById=id=>getStations().find(s=>sid(s.id)===sid(id));
+  const lineById=id=>{
+    try {
+      const idx = typeof W.cityrailGetRuntimeIndexes === 'function' ? W.cityrailGetRuntimeIndexes() : null;
+      if(idx && idx.lineById) return idx.lineById.get(sid(id)) || null;
+    } catch(e) {}
+    return getLines().find(l=>sid(l.id)===sid(id));
+  };
+  const stationById=id=>{
+    try {
+      const idx = typeof W.cityrailGetRuntimeIndexes === 'function' ? W.cityrailGetRuntimeIndexes() : null;
+      if(idx && idx.stationById) return idx.stationById.get(sid(id)) || null;
+    } catch(e) {}
+    return getStations().find(s=>sid(s.id)===sid(id));
+  };
   const lineStations=line=>Array.isArray(line&&line.stationIds)?line.stationIds.map(sid):[];
   const lineName=line=>line&&(line.name||line.label||line.no||line.id)||'线路';
   const lineColor=line=>line&&line.color?line.color:'#66d9ff';
@@ -40354,7 +40834,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     return true;
   }
   function renderAts(force){
-    const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov) return; const line=lineById(owner.lineId)||sortedLinesByNumber(getLines())[0]; if(line&&!owner.lineId) owner.lineId=sid(line.id);
+    const ov=byId('line-config-v137-overlay')||byId('line-config-v135-overlay'); if(!ov || ov.classList.contains('hidden')) return; const line=lineById(owner.lineId)||sortedLinesByNumber(getLines())[0]; if(line&&!owner.lineId) owner.lineId=sid(line.id);
     const throughInfo=throughAtsInfo(line);
     if(owner.throughFull && throughInfo){ if(renderThroughAts(line,throughInfo,force)) return; }
     if(owner.throughFull && !throughInfo) owner.throughFull=false;
@@ -40493,7 +40973,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     }
   }
   function setMapTrainRenderingSuspended(){
-    const suspend=syncAtsOpenFromDom(); ['cityrail-train-canvas-v114','cityrail-train-canvas-v50','cityrail-train-canvas-v31'].forEach(id=>{const el=byId(id); if(el){el.style.display=suspend?'none':'';}});
+    const suspend=syncAtsOpenFromDom(); ['cityrail-train-canvas-v500','cityrail-train-canvas-v114','cityrail-train-canvas-v50','cityrail-train-canvas-v31'].forEach(id=>{const el=byId(id); if(el){el.style.display=suspend?'none':'';}});
     try{S().__atsOpenStopsMapTrainRender=!!suspend;}catch(e){}
   }
 
@@ -41509,6 +41989,16 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
 	  const placeNameQueue=[];
 	  const placeNameInflight=new Map();
 	  let placeNameActive=0;
+	  const cleanReverseNameCache=new Map();
+	  const cleanTransferNameCache=new Map();
+	  function cachedClean(map,key,build){
+	    const raw=sid(key);
+	    if(map.has(raw)) return map.get(raw);
+	    if(map.size>8000) map.clear();
+	    const value=build(raw);
+	    map.set(raw,value);
+	    return value;
+	  }
   function stripConstructionSuffix(raw){
     return sid(raw)
       .replace(/[（(][^）)]*在建[^）)]*[）)]/gu, '')
@@ -41520,29 +42010,33 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     return /(火车站|汽车站)$/u.test(text) ? text : text.replace(/站$/u, '');
   }
   function cleanReverseName(raw){
-    let name=cn(stripConstructionSuffix(raw));
-    if(!name || /^中国|^\d+$/.test(name)) return '';
-    name=name.replace(/(地铁站|公交站|站点)$/,'').replace(/(号线|线)$/,'');
-    name=stripGenericStationSuffix(name);
-    if(name.length>16) name=name.slice(0,16);
-    return name;
+    return cachedClean(cleanReverseNameCache,raw,value=>{
+      let name=cn(stripConstructionSuffix(value));
+      if(!name || /^中国|^\d+$/.test(name)) return '';
+      name=name.replace(/(地铁站|公交站|站点)$/,'').replace(/(号线|线)$/,'');
+      name=stripGenericStationSuffix(name);
+      if(name.length>16) name=name.slice(0,16);
+      return name;
+    });
   }
   function cleanTransferStationName(raw){
-    const base = cleanReverseName(raw) || stripConstructionSuffix(raw);
-    if(!base) return '';
-    if(typeof W.cityrailCleanTransferStationName === 'function') {
-      try {
-        const sharedClean = stripConstructionSuffix(W.cityrailCleanTransferStationName(base));
-        return cleanReverseName(sharedClean) || sharedClean || base;
-      } catch(e) {}
-    }
-    let text = stripConstructionSuffix(base).replace(/\s+/g, '');
-    text = text.replace(/[（(]\s*\d+\s*[）)]$/u, '');
-    text = text.replace(/(?:站)?[._-]?\d+$/u, '站');
-    text = text.replace(/([^\d])\d+$/u, '$1');
-    text = text.replace(/站站$/u, '站');
-    text = stripGenericStationSuffix(text);
-    return cleanReverseName(text) || text || base;
+    return cachedClean(cleanTransferNameCache,raw,value=>{
+      const base = cleanReverseName(value) || stripConstructionSuffix(value);
+      if(!base) return '';
+      if(typeof W.cityrailCleanTransferStationName === 'function') {
+        try {
+          const sharedClean = stripConstructionSuffix(W.cityrailCleanTransferStationName(base));
+          return cleanReverseName(sharedClean) || sharedClean || base;
+        } catch(e) {}
+      }
+      let text = stripConstructionSuffix(base).replace(/\s+/g, '');
+      text = text.replace(/[（(]\s*\d+\s*[）)]$/u, '');
+      text = text.replace(/(?:站)?[._-]?\d+$/u, '站');
+      text = text.replace(/([^\d])\d+$/u, '$1');
+      text = text.replace(/站站$/u, '站');
+      text = stripGenericStationSuffix(text);
+      return cleanReverseName(text) || text || base;
+    });
   }
   function placeCacheKey(lat,lng,cityKey){
     return [cityKey||'',Math.round(n(lat)*10000),Math.round(n(lng)*10000)].join(':');
@@ -44405,7 +44899,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function clearDemandCaches(){
     try { odMatrixCache = null; } catch(e) {}
     try { _routeGraphStale = true; } catch(e) {}
-    try { _routePairCache = new Map(); } catch(e) {}
+    try { _routePairCache = new Map(); _routeTreeCache = new Map(); } catch(e) {}
     // Keep distance cache; buildStationDistMatrix() rebuilds automatically when station geometry changes.
     try { S().__runSimulationIndexCache = null; } catch(e) {}
     try { S().lineLengthCache = {}; } catch(e) {}
@@ -45273,7 +45767,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     try { if (typeof invalidateLineNodesCache === 'function' && line) invalidateLineNodesCache(line.id); } catch(e) {}
     try { if (line) line._topologyVersion = (num(line._topologyVersion, 0) + 1); } catch(e) {}
     try { if (typeof _routeGraphStale !== 'undefined') _routeGraphStale = true; } catch(e) {}
-    try { if (typeof _routePairCache !== 'undefined') _routePairCache = new Map(); } catch(e) {}
+    try { if (typeof _routePairCache !== 'undefined') _routePairCache = new Map(); if (typeof _routeTreeCache !== 'undefined') _routeTreeCache = new Map(); } catch(e) {}
     try { if (W.CityRailExpressRouteChoiceV32 && typeof W.CityRailExpressRouteChoiceV32.invalidate === 'function') W.CityRailExpressRouteChoiceV32.invalidate(); } catch(e) {}
     try { if (typeof invalidateFlowCache === 'function') invalidateFlowCache(); } catch(e) {}
     normalizeConnectorThroughRoutes(true);
@@ -47930,8 +48424,20 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   function stations(){ return Array.isArray(S().stations) ? S().stations : []; }
   function lines(){ return Array.isArray(S().lines) ? S().lines : []; }
   function trains(){ const st = S(); if(!Array.isArray(st.trains)) st.trains = []; return st.trains; }
-  function stationById(id){ return stations().find(st => sid(st && st.id) === sid(id)) || null; }
-  function lineById(id){ return lines().find(line => sid(line && line.id) === sid(id)) || null; }
+  function stationById(id){
+    try {
+      const idx = typeof W.cityrailGetRuntimeIndexes === 'function' ? W.cityrailGetRuntimeIndexes() : null;
+      if(idx && idx.stationById) return idx.stationById.get(sid(id)) || null;
+    } catch(e) {}
+    return stations().find(st => sid(st && st.id) === sid(id)) || null;
+  }
+  function lineById(id){
+    try {
+      const idx = typeof W.cityrailGetRuntimeIndexes === 'function' ? W.cityrailGetRuntimeIndexes() : null;
+      if(idx && idx.lineById) return idx.lineById.get(sid(id)) || null;
+    } catch(e) {}
+    return lines().find(line => sid(line && line.id) === sid(id)) || null;
+  }
   function lineContainsStation(line, stationId){ return !!(line && Array.isArray(line.stationIds) && line.stationIds.some(id => sid(id) === sid(stationId))); }
   function clampCapacity(value){ return Math.max(0, Math.min(MAX_CAPACITY, Math.round(num(value, 0)))); }
   function normalizeDirectionMode(value){ return DIRECTION_MODES.includes(sid(value)) ? sid(value) : 'auto'; }

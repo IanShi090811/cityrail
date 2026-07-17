@@ -1,6 +1,7 @@
 name = "cityrailgame"
 pages_build_output_dir = "."
 compatibility_date = "2026-06-03"
+compatibility_flags = ["nodejs_compat"]
 
 [[kv_namespaces]]
 binding = "CITYRAIL_KV"

@@ -115,8 +115,6 @@ out body geom;`;
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 95000) {
-  const nodeResponse = await fetchWithNodeHttp(url, options, timeoutMs);
-  if (nodeResponse) return nodeResponse;
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
@@ -124,55 +122,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 95000) {
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-async function fetchWithNodeHttp(url, options = {}, timeoutMs = 95000) {
-  if (typeof process === 'undefined' || !process.versions || !process.versions.node) return null;
-  let http;
-  let https;
-  let dns;
-  try {
-    [{ default: http }, { default: https }, dns] = await Promise.all([
-      import('node:http'),
-      import('node:https'),
-      import('node:dns'),
-    ]);
-  } catch {
-    return null;
-  }
-  if (typeof dns.setDefaultResultOrder === 'function') dns.setDefaultResultOrder('ipv4first');
-  const target = new URL(url);
-  const isHttps = target.protocol === 'https:';
-  const transport = isHttps ? https : http;
-  const method = String(options.method || 'GET').toUpperCase();
-  const body = options.body == null ? null : Buffer.from(String(options.body));
-  const headers = { ...(options.headers || {}) };
-  if (body && !Object.keys(headers).some(key => key.toLowerCase() === 'content-length')) {
-    headers['content-length'] = String(body.length);
-  }
-  return new Promise((resolve, reject) => {
-    const req = transport.request(target, {
-      method,
-      headers,
-      family: 4,
-      timeout: timeoutMs,
-    }, res => {
-      const chunks = [];
-      res.on('data', chunk => chunks.push(Buffer.from(chunk)));
-      res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        resolve({
-          ok: res.statusCode >= 200 && res.statusCode < 300,
-          status: res.statusCode || 0,
-          async text() { return text; },
-        });
-      });
-    });
-    req.on('timeout', () => req.destroy(new Error('overpass request timeout')));
-    req.on('error', reject);
-    if (body) req.write(body);
-    req.end();
-  });
 }
 
 function meters(a, b) {

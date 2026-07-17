@@ -45,6 +45,9 @@
 	  let lastGrowthMapRenderAt = 0;
 	  let lastDemandFactorSig = '';
 	  let lastDemandInvalidatedAt = 0;
+	  let topologyCache = null;
+	  let topologyPass = 0;
+	  let activeTopologyPass = 0;
 	  const betaNoticeKey = 'cityrail:living-city-beta-notice:v1';
 
   const personas = [
@@ -123,19 +126,23 @@
     lc.events = (lc.events || []).filter(e => !e.stationId || ids.stationIds.has(sid(e.stationId))).slice(0, 18);
   }
 
+  function stationIdsForLine(line){
+    if (!line) return [];
+    if (Array.isArray(line.stationIds)) return line.stationIds.map(sid).filter(Boolean);
+    if (Array.isArray(line.stations)) return line.stations.map(item => sid(item && (item.id || item.stationId || item))).filter(Boolean);
+    return [];
+  }
+
   function lineById(id){
-    const key = sid(id);
-    return lines().find(l => sid(l && l.id) === key) || null;
+    return livingTopologyIndex().lineById.get(sid(id)) || null;
   }
 
   function stationById(id){
-    const key = sid(id);
-    return stations().find(st => sid(st && st.id) === key) || null;
+    return livingTopologyIndex().stationById.get(sid(id)) || null;
   }
 
   function servedLinesForStation(stationId){
-    const key = sid(stationId);
-    return lines().filter(line => Array.isArray(line && line.stationIds) && line.stationIds.some(id => sid(id) === key));
+    return livingTopologyIndex().servedLinesByStation.get(sid(stationId)) || [];
   }
 
   function stationPool(stationId){
@@ -353,21 +360,20 @@
   }
 
   function stationLineIdsSet(stationId){
-    return new Set(servedLinesForStation(stationId).map(line => sid(line && line.id)).filter(Boolean));
+    return livingTopologyIndex().lineIdsByStation.get(sid(stationId)) || new Set();
   }
 
-  function transferAllowed(stationA, stationB, lineA, lineB){
+  function transferAllowedRaw(st, stationMap, stationA, stationB, lineA, lineB){
     try {
       if (typeof W.cityrailIsTransferAllowed === 'function') return W.cityrailIsTransferAllowed(stationA, stationB, lineA, lineB) !== false;
     } catch(e) {}
-    const st = state();
     const key = transferRelationKey(stationA, stationB, lineA, lineB);
     if (st.transferRelations && st.transferRelations[key] === false) return false;
     if (st.disabledTransferRelations && st.disabledTransferRelations[key]) return false;
     if (sid(stationA) === sid(stationB)) {
       const sameStationKey = [sid(stationA), sid(lineA), sid(lineB)].sort().join('|');
       if (st.disabledTransferRelations && st.disabledTransferRelations[sameStationKey]) return false;
-      const station = stationById(stationA);
+      const station = stationMap && stationMap.get(sid(stationA));
       if (station && station._disabledTransferPairs) {
         const pair = [sid(lineA), sid(lineB)].sort().join('|');
         if (station._disabledTransferPairs[pair]) return false;
@@ -376,21 +382,121 @@
     return true;
   }
 
-  function explicitTransferPeers(stationId){
-    const key = sid(stationId);
-    const out = new Set();
-    const transfers = Array.isArray(state().virtualTransfers) ? state().virtualTransfers : [];
-    transfers.forEach(vt => {
+  function transferAllowed(stationA, stationB, lineA, lineB){
+    const idx = livingTopologyIndex();
+    return transferAllowedRaw(state(), idx.stationById, stationA, stationB, lineA, lineB);
+  }
+
+  function transferRelationSignature(st){
+    const disabled = Object.keys(st.disabledTransferRelations || {}).sort().join(',');
+    const relations = Object.keys(st.transferRelations || {}).sort().map(key => key + ':' + sid(st.transferRelations[key])).join(',');
+    const vt = (Array.isArray(st.virtualTransfers) ? st.virtualTransfers : []).map(row => [
+      sid(row && row.stationA || row && row.fromStationId || row && row.from),
+      sid(row && row.stationB || row && row.toStationId || row && row.to),
+      sid(row && row.lineAId || row && row.fromLineId || row && row.lineA),
+      sid(row && row.lineBId || row && row.toLineId || row && row.lineB),
+      row && row.enabled === false ? 0 : 1,
+      row && row.disabled === true ? 1 : 0
+    ].join('>')).sort().join(';');
+    return relations + '#' + disabled + '#' + vt;
+  }
+
+  function livingTopologySignature(){
+    const stationPart = stations().map(st => [
+      sid(st && st.id),
+      sid(st && (st.name || st.label)),
+      Math.round(num(st && st.lat, 0) * 100000),
+      Math.round(num(st && st.lng, 0) * 100000),
+      st && st.__transferSameName ? 1 : 0,
+      st && st.__transferUnifiedName ? 1 : 0,
+      Object.keys(st && st._disabledTransferPairs || {}).sort().join(',')
+    ].join(',')).join(';');
+    const linePart = lines().map(line => sid(line && line.id) + ':' + stationIdsForLine(line).join(',')).join(';');
+    return stationPart + '##' + linePart + '##' + transferRelationSignature(state());
+  }
+
+  function livingTopologyIndex(){
+    if (activeTopologyPass && topologyCache && topologyCache.pass === activeTopologyPass) return topologyCache;
+    const sig = livingTopologySignature();
+    if (topologyCache && topologyCache.sig === sig) {
+      topologyCache.pass = activeTopologyPass || 0;
+      return topologyCache;
+    }
+    const st = state();
+    const stationList = stations().filter(item => item && item.id != null);
+    const lineList = lines().filter(item => item && item.id != null);
+    const stationByIdMap = new Map();
+    const lineByIdMap = new Map();
+    const stationIndex = new Map();
+    const servedLinesByStation = new Map();
+    const lineIdsByStation = new Map();
+    const sameBaseGroups = new Map();
+    stationList.forEach((station, index) => {
+      const id = sid(station.id);
+      stationByIdMap.set(id, station);
+      stationIndex.set(id, index);
+      const base = transferBaseName(station.name || station.id);
+      if (base) {
+        if (!sameBaseGroups.has(base)) sameBaseGroups.set(base, []);
+        sameBaseGroups.get(base).push(station);
+      }
+    });
+    lineList.forEach(line => {
+      const lid = sid(line.id);
+      lineByIdMap.set(lid, line);
+      stationIdsForLine(line).forEach(stationId => {
+        if (!servedLinesByStation.has(stationId)) servedLinesByStation.set(stationId, []);
+        if (!lineIdsByStation.has(stationId)) lineIdsByStation.set(stationId, new Set());
+        servedLinesByStation.get(stationId).push(line);
+        lineIdsByStation.get(stationId).add(lid);
+      });
+    });
+    const explicitPeers = new Map();
+    function addPeer(a, b){
+      const ak = sid(a), bk = sid(b);
+      if (!ak || !bk) return;
+      if (!explicitPeers.has(ak)) explicitPeers.set(ak, new Set());
+      explicitPeers.get(ak).add(bk);
+    }
+    (Array.isArray(st.virtualTransfers) ? st.virtualTransfers : []).forEach(vt => {
       if (!vt || vt.enabled === false || vt.disabled === true) return;
       const a = sid(vt.stationA || vt.fromStationId || vt.from);
       const b = sid(vt.stationB || vt.toStationId || vt.to);
-      if (!a || !b || (a !== key && b !== key)) return;
+      if (!a || !b) return;
       const lineA = sid(vt.lineAId || vt.fromLineId || vt.lineA);
       const lineB = sid(vt.lineBId || vt.toLineId || vt.lineB);
-      if (lineA && lineB && !transferAllowed(a, b, lineA, lineB)) return;
-      out.add(a === key ? b : a);
+      if (lineA && lineB && !transferAllowedRaw(st, stationByIdMap, a, b, lineA, lineB)) return;
+      addPeer(a, b);
+      addPeer(b, a);
     });
-    return out;
+    const sameBaseCandidates = new Map();
+    sameBaseGroups.forEach(group => {
+      if (group.length < 2) return;
+      group.forEach(station => {
+        const id = sid(station.id);
+        sameBaseCandidates.set(id, group.filter(item => sid(item.id) !== id).map(item => sid(item.id)));
+      });
+    });
+    topologyCache = {
+      sig,
+      stationList,
+      lineList,
+      stationById: stationByIdMap,
+      lineById: lineByIdMap,
+      stationIndex,
+      servedLinesByStation,
+      lineIdsByStation,
+      explicitPeers,
+      sameBaseCandidates,
+      groupByStation: new Map(),
+      allGroups: null,
+      pass: activeTopologyPass || 0
+    };
+    return topologyCache;
+  }
+
+  function explicitTransferPeers(stationId){
+    return livingTopologyIndex().explicitPeers.get(sid(stationId)) || new Set();
   }
 
   function shouldUnifyTransferStations(a, b){
@@ -407,36 +513,39 @@
   }
 
   function transferGroupForStation(stationId){
-    const root = stationById(stationId);
+    const idx = livingTopologyIndex();
+    const root = idx.stationById.get(sid(stationId));
     if (!root) return [];
+    const cached = idx.groupByStation.get(sid(root.id));
+    if (cached) return cached;
     const seen = new Set([sid(root.id)]);
     const queue = [root];
     while (queue.length) {
       const cur = queue.shift();
-      explicitTransferPeers(cur.id).forEach(id => {
+      const candidateIds = new Set();
+      (idx.explicitPeers.get(sid(cur.id)) || new Set()).forEach(id => candidateIds.add(id));
+      (idx.sameBaseCandidates.get(sid(cur.id)) || []).forEach(id => candidateIds.add(id));
+      candidateIds.forEach(id => {
         if (seen.has(id)) return;
-        const peer = stationById(id);
-        if (peer) {
+        const peer = idx.stationById.get(id);
+        if (peer && shouldUnifyTransferStations(cur, peer)) {
           seen.add(id);
           queue.push(peer);
         }
       });
-      stations().forEach(other => {
-        const oid = sid(other && other.id);
-        if (!other || seen.has(oid)) return;
-        if (!shouldUnifyTransferStations(cur, other)) return;
-        seen.add(oid);
-        queue.push(other);
-      });
     }
-    return Array.from(seen).map(stationById).filter(Boolean);
+    const group = Array.from(seen).map(id => idx.stationById.get(id)).filter(Boolean);
+    group.forEach(station => idx.groupByStation.set(sid(station.id), group));
+    return group;
   }
 
   function transferStationGroups(){
+    const idx = livingTopologyIndex();
+    if (idx.allGroups) return idx.allGroups;
     const out = [];
     const seen = new Set();
-    const indexOfStation = station => Math.max(0, stations().findIndex(item => sid(item && item.id) === sid(station && station.id)));
-    stations().forEach(st => {
+    const indexOfStation = station => Math.max(0, num(idx.stationIndex.get(sid(station && station.id)), 0));
+    idx.stationList.forEach(st => {
       if (!st || st.id == null || seen.has(sid(st.id))) return;
       const group = transferGroupForStation(st.id);
       const members = (group.length ? group : [st]).filter(item => item && item.id != null);
@@ -451,6 +560,7 @@
       const rep = ranked[0] || members[0] || st;
       out.push({ id:sid(rep.id), station:rep, stations:members, stationIds:members.map(item => sid(item.id)) });
     });
+    idx.allGroups = out;
     return out;
   }
 
@@ -683,6 +793,7 @@
     const byLineWaiting = new Map();
     const byLineBoarded = new Map();
     const byLineStale = new Map();
+    const trainsByLine = new Map();
     for (const b of batches()) {
       if (!b) continue;
       const count = rawCount(b);
@@ -696,14 +807,19 @@
       if (sid(b.state) === 'waiting' && b.trainId == null) byLineWaiting.set(lid, num(byLineWaiting.get(lid)) + count);
       if (sid(b.state) === 'on_train') byLineBoarded.set(lid, num(byLineBoarded.get(lid)) + count);
     }
+    for (const t of trains()) {
+      if (!activeTrain(t)) continue;
+      const rp = t.routePlan || {};
+      const ids = new Set([t.lineId, rp.connectorLineId, rp.parentLineId, rp.targetLineId].map(sid).filter(Boolean));
+      ids.forEach(lid => {
+        if (!trainsByLine.has(lid)) trainsByLine.set(lid, []);
+        trainsByLine.get(lid).push(t);
+      });
+    }
     for (const line of lines()) {
       if (!line || !Array.isArray(line.stationIds) || line.stationIds.length < 2) continue;
       const lid = sid(line.id);
-      const lineTrains = trains().filter(t => {
-        if (!activeTrain(t)) return false;
-        const rp = t.routePlan || {};
-        return sid(t.lineId) === lid || sid(rp.connectorLineId) === lid || sid(rp.parentLineId) === lid || sid(rp.targetLineId) === lid;
-      });
+      const lineTrains = trainsByLine.get(lid) || [];
       const onboard = lineTrains.reduce((a, t) => a + trainLoad(t), 0);
       const capacity = lineTrains.reduce((a, t) => a + Math.max(1, num(t.maxLoad || t.capacity, 1200)), 0);
       const waiting = num(byLineWaiting.get(lid));
@@ -1056,6 +1172,9 @@
   }
 
   function tick(reason){
+    const prevTopologyPass = activeTopologyPass;
+    activeTopologyPass = ++topologyPass;
+    try {
     const st = state();
     const lc = living();
     pruneLivingState(lc);
@@ -1148,6 +1267,9 @@
 	    if (mapGrowthVisible) showGrowthMap(lc.snapshot);
 	    scheduleRender();
 	    return lc.snapshot;
+    } finally {
+      activeTopologyPass = prevTopologyPass;
+    }
 	  }
 
   function personaSnapshot(lc){

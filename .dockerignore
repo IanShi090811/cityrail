@@ -3,6 +3,8 @@
 node_modules
 android
 desktop
+tests
+assets/posters
 server/.data
 server/users.json
 server/orders.json
