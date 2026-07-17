@@ -17,11 +17,11 @@ XHP_APPID=201906180967
 XHP_APPSECRET=你的虎皮椒密钥
 XHP_GATEWAY=https://api.xunhupay.com/payment/do.html
 PUBLIC_BASE_URL=https://你的公网域名
-CITYRAIL_PRICE=9.98
 CITYRAIL_PRODUCT_TITLE=CityRail都市城轨完整版
 ```
 
 `PUBLIC_BASE_URL` 必须是公网 HTTPS 域名，否则虎皮椒服务器无法访问 `/api/pay/notify`。
+支付金额由后端固定为 `18.8` 元，不通过环境变量覆盖。
 
 ## 支付流程
 
@@ -45,6 +45,6 @@ CITYRAIL_PRODUCT_TITLE=CityRail都市城轨完整版
 Cloudflare Pages 必须额外配置：
 
 1. KV 绑定：`CITYRAIL_KV`
-2. 环境变量：`XHP_APPID`、`XHP_APPSECRET`、`XHP_GATEWAY`、`CITYRAIL_PRICE`、`CITYRAIL_PRODUCT_TITLE`、`PUBLIC_BASE_URL`
+2. 环境变量：`XHP_APPID`、`XHP_APPSECRET`、`XHP_GATEWAY`、`CITYRAIL_PRODUCT_TITLE`、`PUBLIC_BASE_URL`
 
 详细步骤见 `docs/CLOUDFLARE_PAGES_PAYMENT_SETUP.md`。

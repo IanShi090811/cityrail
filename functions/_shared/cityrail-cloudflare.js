@@ -1,6 +1,8 @@
 // CityRail Cloudflare Pages Functions shared utilities.
 // Secrets must be configured in Cloudflare Pages environment variables, never in frontend JS.
 
+const CITYRAIL_PRICE = '18.8';
+
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -68,7 +70,7 @@ export function paymentConfig(env) {
     appid: env.XHP_APPID || '201906180967',
     secret: env.XHP_APPSECRET || '',
     gateway: env.XHP_GATEWAY || 'https://api.xunhupay.com/payment/do.html',
-    amount: String(env.CITYRAIL_PRICE || '9.98'),
+    amount: CITYRAIL_PRICE,
     title: env.CITYRAIL_PRODUCT_TITLE || 'CityRail都市城轨完整版',
     publicBaseUrl: String(env.PUBLIC_BASE_URL || '').replace(/\/$/, ''),
   };

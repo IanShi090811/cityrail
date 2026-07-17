@@ -17,7 +17,6 @@ CITYRAIL_DATA_DIR=/data/cityrail
 XHP_APPID=201906180967
 XHP_APPSECRET=your-xunhupay-secret
 XHP_GATEWAY=https://api.xunhupay.com/payment/do.html
-CITYRAIL_PRICE=9.98
 CITYRAIL_PRODUCT_TITLE=CityRail都市城轨完整版
 CITYRAIL_INVITE_CODE_HASHES=comma-separated-sha256-hashes
 ```

@@ -8442,26 +8442,12 @@ window.cityrailShowCitySelectScreen = cityrailShowCitySelectScreen;
     }
   }
 
-  // 倒计时
   let _countdownTimer = null;
   function startCountdown() {
     if (_countdownTimer) clearInterval(_countdownTimer);
-    const START_TS = new Date('2026-06-13T00:00:00+08:00').getTime();
-    const END_TS = START_TS + 7 * 24 * 3600 * 1000;
-    function tick() {
-      const r = Math.max(0, Math.floor((END_TS - Date.now()) / 1000));
-      const el = $('pay-countdown-sec');
-      const wrap = $('pay-countdown');
-      const hours = Math.floor(r / 3600);
-      const minutes = Math.floor((r % 3600) / 60);
-      const seconds = r % 60;
-      if (el) el.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      if (wrap && r > 0 && !el) wrap.innerHTML = `6月13日起 7 天限时特惠，剩余 <span id="pay-countdown-sec">${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}</span>`;
-      if (wrap && r <= 0) wrap.textContent = '6月13日起 7 天限时特惠已结束，已恢复原价';
-      if (r <= 0) { clearInterval(_countdownTimer); _countdownTimer = null; }
-    }
-    tick();
-    _countdownTimer = setInterval(tick, 1000);
+    _countdownTimer = null;
+    const wrap = $('pay-countdown');
+    if (wrap) wrap.textContent = '统一价格 ¥18.8，支付后立即开通';
   }
 
   // 返回按钮 → 回到首页（安全判空）

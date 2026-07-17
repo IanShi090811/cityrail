@@ -73,7 +73,6 @@ Cloudflare Dashboard
 XHP_APPID=201906180967
 XHP_APPSECRET=你的虎皮椒密钥
 XHP_GATEWAY=https://api.xunhupay.com/payment/do.html
-CITYRAIL_PRICE=9.98
 CITYRAIL_PRODUCT_TITLE=CityRail都市城轨完整版
 PUBLIC_BASE_URL=https://你的Cloudflare域名
 ```
