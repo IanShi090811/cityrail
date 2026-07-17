@@ -25,25 +25,26 @@ const LOOP_SAME_TERMINAL_MAX_M = 2000;
 const ORDERED_WAY_JOIN_MAX_M = 350;
 const MAX_SEGMENT_DETOUR_RATIO = 4.5;
 const MAX_SEGMENT_DETOUR_EXTRA_M = 4500;
-const SNAPSHOT_BBOXES = new Map([
-  ['31.05,121.25,31.45,121.65', 'shanghai.json'],
-  ['39.55,115.85,40.3,117.05', 'beijing.json'],
-  ['22.75,113.05,23.55,113.85', 'guangzhou.json'],
-  ['22.35,113.7,22.9,114.65', 'shenzhen.json'],
-  ['30.35,103.75,30.95,104.35', 'chengdu.json'],
-  ['29.35,106.2,29.85,106.85', 'chongqing.json'],
-  ['30.3,114,30.8,114.65', 'wuhan.json'],
-  ['31.85,118.55,32.2,119.05', 'nanjing.json'],
-  ['30.05,119.95,30.45,120.45', 'hangzhou.json'],
-  ['34.05,108.65,34.45,109.25', 'xian.json'],
-  ['31.05,120.35,31.55,120.95', 'suzhou.json'],
-  ['38.85,116.85,39.35,117.65', 'tianjin.json'],
-  ['34.5,113.35,34.95,114.1', 'zhengzhou.json'],
-  ['35.85,119.85,36.45,120.75', 'qingdao.json'],
-  ['27.95,112.65,28.4,113.25', 'changsha.json'],
-  ['41.55,123.15,42.05,123.75', 'shenyang.json'],
-  ['38.75,121.25,39.15,122.1', 'dalian.json'],
+const SNAPSHOT_CITIES = new Map([
+  ['shanghai', { bbox:'31.05,121.25,31.45,121.65', file:'shanghai.json' }],
+  ['beijing', { bbox:'39.55,115.85,40.3,117.05', file:'beijing.json' }],
+  ['guangzhou', { bbox:'22.75,113.05,23.55,113.85', file:'guangzhou.json' }],
+  ['shenzhen', { bbox:'22.35,113.7,22.9,114.65', file:'shenzhen.json' }],
+  ['chengdu', { bbox:'30.35,103.75,30.95,104.35', file:'chengdu.json' }],
+  ['chongqing', { bbox:'29.35,106.2,29.85,106.85', file:'chongqing.json' }],
+  ['wuhan', { bbox:'30.3,114,30.8,114.65', file:'wuhan.json' }],
+  ['nanjing', { bbox:'31.85,118.55,32.2,119.05', file:'nanjing.json' }],
+  ['hangzhou', { bbox:'30.05,119.95,30.45,120.45', file:'hangzhou.json' }],
+  ['xian', { bbox:'34.05,108.65,34.45,109.25', file:'xian.json' }],
+  ['suzhou', { bbox:'31.05,120.35,31.55,120.95', file:'suzhou.json' }],
+  ['tianjin', { bbox:'38.85,116.85,39.35,117.65', file:'tianjin.json' }],
+  ['zhengzhou', { bbox:'34.5,113.35,34.95,114.1', file:'zhengzhou.json' }],
+  ['qingdao', { bbox:'35.85,119.85,36.45,120.75', file:'qingdao.json' }],
+  ['changsha', { bbox:'27.95,112.65,28.4,113.25', file:'changsha.json' }],
+  ['shenyang', { bbox:'41.55,123.15,42.05,123.75', file:'shenyang.json' }],
+  ['dalian', { bbox:'38.75,121.25,39.15,122.1', file:'dalian.json' }],
 ]);
+const SNAPSHOT_BBOXES = new Map(Array.from(SNAPSHOT_CITIES.values()).map(item => [item.bbox, item.file]));
 const snapshotCache = new Map();
 
 function jsonResponse(data, status = 200, maxAge = 300) {
@@ -80,9 +81,15 @@ function bboxKey(bbox) {
   return (bbox || []).map(v => String(Number(v))).join(',');
 }
 
-async function snapshotForBbox(bbox) {
+function cityKey(value) {
+  const key = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  return SNAPSHOT_CITIES.has(key) ? key : '';
+}
+
+async function snapshotForRequest(bbox, city) {
   if (typeof process === 'undefined' || !process.versions || !process.versions.node) return null;
-  const file = SNAPSHOT_BBOXES.get(bboxKey(bbox));
+  const selectedCity = cityKey(city);
+  const file = (selectedCity && SNAPSHOT_CITIES.get(selectedCity).file) || SNAPSHOT_BBOXES.get(bboxKey(bbox));
   if (!file) return null;
   if (snapshotCache.has(file)) return snapshotCache.get(file);
   try {
@@ -1129,7 +1136,7 @@ export async function onRequestGet(context) {
   try {
     const forceLive = url.searchParams.get('live') === '1';
     const maxRelations = Math.max(1, Math.min(160, Math.round(num(url.searchParams.get('maxRelations'), MAX_RELATIONS_TO_FETCH))));
-    const snapshot = forceLive ? null : await snapshotForBbox(bbox);
+    const snapshot = forceLive ? null : await snapshotForRequest(bbox, url.searchParams.get('city'));
     if (snapshot) return jsonResponse(snapshot, 200, 86400);
 
     const startedAt = Date.now();

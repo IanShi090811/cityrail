@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const W = window, D = document;
-  const VERSION = 'v487-rail-graph-route-geometry';
+  const VERSION = 'v501-real-network-city-snapshots';
   if (W.CityRailRealNetworkImporter && W.CityRailRealNetworkImporter.version === VERSION) return;
 
   const PRESETS = [
@@ -89,14 +89,26 @@
     if (!validBbox(bbox)) return null;
     return bbox.map(v => Math.round(Number(v) * 1000000) / 1000000);
   }
-  function apiUrl(bbox){
-    const localStaticPreview = W.location && /^https?:$/.test(W.location.protocol) &&
-      /^(127\.0\.0\.1|localhost)$/i.test(W.location.hostname || '') &&
-      !/^(3011|8080)$/.test(String(W.location.port || ''));
-    const base = (W.location && W.location.protocol === 'file:') || localStaticPreview
-      ? 'http://127.0.0.1:3011'
-      : '';
-    return base + '/api/osm/rail-network?bbox=' + encodeURIComponent(bbox.join(',')) + '&v=20260716-v487-rail-graph-route-geometry';
+  function apiQuery(bbox){
+    const preset = selectedPreset();
+    const params = new URLSearchParams();
+    params.set('bbox', bbox.join(','));
+    if (preset.id && preset.id !== 'current') params.set('city', preset.id);
+    params.set('v', VERSION);
+    return params.toString();
+  }
+  function apiUrls(bbox){
+    const path = '/api/osm/rail-network?' + apiQuery(bbox);
+    const urls = [];
+    const add = url => {
+      if (url && !urls.includes(url)) urls.push(url);
+    };
+    const loc = W.location || {};
+    const localHost = /^(127\.0\.0\.1|localhost)$/i.test(loc.hostname || '');
+    if (loc.protocol !== 'file:') add(path);
+    if (localHost && String(loc.port || '') !== '3011') add('http://127.0.0.1:3011' + path);
+    add('https://cityrailgame.com' + path);
+    return urls;
   }
   function setText(id, text){
     const el = byId(id);
@@ -337,9 +349,20 @@
     setLoading(true);
     setStatus('正在读取真实线路数据…');
     try {
-      const response = await fetch(apiUrl(bbox), { method:'GET', headers:{ accept:'application/json' }, cache:'no-store' });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data || data.ok === false) throw new Error(data && data.error ? data.error : '读取失败');
+      let data = null;
+      let lastError = null;
+      for (const url of apiUrls(bbox)) {
+        try {
+          const response = await fetch(url, { method:'GET', headers:{ accept:'application/json' }, cache:'no-store' });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !payload || payload.ok === false) throw new Error(payload && payload.error ? payload.error : '读取失败');
+          data = payload;
+          break;
+        } catch(e) {
+          lastError = e;
+        }
+      }
+      if (!data) throw lastError || new Error('读取失败');
       importPlan = { bbox, routes:Array.isArray(data.routes) ? data.routes : [], summary:data.summary || {}, loadedAt:Date.now() };
       renderList();
       setStatus(importPlan.routes.length ? '已读取 ' + importPlan.routes.length + ' 条线路' : '该范围没有找到可导入线路', !importPlan.routes.length);
