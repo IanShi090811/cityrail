@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const W=window,D=document,VERSION='v457-vector-basemap-coordinate-authority';
+  const W=window,D=document,VERSION='v458-vector-basemap-zoom-sync-governor';
   if(W.__cityrailMaplibrePmtilesAuthority) return;
   W.__cityrailMaplibrePmtilesAuthority=true;
 
@@ -55,7 +55,10 @@
     rasterDefs:null,
     setterPatched:false,
     resourceMode:null,
-    vectorLocked:false
+    vectorLocked:false,
+    deferredSyncReason:'',
+    lastResizeWidth:0,
+    lastResizeHeight:0
   };
   let ProtocolCtor=null;
 
@@ -184,6 +187,19 @@
       return {center:[Number(c.lng)||fallback.center[0],Number(c.lat)||fallback.center[1]],zoom:Number(W.map.getZoom&&W.map.getZoom())||fallback.zoom};
     }catch(e){ return fallback; }
   }
+  function largeNetworkZoomActive(){
+    try{ return !!(typeof W.cityrailLargeNetworkZoomActive==='function'&&W.cityrailLargeNetworkZoomActive()); }catch(e){ return false; }
+  }
+  function resizeIfNeeded(reason){
+    if(!state.gl||!state.container) return;
+    const r=state.container.getBoundingClientRect?state.container.getBoundingClientRect():{width:0,height:0};
+    const w=Math.round(Number(r.width)||0), h=Math.round(Number(r.height)||0);
+    if(reason==='load'||reason==='resize'||Math.abs(w-state.lastResizeWidth)>1||Math.abs(h-state.lastResizeHeight)>1){
+      state.lastResizeWidth=w;
+      state.lastResizeHeight=h;
+      try{ state.gl.resize(); }catch(e){}
+    }
+  }
   async function ensureMaplibre(){
     if(!W.maplibregl) return null;
     installStyle();
@@ -219,9 +235,14 @@
   }
   function syncCamera(reason){
     if(!state.gl||!state.active) return;
+    if(largeNetworkZoomActive()){
+      state.deferredSyncReason=reason||'large-network-zoom';
+      D.documentElement.dataset.cityrailVectorBasemapSync='deferred-'+state.deferredSyncReason;
+      return;
+    }
     const view=leafletView();
     try{ state.gl.jumpTo({center:view.center,zoom:view.zoom,bearing:0,pitch:0}); }catch(e){}
-    try{ state.gl.resize(); }catch(e){}
+    resizeIfNeeded(reason||'sync');
     D.documentElement.dataset.cityrailVectorBasemapSync=reason||'sync';
   }
   function bindSync(){
@@ -234,6 +255,7 @@
       raf=W.requestAnimationFrame?W.requestAnimationFrame(()=>{ raf=0; syncCamera(reason); }):W.setTimeout(()=>{ raf=0; syncCamera(reason); },16);
     };
     ['move','zoom','moveend','zoomend','resize'].forEach(ev=>{ try{ m.on(ev,()=>schedule(ev)); }catch(e){} });
+    try{ D.addEventListener('cityrail:large-network-zoom-idle',()=>{ const reason=state.deferredSyncReason||'large-network-zoom-idle'; state.deferredSyncReason=''; schedule(reason); }); }catch(e){}
   }
   function ensureVirtualLayer(){
     if(!W.L||!W.tileLayers) return null;

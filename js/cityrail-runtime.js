@@ -119,12 +119,12 @@ const CITYRAIL_MAP_ZOOM_PROFILE = {
   zoomAnimation: true,
   fadeAnimation: false,
   markerZoomAnimation: true,
-  tileUpdateWhenZooming: true,
+  tileUpdateWhenZooming: false,
   tileUpdateWhenIdle: false,
-  tileUpdateInterval: 16,
-  overlayTileUpdateInterval: 60,
-  keepBuffer: 10,
-  overlayKeepBuffer: 5,
+  tileUpdateInterval: 120,
+  overlayTileUpdateInterval: 180,
+  keepBuffer: 6,
+  overlayKeepBuffer: 3,
   tileFadeAnimation: false
 };
 function cityrailTuneTileLayerForStableZoom(layer, overlay) {
@@ -36907,10 +36907,51 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     return boarded;
   }
 
+  function shouldDeferPassengerExchange(train, reason){
+    const s = S();
+    if(!s || !train) return false;
+    try{ if(!(typeof window.cityrailLargeNetworkZoomActive === 'function' && window.cityrailLargeNetworkZoomActive())) return false; }catch(e){ return false; }
+    const trains = Array.isArray(s.trains) ? s.trains.length : 0;
+    const batches = Array.isArray(s.batches) ? s.batches.length : 0;
+    if(trains < 180 && batches < 3000) return false;
+    train._cityrailPassengerExchangeDeferred = true;
+    train._cityrailPassengerExchangeDeferredReason = reason || 'map-interaction';
+    train._cityrailPassengerExchangeDeferredAt = Date.now();
+    train.dwellRemaining = Math.max(num(train.dwellRemaining), 4);
+    s.__cityrailDeferredPassengerExchangeCount = num(s.__cityrailDeferredPassengerExchangeCount) + 1;
+    return true;
+  }
+
+  function flushDeferredPassengerExchanges(reason){
+    const s = S();
+    if(!s || !Array.isArray(s.trains)) return 0;
+    try{ if(typeof window.cityrailLargeNetworkZoomActive === 'function' && window.cityrailLargeNetworkZoomActive()) return 0; }catch(e){}
+    let flushed = 0;
+    let indexesReady = false;
+    for(const train of s.trains){
+      if(!train || !train._cityrailPassengerExchangeDeferred) continue;
+      const actualLine = lineById(train.lineId);
+      train._cityrailPassengerExchangeDeferred = false;
+      delete train._cityrailPassengerExchangeDeferredReason;
+      if(!actualLine) continue;
+      if(!indexesReady){
+        rebuildBatchMap(false);
+        rebuildWaitingIndexes();
+        indexesReady = true;
+      }
+      alight(train, actualLine);
+      board(train, actualLine, 'deferred-' + (reason || 'map-idle'));
+      flushed++;
+    }
+    if(flushed > 0) s.__cityrailLastDeferredPassengerExchangeFlush = { reason:reason || 'map-idle', flushed, at:Date.now() };
+    return flushed;
+  }
+
   function arrival(train, line){
     try{
       const actualLine = line || lineById(train && train.lineId);
       if(!actualLine) return;
+      if(shouldDeferPassengerExchange(train, 'arrival')) return;
       rebuildBatchMap(false);
       alight(train, actualLine);
       board(train, actualLine, 'arrival');
@@ -36933,6 +36974,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         train._v74LastDwellBoardKey = key;
         train._v74LastDwellBoardSec = gameSec;
       }
+      if(shouldDeferPassengerExchange(train, 'dwell')) return;
       board(train, actualLine, 'dwell');
     }catch(e){ warn('dwell-error', 'dwell boarding failed', e); }
   }
@@ -37064,6 +37106,12 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
         }catch(e){}
       }, 3000);
     }
+    if(!window.__cityrailV74DeferredExchangeFlushBound){
+      window.__cityrailV74DeferredExchangeFlushBound = true;
+      try{ document.addEventListener('cityrail:large-network-zoom-idle', function(){ flushDeferredPassengerExchanges('large-network-zoom-idle'); }); }catch(e){}
+      try{ document.addEventListener('cityrail:map-zoom-idle', function(){ flushDeferredPassengerExchanges('map-zoom-idle'); }); }catch(e){}
+    }
+    window.cityrailFlushDeferredPassengerExchanges = flushDeferredPassengerExchanges;
     console.info(PREFIX, 'installed. To verify, set window.CITYRAIL_BOARDING_DEBUG = true; run cityrailBoardingDebugReport() for counters.');
   }
 
@@ -39621,331 +39669,6 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     }
   };
   return;
-  if(window.__CITYRAIL_V149_DEPTH_VISUALS__) return;
-  window.__CITYRAIL_V149_DEPTH_VISUALS__ = true;
-
-  const VERSION = 'v149-depth-visuals';
-  const STATION_DEPTH_VISUALS_ENABLED = false;
-  const state = { canvas:null, ctx:null, w:0, h:0, dpr:1, raf:0, lastDraw:0, selectedStationId:null, selectedTrainId:null, selectedLineId:null, drawn:0, skipped:0, installed:false };
-  const sid = v => String(v == null ? '' : v);
-  const num = (v, d = 0) => Number.isFinite(Number(v)) ? Number(v) : d;
-  const now = () => (W.performance && performance.now) ? performance.now() : Date.now();
-  const S = () => W.state || {};
-
-  function mapObj(){ return W.map || (typeof map !== 'undefined' ? map : null); }
-  function Lobj(){ return W.L || (typeof L !== 'undefined' ? L : null); }
-  function lineById(id){ return (S().lines || []).find(line => sid(line && line.id) === sid(id)); }
-  function stationById(id){ return (S().stations || []).find(st => sid(st && st.id) === sid(id)); }
-  function perfLevel(){
-    const htmlLevel = Number(D.documentElement && D.documentElement.dataset ? D.documentElement.dataset.cityrailMeganetPerf : 0);
-    const stLevel = Number(S().__cityrailV147PerfLevel || 0);
-    return Math.max(Number.isFinite(htmlLevel) ? htmlLevel : 0, Number.isFinite(stLevel) ? stLevel : 0);
-  }
-  function disabledByMode(){
-    return !!(D.hidden || D.body?.classList.contains('cityrail-performance-mode') || perfLevel() >= 2);
-  }
-  function ensureStyle(){
-    if(D.getElementById('cityrail-v149-depth-style')) return;
-    const css = D.createElement('style');
-    css.id = 'cityrail-v149-depth-style';
-    css.textContent = `
-      #cityrail-depth-canvas-v149{position:absolute;left:0;top:0;width:100%;height:100%;z-index:681;pointer-events:none;contain:layout paint size;}
-      html[data-cityrail-meganet-perf="2"] #cityrail-depth-canvas-v149,
-      html[data-cityrail-meganet-perf="3"] #cityrail-depth-canvas-v149{display:none!important;}
-    `;
-    D.head.appendChild(css);
-  }
-  function ensureCanvas(){
-    const m = mapObj();
-    if(!m || !m.getContainer || !Lobj()) return false;
-    ensureStyle();
-    const container = m.getContainer();
-    if(!state.canvas){
-      const canvas = D.createElement('canvas');
-      canvas.id = 'cityrail-depth-canvas-v149';
-      canvas.setAttribute('aria-hidden', 'true');
-      container.appendChild(canvas);
-      state.canvas = canvas;
-      state.ctx = canvas.getContext('2d', { alpha:true, desynchronized:true });
-      try { m.on('move zoom resize moveend zoomend viewreset', () => schedule(true)); } catch(e) {}
-    }
-    resizeCanvas();
-    return true;
-  }
-  function resizeCanvas(){
-    const m = mapObj();
-    if(!state.canvas || !m || !m.getSize) return;
-    const size = m.getSize();
-    const dpr = Math.max(1, Math.min(1.5, W.devicePixelRatio || 1));
-    if(state.w === size.x && state.h === size.y && state.dpr === dpr) return;
-    state.w = size.x; state.h = size.y; state.dpr = dpr;
-    state.canvas.width = Math.max(1, Math.round(size.x * dpr));
-    state.canvas.height = Math.max(1, Math.round(size.y * dpr));
-    state.canvas.style.width = size.x + 'px';
-    state.canvas.style.height = size.y + 'px';
-    if(state.ctx) state.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  function clear(){
-    if(state.ctx) state.ctx.clearRect(0, 0, state.w, state.h);
-    state.drawn = 0;
-  }
-  function stationPos(station, lineId){
-    if(!station) return null;
-    const pos = station.linePositions && lineId != null && station.linePositions[lineId] ? station.linePositions[lineId] : station;
-    const lat = num(pos.lat, NaN), lng = num(pos.lng, NaN);
-    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
-  }
-  function lineNodes(line){
-    if(!line) return [];
-    try {
-      const fn = W.getLineTrainNodes || W.getLineNodes || (typeof getLineTrainNodes === 'function' ? getLineTrainNodes : null) || (typeof getLineNodes === 'function' ? getLineNodes : null);
-      if(typeof fn === 'function'){
-        const nodes = fn(line);
-        if(Array.isArray(nodes) && nodes.length) return nodes.map(n => stationPos(n, line.id) || n).filter(n => Number.isFinite(num(n.lat, NaN)) && Number.isFinite(num(n.lng, NaN)));
-      }
-    } catch(e) {}
-    return (line.stationIds || []).map(id => stationPos(stationById(id), line.id)).filter(Boolean);
-  }
-  function pointForLatLng(lat, lng){
-    const m = mapObj(), Lx = Lobj();
-    if(!m || !Lx) return null;
-    try {
-      const p = m.latLngToContainerPoint(Lx.latLng(lat, lng));
-      return { x:p.x, y:p.y };
-    } catch(e) { return null; }
-  }
-  function visiblePoint(p, pad = 120){
-    return p && p.x > -pad && p.y > -pad && p.x < state.w + pad && p.y < state.h + pad;
-  }
-  function drawPath(points, offsetX, offsetY, color, width, alpha, shadowBlur){
-    const ctx = state.ctx;
-    if(points.length < 2) return;
-    ctx.save();
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.shadowBlur = shadowBlur || 0;
-    ctx.shadowColor = color;
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    points.forEach((p, i) => i ? ctx.lineTo(p.x + offsetX, p.y + offsetY) : ctx.moveTo(p.x + offsetX, p.y + offsetY));
-    ctx.stroke();
-    ctx.restore();
-  }
-  function drawSelectedLine(line){
-    if(!line) return;
-    const pts = lineNodes(line).map(n => pointForLatLng(n.lat, n.lng)).filter(p => visiblePoint(p, 180));
-    if(pts.length < 2) return;
-    const color = line.color || '#0a84ff';
-    drawPath(pts, 9, 12, 'rgba(0,0,0,.32)', 9, 1, 0);
-    drawPath(pts, 5, 7, 'rgba(255,255,255,.18)', 5.5, 1, 8);
-    drawPath(pts, 0, 0, color, 4, .95, 12);
-    const ctx = state.ctx;
-    for(let i = 1; i < pts.length; i += Math.max(1, Math.floor(pts.length / 18))){
-      const a = pts[i - 1], b = pts[i];
-      const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 10;
-      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
-    state.drawn++;
-  }
-  function stationLineCount(stationId){
-    return (S().lines || []).filter(line => Array.isArray(line.stationIds) && line.stationIds.map(sid).includes(sid(stationId))).length;
-  }
-  function drawHub(station, line, strong){
-    const pos = stationPos(station, line && line.id);
-    if(!pos) return;
-    const p = pointForLatLng(pos.lat, pos.lng);
-    if(!visiblePoint(p, 80)) return;
-    const ctx = state.ctx;
-    const color = line?.color || '#0a84ff';
-    const count = stationLineCount(station.id);
-    const radius = strong ? 13 : Math.min(11, 6 + count * 1.8);
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(0,0,0,.22)';
-    ctx.beginPath(); ctx.ellipse(7, 10, radius * 1.25, radius * .45, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = strong ? 18 : 9;
-    ctx.fillStyle = strong ? 'rgba(255,255,255,.92)' : color;
-    ctx.beginPath(); ctx.arc(0, -3, radius * .55, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = strong ? 3 : 2;
-    ctx.beginPath(); ctx.arc(0, -3, radius, 0, Math.PI * 2); ctx.stroke();
-    if(count >= 2){
-      ctx.strokeStyle = 'rgba(255,255,255,.78)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(0, -3, radius + 4, -Math.PI * .2, Math.PI * 1.15); ctx.stroke();
-    }
-    ctx.restore();
-    state.drawn++;
-  }
-  function keyStationsForLine(line){
-    if(!line || !Array.isArray(line.stationIds)) return [];
-    const ids = line.stationIds;
-    const out = [];
-    const step = Math.max(1, Math.floor(ids.length / 8));
-    ids.forEach((id, i) => {
-      const isEnd = i === 0 || i === ids.length - 1;
-      const isTransfer = stationLineCount(id) >= 2;
-      if(isEnd || isTransfer || i % step === 0) {
-        const st = stationById(id);
-        if(st) out.push(st);
-      }
-    });
-    return out.slice(0, 12);
-  }
-  function trainLatLng(train, line){
-    if(!train || !line) return null;
-    const nodes = lineNodes(line);
-    if((train.state === 'dwelling' || train.state === 'turning_back') && line.stationIds){
-      const st = stationById(line.stationIds[train.nextStationIdx]);
-      const pos = stationPos(st, line.id);
-      if(pos) return pos;
-    }
-    const idx = Math.max(0, Math.min(nodes.length - 2, Math.round(num(train.segIndex, 0))));
-    if(!nodes[idx] || !nodes[idx + 1]) return null;
-    const p = Math.max(0, Math.min(1, num(train.segProgress, 0)));
-    return {
-      lat: num(nodes[idx].lat) + (num(nodes[idx + 1].lat) - num(nodes[idx].lat)) * p,
-      lng: num(nodes[idx].lng) + (num(nodes[idx + 1].lng) - num(nodes[idx].lng)) * p
-    };
-  }
-  function drawSelectedTrain(){
-    const id = state.selectedTrainId || S().__cityrailDepthSelectedTrainId;
-    if(!id) return;
-    const train = (S().trains || []).find(t => sid(t && (t.id || t.trainId)) === sid(id));
-    if(!train) return;
-    const line = lineById(train.lineId);
-    const ll = trainLatLng(train, line);
-    if(!ll) return;
-    const p = pointForLatLng(ll.lat, ll.lng);
-    if(!visiblePoint(p, 80)) return;
-    const ctx = state.ctx, color = line?.color || '#30d158';
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = 'rgba(0,0,0,.28)';
-    ctx.beginPath(); ctx.ellipse(8, 10, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowColor = color; ctx.shadowBlur = 20;
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-9, -5, 18, 10, 4) : ctx.rect(-9, -5, 18, 10);
-    ctx.fill();
-    ctx.restore();
-    state.drawn++;
-  }
-  function currentLine(){
-    const st = S();
-    return lineById(state.selectedLineId || st.currentLineId || W.__cityrailDepthSelectedLineId);
-  }
-  function currentStation(){
-    return stationById(state.selectedStationId || W.__v112StationId || W.__cityrailV102CurrentStationId || W.__cityrailDepthSelectedStationId);
-  }
-  function draw(){
-    state.raf = 0;
-    if(!ensureCanvas()) return;
-    const m = mapObj();
-    clear();
-    if(disabledByMode() || !m || !m.getZoom || m.getZoom() < 11.6){ state.skipped++; return; }
-    const line = currentLine();
-    if(line) drawSelectedLine(line);
-    const zoom = m.getZoom();
-    if(STATION_DEPTH_VISUALS_ENABLED){
-      const station = currentStation();
-      if(station) drawHub(station, line || lineById((S().lines || []).find(l => (l.stationIds || []).map(sid).includes(sid(station.id)))?.id), true);
-    }
-    if(STATION_DEPTH_VISUALS_ENABLED && line && zoom >= 13.25 && perfLevel() === 0){
-      keyStationsForLine(line).forEach(st => drawHub(st, line, false));
-    }
-    if(zoom >= 12.2) drawSelectedTrain();
-    state.lastDraw = now();
-  }
-  function schedule(force){
-    if(state.raf) return;
-    const interval = force ? 0 : (state.selectedTrainId ? 180 : 320);
-    if(!force && now() - state.lastDraw < interval) return;
-    state.raf = W.requestAnimationFrame(draw);
-  }
-  function wrapEntrypoints(){
-    const openLine = W.openLineConfig || (typeof openLineConfig === 'function' ? openLineConfig : null);
-    if(typeof openLine === 'function' && !openLine.__v149Depth){
-      const wrapped = function(lineId){
-        state.selectedLineId = sid(lineId);
-        W.__cityrailDepthSelectedLineId = state.selectedLineId;
-        schedule(true);
-        return openLine.apply(this, arguments);
-      };
-      wrapped.__v149Depth = true; wrapped.__original = openLine;
-      try { W.openLineConfig = openLineConfig = wrapped; } catch(e) { W.openLineConfig = wrapped; }
-    }
-    const openStation = W.openStationDetail || (typeof openStationDetail === 'function' ? openStationDetail : null);
-    if(typeof openStation === 'function' && !openStation.__v149Depth){
-      const wrapped = function(stationId, lineId){
-        state.selectedStationId = sid(stationId);
-        W.__cityrailDepthSelectedStationId = state.selectedStationId;
-        if(lineId != null){ state.selectedLineId = sid(lineId); W.__cityrailDepthSelectedLineId = state.selectedLineId; }
-        schedule(true);
-        return openStation.apply(this, arguments);
-      };
-      wrapped.__v149Depth = true; wrapped.__original = openStation;
-      try { W.openStationDetail = openStationDetail = wrapped; } catch(e) { W.openStationDetail = wrapped; }
-    }
-    const popup = W.buildTrainPopupHTML || (typeof buildTrainPopupHTML === 'function' ? buildTrainPopupHTML : null);
-    if(typeof popup === 'function' && !popup.__v149Depth){
-      const wrapped = function(train, line){
-        if(train){
-          state.selectedTrainId = sid(train.id || train.trainId);
-          S().__cityrailDepthSelectedTrainId = state.selectedTrainId;
-          if(line && line.id != null){ state.selectedLineId = sid(line.id); W.__cityrailDepthSelectedLineId = state.selectedLineId; }
-          schedule(true);
-        }
-        return popup.apply(this, arguments);
-      };
-      wrapped.__v149Depth = true; wrapped.__original = popup;
-      try { W.buildTrainPopupHTML = buildTrainPopupHTML = wrapped; } catch(e) { W.buildTrainPopupHTML = wrapped; }
-    }
-  }
-  function boot(){
-    ensureCanvas();
-    wrapEntrypoints();
-    if(!state.installed){
-      state.installed = true;
-      D.addEventListener('visibilitychange', () => schedule(true));
-      W.addEventListener('resize', () => schedule(true));
-      try {
-        const m=mapObj();
-        if(m&&m.on) ['zoomend','moveend','dragend','viewreset'].forEach(ev=>m.on(ev,()=>schedule(true)));
-      } catch(e) {}
-      try { W.addEventListener('cityrail-save-loaded',()=>{ wrapEntrypoints(); schedule(true); }); } catch(e) {}
-    }
-    schedule(true);
-    W.CityRailDepthVisuals = {
-      version: VERSION,
-      schedule: () => schedule(true),
-      clear,
-      report: () => ({
-        version: VERSION,
-        installed: !!state.installed,
-        canvas: !!state.canvas,
-        drawn: state.drawn,
-        skipped: state.skipped,
-        selectedLineId: state.selectedLineId || S().currentLineId || W.__cityrailDepthSelectedLineId || null,
-        selectedStationId: null,
-        stationDepthVisuals: false,
-        selectedTrainId: state.selectedTrainId || S().__cityrailDepthSelectedTrainId || null,
-        perfLevel: perfLevel(),
-        disabled: disabledByMode()
-      })
-    };
-  }
-  if(D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot, { once:true });
-  else boot();
-  W.setTimeout(boot, 1800);
 })();
 
 ;
@@ -43988,6 +43711,176 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   W.CityRailContinuousZoomGovernorV216={version:VERSION,apply:applySmoothZoom,wrapApis,report:()=>({zooming,pending:Array.from(pending.keys()),installed:!!(mapObj()&&mapObj().__cityrailV216ZoomGovernorBound)})};
   if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
   W.setTimeout(()=>{ applySmoothZoom('v216-late'); wrapApis(); },2200);
+})();
+
+;/* CityRail v281: large-network zoom update governor. */
+(function(){
+  'use strict';
+  const W=window,D=document,VERSION='v281-large-network-zoom-governor';
+  if(W.__cityrailV281LargeNetworkZoomGovernor) return;
+  W.__cityrailV281LargeNetworkZoomGovernor=true;
+  const state={active:false,until:0,timer:0,pendingTiles:new Set(),pendingRenderers:new Set(),stats:{tileSkips:0,rendererSkips:0,tileFlushes:0,rendererFlushes:0,begins:0}};
+  const now=()=>W.performance&&performance.now?performance.now():Date.now();
+  function S(){ return W.state||{}; }
+  function mapObj(){ return W.map&&W.map.getContainer?W.map:null; }
+  function count(name){ const v=S()[name]; return Array.isArray(v)?v.length:0; }
+  function heavy(){
+    const lines=count('lines'), stations=count('stations'), trains=count('trains'), batches=count('batches');
+    const weight=stations+lines*12+trains*0.8+batches*0.035;
+    return lines>=24||stations>=420||trains>=180||batches>=3500||weight>=760;
+  }
+  function active(){ return state.active&&now()<state.until&&heavy(); }
+  function classOn(on){
+    const root=D.documentElement, el=mapObj()&&mapObj().getContainer&&mapObj().getContainer();
+    root.classList.toggle('cityrail-large-network-zooming',!!on);
+    if(el) el.classList.toggle('cityrail-large-network-zooming',!!on);
+    root.dataset.cityrailLargeZoom=on?VERSION:'idle';
+  }
+  function tuneTiles(){
+    const p=W.CITYRAIL_MAP_ZOOM_PROFILE||{};
+    const tune=layer=>{
+      if(!layer||!layer.options) return;
+      layer.options.updateWhenZooming=false;
+      layer.options.updateWhenIdle=false;
+      layer.options.updateInterval=Math.max(Number(layer.options.updateInterval)||0,Number(p.tileUpdateInterval)||120);
+      layer.options.keepBuffer=Math.min(Math.max(Number(layer.options.keepBuffer)||0,3),6);
+      layer.options.fadeAnimation=false;
+      layer.options.unloadInvisibleTiles=false;
+      layer.options.reuseTiles=true;
+    };
+    Object.keys(W.tileLayers||{}).forEach(k=>tune(W.tileLayers[k]));
+    tune(W.__cityrailOrmOverlay);
+  }
+  function scheduleFinish(delay){
+    if(state.timer) W.clearTimeout(state.timer);
+    state.timer=W.setTimeout(finish,delay||180);
+  }
+  function begin(reason){
+    if(!heavy()) return;
+    state.active=true;
+    state.until=now()+360;
+    state.stats.begins++;
+    tuneTiles();
+    classOn(true);
+    scheduleFinish(380);
+    try{ D.documentElement.dataset.cityrailLargeZoomReason=reason||''; }catch(e){}
+  }
+  function keep(reason){
+    if(!heavy()) return;
+    if(!state.active) begin(reason||'keep');
+    state.until=now()+300;
+    scheduleFinish(320);
+  }
+  function end(){
+    if(!state.active) return;
+    state.until=Math.max(state.until,now()+120);
+    scheduleFinish(150);
+  }
+  function flushTiles(){
+    if(!state.pendingTiles.size) return;
+    const items=Array.from(state.pendingTiles);
+    state.pendingTiles.clear();
+    for(const layer of items){
+      if(!layer||!layer._map||typeof layer.__cityrailV281RawUpdate!=='function') continue;
+      layer.__cityrailV281RawUpdate.call(layer, layer._map.getCenter&&layer._map.getCenter());
+      state.stats.tileFlushes++;
+    }
+  }
+  function flushRenderers(){
+    if(!state.pendingRenderers.size) return;
+    const items=Array.from(state.pendingRenderers);
+    state.pendingRenderers.clear();
+    for(const renderer of items){
+      if(!renderer||!renderer._map||typeof renderer.__cityrailV281RawUpdate!=='function') continue;
+      renderer.__cityrailV281RawUpdate.call(renderer);
+      state.stats.rendererFlushes++;
+    }
+  }
+  function finish(){
+    state.timer=0;
+    if(now()<state.until){ scheduleFinish(Math.max(40,state.until-now()+20)); return; }
+    state.active=false;
+    classOn(false);
+    flushTiles();
+    flushRenderers();
+    try{ D.dispatchEvent(new CustomEvent('cityrail:large-network-zoom-idle',{detail:{version:VERSION}})); }catch(e){}
+    try{ if(typeof W.cityrailScheduleStationLayerOrder==='function') W.cityrailScheduleStationLayerOrder('v281-zoom-finish'); }catch(e){}
+  }
+  function installCss(){
+    if(D.getElementById('cityrail-v281-large-network-zoom-css')) return;
+    const st=D.createElement('style');
+    st.id='cityrail-v281-large-network-zoom-css';
+    st.textContent=`
+      html.cityrail-large-network-zooming .leaflet-tooltip-pane,
+      html.cityrail-large-network-zooming .station-label,
+      html.cityrail-large-network-zooming .line-node-marker:not(.selected),
+      html.cityrail-large-network-zooming .cityrail-v102-transfer-pane,
+      html.cityrail-large-network-zooming .transfer-corridor-v100,
+      html.cityrail-large-network-zooming .transfer-corridor-v101{display:none!important;}
+      html.cityrail-large-network-zooming .leaflet-overlay-pane,
+      html.cityrail-large-network-zooming .leaflet-tile-pane{will-change:transform;contain:layout paint;}
+    `;
+    D.head.appendChild(st);
+  }
+  function installTileGate(){
+    const proto=W.L&&W.L.GridLayer&&W.L.GridLayer.prototype;
+    if(!proto||typeof proto._update!=='function'||proto._update.__cityrailV281Gate) return;
+    const raw=proto._update;
+    proto._update=function(){
+      if(active()&&this&&this._map){
+        this.__cityrailV281RawUpdate=raw;
+        state.pendingTiles.add(this);
+        state.stats.tileSkips++;
+        return;
+      }
+      return raw.apply(this,arguments);
+    };
+    proto._update.__cityrailV281Gate=true;
+    proto._update.__original=raw;
+  }
+  function installRendererGate(){
+    const proto=W.L&&W.L.Renderer&&W.L.Renderer.prototype;
+    if(!proto||typeof proto._update!=='function'||proto._update.__cityrailV281Gate) return;
+    const raw=proto._update;
+    proto._update=function(){
+      if(active()&&this&&this._map){
+        this.__cityrailV281RawUpdate=raw;
+        state.pendingRenderers.add(this);
+        state.stats.rendererSkips++;
+        return;
+      }
+      return raw.apply(this,arguments);
+    };
+    proto._update.__cityrailV281Gate=true;
+    proto._update.__original=raw;
+  }
+  function installMapHandlers(){
+    const m=mapObj();
+    if(!m||!m.on||m.__cityrailV281LargeZoomBound) return false;
+    m.__cityrailV281LargeZoomBound=true;
+    m.on('zoomstart',()=>begin('zoomstart'));
+    m.on('zoom',()=>keep('zoom'));
+    m.on('zoomend',()=>end());
+    m.on('movestart dragstart',()=>{ if(heavy()) keep('move-start'); });
+    m.on('move drag',()=>{ if(active()) keep('move'); });
+    m.on('moveend dragend',()=>end());
+    return true;
+  }
+  function install(){
+    installCss();
+    installTileGate();
+    installRendererGate();
+    installMapHandlers();
+    tuneTiles();
+  }
+  function boot(){
+    install();
+    if(!(mapObj()&&mapObj().__cityrailV281LargeZoomBound)) W.setTimeout(boot,400);
+  }
+  W.cityrailLargeNetworkZoomActive=active;
+  W.CityRailLargeNetworkZoomGovernorV281={version:VERSION,begin,keep,end,finish,active,report:()=>({version:VERSION,active:state.active,heavy:heavy(),pendingTiles:state.pendingTiles.size,pendingRenderers:state.pendingRenderers.size,stats:state.stats})};
+  if(D.readyState==='loading') D.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+  W.addEventListener('cityrail-save-loaded',()=>W.setTimeout(install,80));
 })();
 
 ;/* CityRail v218: line-panel depot operation checklist with topology delete cleanup. */
@@ -48537,10 +48430,14 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   }
   function tuneTileLayer(layer){
     if (!layer || !layer.options) return;
-    layer.options.updateWhenZooming = true;
+    if (typeof W.cityrailTuneTileLayerForStableZoom === 'function') {
+      W.cityrailTuneTileLayerForStableZoom(layer, layer.options && layer.options.cityrailOverlay === true);
+      return;
+    }
+    layer.options.updateWhenZooming = false;
     layer.options.updateWhenIdle = false;
-    layer.options.updateInterval = Math.min(Number(layer.options.updateInterval) || 32, 16);
-    layer.options.keepBuffer = Math.max(Number(layer.options.keepBuffer) || 0, 8);
+    layer.options.updateInterval = Math.max(Number(layer.options.updateInterval) || 0, 120);
+    layer.options.keepBuffer = Math.max(Number(layer.options.keepBuffer) || 0, 6);
     layer.options.fadeAnimation = false;
   }
   function applyMapProfile(){
