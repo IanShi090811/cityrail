@@ -23738,6 +23738,11 @@ function cityrailEnsureLineLengthCache(reason) {
   st.lineLengthCache = st.lineLengthCache || {};
   const cache = st.__cityrailFastLineLengthCache;
   const now = Date.now();
+  if (cache && cache.cacheRef === st.lineLengthCache && cache.lineCount === st.lines.length && now - Number(cache.checkedAt || 0) < 800) {
+    cache.checkedAt = now;
+    cache.quickHits = (cache.quickHits || 0) + 1;
+    return cache;
+  }
   const sig = cityrailLineLengthTopologySignature(st);
   if (cache && cache.cacheRef === st.lineLengthCache && cache.sig === sig && cache.lineCount === st.lines.length && now - Number(cache.checkedAt || 0) < 500) {
     cache.checkedAt = now;
@@ -34023,6 +34028,39 @@ window.cityrailRealPassengerStats = realStats;
   let cacheSig='';
   let graphCache=null;
   const routeCache=new Map();
+  class MinRouteHeap{
+    constructor(){ this.items=[]; }
+    get length(){ return this.items.length; }
+    push(item){
+      const a=this.items;
+      a.push(item);
+      let i=a.length-1;
+      while(i>0){
+        const p=(i-1)>>1;
+        if(a[p].cost<=item.cost) break;
+        a[i]=a[p]; i=p;
+      }
+      a[i]=item;
+    }
+    pop(){
+      const a=this.items;
+      if(!a.length) return null;
+      const top=a[0];
+      const last=a.pop();
+      if(a.length && last){
+        let i=0;
+        while(true){
+          let l=i*2+1, r=l+1;
+          if(l>=a.length) break;
+          let c=(r<a.length && a[r].cost<a[l].cost) ? r : l;
+          if(a[c].cost>=last.cost) break;
+          a[i]=a[c]; i=c;
+        }
+        a[i]=last;
+      }
+      return top;
+    }
+  }
   function cacheGet(map,key){
     if(window.cityrailBoundedMapGet) return window.cityrailBoundedMapGet(map,key);
     if(!map.has(key)) return undefined;
@@ -34039,8 +34077,16 @@ window.cityrailRealPassengerStats = realStats;
   function lines(){ const s=st(); return s && Array.isArray(s.lines) ? s.lines : []; }
   function stations(){ const s=st(); return s && Array.isArray(s.stations) ? s.stations : []; }
   function keyId(x){ return String(x==null?'':x); }
-  function lineById(id){ return lines().find(l=>keyId(l.id)===keyId(id)) || null; }
-  function stationById(id){ return stations().find(s=>keyId(s.id)===keyId(id)) || null; }
+  function lineById(id){
+    const key=keyId(id);
+    if(graphCache && graphCache.__lineMap) return graphCache.__lineMap.get(key) || null;
+    return lines().find(l=>keyId(l.id)===key) || null;
+  }
+  function stationById(id){
+    const key=keyId(id);
+    if(graphCache && graphCache.__stationMap) return graphCache.__stationMap.get(key) || null;
+    return stations().find(s=>keyId(s.id)===key) || null;
+  }
   function isExpressEnabled(line){
     try { if(typeof window.cityrailLineIsSingleTrack === 'function' && window.cityrailLineIsSingleTrack(line)) return false; } catch(e) {}
     const c=line && line.expressService;
@@ -34130,6 +34176,18 @@ window.cityrailRealPassengerStats = realStats;
 	    return (other===keyId(cfg.fromLineId) && (!stid || stid===keyId(cfg.fromStationId))) ||
 	      (other===keyId(cfg.toLineId) && (!stid || stid===keyId(cfg.toStationId)));
 	  }
+	  function connectorThroughPairFast(prevLineId,nextLineId,node,lineMap){
+	    if(!prevLineId || !nextLineId || keyId(prevLineId)===keyId(nextLineId)) return false;
+	    const a=lineMap && lineMap.get(keyId(prevLineId));
+	    const b=lineMap && lineMap.get(keyId(nextLineId));
+	    const connector=isConnectorLine(a)?a:(isConnectorLine(b)?b:null);
+	    if(!connectorThroughEnabled(connector)) return false;
+	    const other=keyId(connector===a?nextLineId:prevLineId);
+	    const cfg=connector.connector||{};
+	    const stid=keyId(node);
+	    return (other===keyId(cfg.fromLineId) && (!stid || stid===keyId(cfg.fromStationId))) ||
+	      (other===keyId(cfg.toLineId) && (!stid || stid===keyId(cfg.toStationId)));
+	  }
   const signatureCacheV32 = { value:'', hour:null, lineCount:-1, stationCount:-1, at:0 };
   function sortedLinePair(a,b){ const p=[keyId(a),keyId(b)].sort(); return p[0]+'|'+p[1]; }
   function stationRelationKey(a,b,lineA,lineB){ return [keyId(a),keyId(b)].sort().join('~')+'|'+sortedLinePair(lineA,lineB); }
@@ -34163,17 +34221,24 @@ window.cityrailRealPassengerStats = realStats;
     }
     return parts.join(';');
   }
-  function signature(){
-    const s=st();
-    const simHour=s ? (Number(s.simulationHour)||0) : 0;
-    const period = typeof window.getHeadwayPeriod === 'function'
-      ? window.getHeadwayPeriod(simHour)
-      : (typeof getHeadwayPeriod === 'function' ? getHeadwayPeriod(simHour) : Math.floor(simHour / 2));
-    const lineCount=lines().length, stationCount=stations().length, t=Date.now();
-    const transferSig=transferSignature();
-    if(
-      signatureCacheV32.value &&
-      signatureCacheV32.period===period &&
+	  function signature(){
+	    const s=st();
+	    const simHour=s ? (Number(s.simulationHour)||0) : 0;
+	    const period = typeof window.getHeadwayPeriod === 'function'
+	      ? window.getHeadwayPeriod(simHour)
+	      : (typeof getHeadwayPeriod === 'function' ? getHeadwayPeriod(simHour) : Math.floor(simHour / 2));
+	    const lineCount=lines().length, stationCount=stations().length, t=Date.now();
+	    if(
+	      signatureCacheV32.value &&
+	      signatureCacheV32.period===period &&
+	      signatureCacheV32.lineCount===lineCount &&
+	      signatureCacheV32.stationCount===stationCount &&
+	      t-signatureCacheV32.at<1200
+	    ) return signatureCacheV32.value;
+	    const transferSig=transferSignature();
+	    if(
+	      signatureCacheV32.value &&
+	      signatureCacheV32.period===period &&
       signatureCacheV32.lineCount===lineCount &&
       signatureCacheV32.stationCount===stationCount &&
       signatureCacheV32.transferSig===transferSig &&
@@ -34197,30 +34262,42 @@ window.cityrailRealPassengerStats = realStats;
     if(sig!==cacheSig){ cacheSig=sig; graphCache=null; routeCache.clear(); }
   }
   function addEdge(graph,from,edge){ if(!graph[from]) graph[from]=[]; graph[from].push(edge); }
-  function buildGraph(){
-    resetIfNeeded();
-    if(graphCache) return graphCache;
-    const graph={};
-    for(const s of stations()) graph[s.id]=[];
+	  function buildGraph(){
+	    resetIfNeeded();
+	    if(graphCache) return graphCache;
+	    const graph={};
+	    const stationMap=new Map();
+	    const lineMap=new Map();
+	    for(const s of stations()){
+	      if(!s) continue;
+	      stationMap.set(keyId(s.id), s);
+	      graph[s.id]=[];
+	    }
 	    for(const line of lines()){
-	      const ids=Array.isArray(line.stationIds)?line.stationIds:[];
-	      if(ids.length<2) continue;
-	      const connectorLine = isConnectorLine(line);
-	      if(connectorLine && !connectorThroughEnabled(line)) continue;
-      // Local edges: adjacent station to adjacent station, every stop.
-      for(let i=0;i<ids.length-1;i++){
-        const dist=segmentDistance(line,i);
-        const ov=overtakeSet(line);
-        const yieldFwd=ov.has(keyId(ids[i+1]))?LOCAL_OVERTAKE_YIELD_MIN:0;
-        const yieldBack=ov.has(keyId(ids[i]))?LOCAL_OVERTAKE_YIELD_MIN:0;
-        const cost=dist/speedKmh(line,'local')*60 + dwellMin(line,'local');
-        if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[i], ids[i+1]))) {
-          addEdge(graph,ids[i],{to:ids[i+1],actualLineId:line.id,lineId:keyId(line.id)+'::local',serviceType:'local',cost:cost+yieldFwd,distKm:dist,fromIdx:i,toIdx:i+1,timeBreakdown:{run:dist/speedKmh(line,'local')*60,dwell:dwellMin(line,'local'),overtakeYield:yieldFwd}});
-        }
-        if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[i+1], ids[i]))) {
-          addEdge(graph,ids[i+1],{to:ids[i],actualLineId:line.id,lineId:keyId(line.id)+'::local',serviceType:'local',cost:cost+yieldBack,distKm:dist,fromIdx:i+1,toIdx:i,timeBreakdown:{run:dist/speedKmh(line,'local')*60,dwell:dwellMin(line,'local'),overtakeYield:yieldBack}});
-        }
-      }
+	      if(line) lineMap.set(keyId(line.id), line);
+	    }
+		    for(const line of lines()){
+		      const ids=Array.isArray(line.stationIds)?line.stationIds:[];
+		      if(ids.length<2) continue;
+		      const connectorLine = isConnectorLine(line);
+		      if(connectorLine && !connectorThroughEnabled(line)) continue;
+	      // Local edges: adjacent station to adjacent station, every stop.
+	      const overtake=overtakeSet(line);
+	      const localSpeed=speedKmh(line,'local');
+	      const localDwell=dwellMin(line,'local');
+	      for(let i=0;i<ids.length-1;i++){
+	        const dist=segmentDistance(line,i);
+	        const yieldFwd=overtake.has(keyId(ids[i+1]))?LOCAL_OVERTAKE_YIELD_MIN:0;
+	        const yieldBack=overtake.has(keyId(ids[i]))?LOCAL_OVERTAKE_YIELD_MIN:0;
+	        const run=dist/localSpeed*60;
+	        const cost=run + localDwell;
+	        if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[i], ids[i+1]))) {
+	          addEdge(graph,ids[i],{to:ids[i+1],line,actualLineId:line.id,lineId:keyId(line.id)+'::local',serviceType:'local',cost:cost+yieldFwd,distKm:dist,fromIdx:i,toIdx:i+1,timeBreakdown:{run,dwell:localDwell,overtakeYield:yieldFwd}});
+	        }
+	        if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[i+1], ids[i]))) {
+	          addEdge(graph,ids[i+1],{to:ids[i],line,actualLineId:line.id,lineId:keyId(line.id)+'::local',serviceType:'local',cost:cost+yieldBack,distKm:dist,fromIdx:i+1,toIdx:i,timeBreakdown:{run,dwell:localDwell,overtakeYield:yieldBack}});
+	        }
+	      }
       // Express edges: between consecutive express stops, skipping intermediate station dwell.
       if(isExpressEnabled(line)){
         const ex=expressStops(line);
@@ -34230,13 +34307,13 @@ window.cityrailRealPassengerStats = realStats;
           const aIdx=exIdx[k], bIdx=exIdx[k+1];
           let dist=0;
           for(let i=aIdx;i<bIdx;i++) dist+=segmentDistance(line,i);
-          const cost=dist/speedKmh(line,'express')*60 + dwellMin(line,'express');
-          if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[aIdx], ids[bIdx]))) {
-            addEdge(graph,ids[aIdx],{to:ids[bIdx],actualLineId:line.id,lineId:keyId(line.id)+'::express',serviceType:'express',cost,distKm:dist,fromIdx:aIdx,toIdx:bIdx});
-          }
-          if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[bIdx], ids[aIdx]))) {
-            addEdge(graph,ids[bIdx],{to:ids[aIdx],actualLineId:line.id,lineId:keyId(line.id)+'::express',serviceType:'express',cost,distKm:dist,fromIdx:bIdx,toIdx:aIdx});
-          }
+	          const cost=dist/speedKmh(line,'express')*60 + dwellMin(line,'express');
+	          if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[aIdx], ids[bIdx]))) {
+	            addEdge(graph,ids[aIdx],{to:ids[bIdx],line,actualLineId:line.id,lineId:keyId(line.id)+'::express',serviceType:'express',cost,distKm:dist,fromIdx:aIdx,toIdx:bIdx});
+	          }
+	          if(!connectorLine || (typeof window.cityrailConnectorAllowsGraphEdge==='function' && window.cityrailConnectorAllowsGraphEdge(line, ids[bIdx], ids[aIdx]))) {
+	            addEdge(graph,ids[bIdx],{to:ids[aIdx],line,actualLineId:line.id,lineId:keyId(line.id)+'::express',serviceType:'express',cost,distKm:dist,fromIdx:bIdx,toIdx:aIdx});
+	          }
         }
       }
     }
@@ -34246,12 +34323,14 @@ window.cityrailRealPassengerStats = realStats;
 	      if(!graph[vt.stationA] || !graph[vt.stationB]) continue;
 	      if(typeof window.cityrailIsTransferAllowed==='function' && !window.cityrailIsTransferAllowed(vt.stationA, vt.stationB, vt.lineAId || VT_LINE_ID, vt.lineBId || VT_LINE_ID)) continue;
 	      const cost=Math.max(0,Number(vt.penaltyMin)||8);
-      addEdge(graph,vt.stationA,{to:vt.stationB,actualLineId:VT_LINE_ID,lineId:VT_LINE_ID,serviceType:'transfer',cost,distKm:0,isVirtualTransfer:true,transferFromLineId:vt.lineAId||null,transferToLineId:vt.lineBId||null});
-      addEdge(graph,vt.stationB,{to:vt.stationA,actualLineId:VT_LINE_ID,lineId:VT_LINE_ID,serviceType:'transfer',cost,distKm:0,isVirtualTransfer:true,transferFromLineId:vt.lineBId||null,transferToLineId:vt.lineAId||null});
-    }
-    graphCache=graph;
-    return graph;
-  }
+	      addEdge(graph,vt.stationA,{to:vt.stationB,actualLineId:VT_LINE_ID,lineId:VT_LINE_ID,serviceType:'transfer',cost,distKm:0,isVirtualTransfer:true,transferFromLineId:vt.lineAId||null,transferToLineId:vt.lineBId||null});
+	      addEdge(graph,vt.stationB,{to:vt.stationA,actualLineId:VT_LINE_ID,lineId:VT_LINE_ID,serviceType:'transfer',cost,distKm:0,isVirtualTransfer:true,transferFromLineId:vt.lineBId||null,transferToLineId:vt.lineAId||null});
+	    }
+	    graph.__lineMap=lineMap;
+	    graph.__stationMap=stationMap;
+	    graphCache=graph;
+	    return graph;
+	  }
 	  function disabledTransferAt(node, prevActualLine, nextActualLine){
 	    if(!prevActualLine || !nextActualLine || prevActualLine===nextActualLine) return false;
 	    if(prevActualLine===VT_LINE_ID || nextActualLine===VT_LINE_ID) return false;
@@ -34264,7 +34343,7 @@ window.cityrailRealPassengerStats = realStats;
     const v112Key=legacyTransferKey(node,node,prevActualLine,nextActualLine);
     if(s.__v112TransferDisabled && s.__v112TransferDisabled[v112Key]) return true;
     if(s.transferReselectNeeded && s.transferReselectNeeded[keyId(node)]) return true;
-    const station=stationById(node);
+	    const station=stationById(node);
     if(!station || !station._disabledTransferPairs) return false;
     const a=keyId(prevActualLine), b=keyId(nextActualLine);
     const key=a<b ? a+'_'+b : b+'_'+a;
@@ -34353,48 +34432,64 @@ window.cityrailRealPassengerStats = realStats;
     const distanceCost=(edge.distKm||0) * (pref.distanceWeight||0);
     return baseRide*rideWeight + wait*(pref.waitWeight||1) + xfer*(pref.transferWeight||1) + (edge.serviceType==='transfer' || edge.isVirtualTransfer ? baseRide*(virtualWeight-1) : 0) + distanceCost;
   }
-  function findFastestRoute(fromId,toId,options={}){
-    resetIfNeeded();
-    const pref=normalizeRoutePreference(options.preference);
-    const cacheKey=keyId(fromId)+'>'+keyId(toId)+'#'+pref.key;
-    if(routeCache.has(cacheKey)) return cacheGet(routeCache,cacheKey);
-    const graph=buildGraph();
-    if(!graph[fromId] || !graph[toId]) return null;
-    const pq=[{node:fromId,cost:0,prevService:null,prevActualLine:null,pendingTransferToLine:null,path:[fromId],edges:[],distKm:0,transfers:0}];
-    const best=new Map(); best.set(keyId(fromId)+'|_',0);
-    while(pq.length){
-      let mi=0; for(let i=1;i<pq.length;i++) if(pq[i].cost<pq[mi].cost) mi=i;
-      const cur=pq.splice(mi,1)[0];
-	      if(keyId(cur.node)===keyId(toId)){
-	        const result={path:cur.path,edges:cur.edges,totalDistKm:cur.distKm,totalTimeMin:cur.cost,transfers:cur.transfers,preference:pref.key,preferenceLabel:pref.label};
-	        cacheSet(routeCache,cacheKey,result,MAX_CACHE_ENTRIES); return result;
-      }
-      for(const edge of (graph[cur.node]||[])){
-	        if(cur.pendingTransferToLine && edge.serviceType!=='transfer' && keyId(edge.actualLineId)!==keyId(cur.pendingTransferToLine)) continue;
-	        if(edge.serviceType==='transfer' && cur.prevActualLine && edge.transferFromLineId && keyId(cur.prevActualLine)!==keyId(edge.transferFromLineId)) continue;
-	        const connectorThrough = connectorThroughPair(cur.prevActualLine, edge.actualLineId, cur.node);
-	        if(!connectorThrough && disabledTransferAt(cur.node,cur.prevActualLine,edge.actualLineId)) continue;
-	        const serviceChanged = cur.prevService !== edge.lineId;
-	        const line=lineById(edge.actualLineId);
-	        const wait = serviceChanged && !connectorThrough && line && edge.serviceType!=='transfer' ? averageWaitMin(line,edge.serviceType) : 0;
-	        const xfer = serviceChanged && !connectorThrough ? transferPenalty(cur.prevActualLine,edge.actualLineId,cur.node) : 0;
-        const edgeCost=routeCostWithPreference(edge, edge.cost, wait, xfer, pref);
-        const newCost=cur.cost+edgeCost;
-		        const nextPendingTransferToLine = edge.serviceType==='transfer' ? (edge.transferToLineId || null) : null;
-        const key=keyId(edge.to)+'|'+edge.lineId+'|'+keyId(nextPendingTransferToLine);
-        if(!best.has(key) || newCost<best.get(key)){
-          best.set(key,newCost);
-          pq.push({
-            node:edge.to,
-	            cost:newCost,
-            prevService:edge.lineId,
-            prevActualLine:edge.actualLineId,
-            pendingTransferToLine:nextPendingTransferToLine,
-            path:cur.path.concat([edge.to]),
-            edges:cur.edges.concat([edge]),
-	            distKm:cur.distKm+(edge.distKm||0),
-	            transfers:cur.transfers + ((serviceChanged && !connectorThrough && cur.prevActualLine && edge.actualLineId!==cur.prevActualLine && edge.actualLineId!==VT_LINE_ID) ? 1 : 0)
-          });
+	  function findFastestRoute(fromId,toId,options={}){
+	    resetIfNeeded();
+	    const pref=normalizeRoutePreference(options.preference);
+	    const cacheKey=keyId(fromId)+'>'+keyId(toId)+'#'+pref.key;
+	    if(routeCache.has(cacheKey)) return cacheGet(routeCache,cacheKey);
+	    const graph=buildGraph();
+	    const fromKey=keyId(fromId), toKey=keyId(toId);
+	    if(!graph[fromId] || !graph[toId]) return null;
+	    const lineMap=graph.__lineMap;
+	    const pq=new MinRouteHeap();
+	    const startState=fromKey+'|_|';
+	    pq.push({stateKey:startState,node:fromId,cost:0,prevService:null,prevActualLine:null,pendingTransferToLine:null,distKm:0,transfers:0});
+	    const best=new Map(); best.set(startState,0);
+	    const prev=new Map();
+	    while(pq.length){
+	      const cur=pq.pop();
+	      if(!cur) break;
+	      if(cur.cost !== best.get(cur.stateKey)) continue;
+		      if(keyId(cur.node)===keyId(toId)){
+		        const edges=[];
+		        let key=cur.stateKey;
+		        while(prev.has(key)){
+		          const step=prev.get(key);
+		          edges.push(step.edge);
+		          key=step.prevKey;
+		        }
+		        edges.reverse();
+		        const path=[fromId];
+		        edges.forEach(edge=>path.push(edge.to));
+		        const result={path,edges,totalDistKm:cur.distKm,totalTimeMin:cur.cost,transfers:cur.transfers,preference:pref.key,preferenceLabel:pref.label};
+		        cacheSet(routeCache,cacheKey,result,MAX_CACHE_ENTRIES); return result;
+	      }
+	      for(const edge of (graph[cur.node]||[])){
+		        if(cur.pendingTransferToLine && edge.serviceType!=='transfer' && keyId(edge.actualLineId)!==keyId(cur.pendingTransferToLine)) continue;
+		        if(edge.serviceType==='transfer' && cur.prevActualLine && edge.transferFromLineId && keyId(cur.prevActualLine)!==keyId(edge.transferFromLineId)) continue;
+		        const connectorThrough = connectorThroughPairFast(cur.prevActualLine, edge.actualLineId, cur.node, lineMap);
+		        if(!connectorThrough && disabledTransferAt(cur.node,cur.prevActualLine,edge.actualLineId)) continue;
+		        const serviceChanged = cur.prevService !== edge.lineId;
+		        const line=edge.line || (lineMap && lineMap.get(keyId(edge.actualLineId))) || lineById(edge.actualLineId);
+		        const wait = serviceChanged && !connectorThrough && line && edge.serviceType!=='transfer' ? averageWaitMin(line,edge.serviceType) : 0;
+		        const xfer = serviceChanged && !connectorThrough ? transferPenalty(cur.prevActualLine,edge.actualLineId,cur.node) : 0;
+	        const edgeCost=routeCostWithPreference(edge, edge.cost, wait, xfer, pref);
+	        const newCost=cur.cost+edgeCost;
+			        const nextPendingTransferToLine = edge.serviceType==='transfer' ? (edge.transferToLineId || null) : null;
+	        const key=keyId(edge.to)+'|'+edge.lineId+'|'+keyId(nextPendingTransferToLine);
+	        if(!best.has(key) || newCost<best.get(key)){
+	          best.set(key,newCost);
+	          prev.set(key,{ prevKey:cur.stateKey, edge });
+	          pq.push({
+	            stateKey:key,
+	            node:edge.to,
+		            cost:newCost,
+	            prevService:edge.lineId,
+	            prevActualLine:edge.actualLineId,
+	            pendingTransferToLine:nextPendingTransferToLine,
+		            distKm:cur.distKm+(edge.distKm||0),
+		            transfers:cur.transfers + ((serviceChanged && !connectorThrough && cur.prevActualLine && edge.actualLineId!==cur.prevActualLine && edge.actualLineId!==VT_LINE_ID) ? 1 : 0)
+	          });
         }
       }
     }
