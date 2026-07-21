@@ -62,7 +62,7 @@ globalThis.fetch = async () => new Response(JSON.stringify({
 }), { headers: { 'content-type': 'application/json' } });
 
 try {
-  const username = '付款回归用户';
+  const username = 'PayCaseUser';
   const passwordA = 'First123';
   const passwordB = 'Second123';
 
@@ -111,6 +111,24 @@ try {
   assert.equal(loginAfterPay.success, true);
   assert.equal(typeof loginAfterPay.token, 'string');
   assert.ok(loginAfterPay.token.length > 10);
+
+  const loginDifferentCase = await readJson(await login.onRequestPost({
+    request: jsonRequest('https://cityrailgame.com/api/login', { username: username.toLowerCase(), password: passwordB }),
+    env,
+  }));
+  assert.equal(loginDifferentCase.success, true);
+  assert.equal(loginDifferentCase.username, username);
+  assert.equal(typeof loginDifferentCase.token, 'string');
+  assert.ok(loginDifferentCase.token.length > 10);
+
+  const checkDifferentCase = await readJson(await checkUsername.onRequestGet({ env, params: { username: username.toUpperCase() } }));
+  assert.deepEqual(checkDifferentCase, { taken: true, active: true, pending: false });
+
+  const duplicateCaseCreate = await readJson(await createPay.onRequestPost({
+    request: jsonRequest('https://cityrailgame.com/api/pay/create', { username: username.toLowerCase(), password: 'Third123' }),
+    env,
+  }));
+  assert.equal(duplicateCaseCreate.error, '用户名已被占用');
 
   const duplicateNotify = await notifyPay.onRequestPost({ request: jsonRequest('https://cityrailgame.com/api/pay/notify', paidNotify), env });
   assert.equal(await duplicateNotify.text(), 'success');

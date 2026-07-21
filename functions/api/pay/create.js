@@ -1,7 +1,8 @@
 import {
   json, handleOptions, parseBody, requireKV, paymentConfig, publicBaseUrl,
   validateCredentials, normalizeUsername, makeTradeId, makeNonce, xhpHash,
-  hashPassword, userKey, pendingUserKey, orderKey, maskOrder, verifyXhpHash
+  hashPassword, userKey, pendingUserKey, pendingUsernameLookupKey,
+  orderKey, maskOrder, resolveUsername, resolvePendingUsername, verifyXhpHash
 } from '../../_shared/cityrail-cloudflare.js';
 
 export async function onRequestOptions() { return handleOptions(); }
@@ -20,10 +21,12 @@ export async function onRequestPost(context) {
     const credentialError = validateCredentials(username, password);
     if (credentialError) return json({ error: credentialError }, 400);
 
-    const existingUser = await kv.get(userKey(username));
+    const activeUsername = await resolveUsername(kv, username);
+    const existingUser = await kv.get(userKey(activeUsername));
     if (existingUser) return json({ error: '用户名已被占用' }, 409);
 
-    const existingOrderId = await kv.get(pendingUserKey(username));
+    const pendingUsername = await resolvePendingUsername(kv, username);
+    const existingOrderId = await kv.get(pendingUserKey(pendingUsername));
     if (existingOrderId) {
       const existingText = await kv.get(orderKey(existingOrderId));
       if (existingText) {
@@ -40,6 +43,8 @@ export async function onRequestPost(context) {
           existing.expectedAmount = cfg.amount;
           existing.updatedAt = Date.now();
           await kv.put(orderKey(existingOrderId), JSON.stringify(existing), { expirationTtl: 60 * 60 * 24 });
+          await kv.delete(pendingUserKey(existing.username || pendingUsername));
+          await kv.delete(pendingUsernameLookupKey(existing.username || pendingUsername));
         }
       }
     }
@@ -100,6 +105,7 @@ export async function onRequestPost(context) {
 
     await kv.put(orderKey(trade_order_id), JSON.stringify(order), { expirationTtl: 60 * 60 * 24 });
     await kv.put(pendingUserKey(username), trade_order_id, { expirationTtl: 60 * 60 * 24 });
+    await kv.put(pendingUsernameLookupKey(username), username, { expirationTtl: 60 * 60 * 24 });
 
     return json({ success: true, ...clientResponse, order: maskOrder(order) });
   } catch (err) {

@@ -1,6 +1,6 @@
 import {
   text, handleOptions, parseBody, requireKV, paymentConfig, verifyXhpHash,
-  orderKey, pendingUserKey, userKey
+  orderKey, pendingUserKey, pendingUsernameLookupKey, userKey, usernameLookupKey
 } from '../../_shared/cityrail-cloudflare.js';
 
 export async function onRequestOptions() { return handleOptions(); }
@@ -52,6 +52,7 @@ export async function onRequestPost(context) {
       trade_order_id: tradeId,
     };
     await kv.put(userKey(order.username), JSON.stringify(user));
+    await kv.put(usernameLookupKey(order.username), order.username);
 
     order.status = 'paid';
     order.paidAt = Date.now();
@@ -61,6 +62,7 @@ export async function onRequestPost(context) {
     delete order.passwordHash;
     await kv.put(orderKey(tradeId), JSON.stringify(order));
     await kv.delete(pendingUserKey(order.username));
+    await kv.delete(pendingUsernameLookupKey(order.username));
 
     // 虎皮椒要求成功回调返回纯文本 success，否则会重试。
     return text('success');

@@ -160,7 +160,9 @@ export function verifyXhpHash(params, secret) {
 
 export function orderKey(id) { return `order:${id}`; }
 export function pendingUserKey(username) { return `pending-user:${username}`; }
+export function pendingUsernameLookupKey(username) { return `pending-username-lookup:${canonicalUsername(username)}`; }
 export function userKey(username) { return `user:${username}`; }
+export function usernameLookupKey(username) { return `username-lookup:${canonicalUsername(username)}`; }
 export function sessionKey(token) { return `session:${token}`; }
 export function workshopIndexKey() { return 'workshop:index'; }
 export function workshopItemKey(id) { return `workshop:item:${id}`; }
@@ -168,6 +170,24 @@ export function workshopUserKey(username) { return `workshop:user:${username}`; 
 
 export function normalizeUsername(username) {
   return String(username || '').trim();
+}
+
+export function canonicalUsername(username) {
+  return normalizeUsername(username).toLowerCase();
+}
+
+export async function resolveUsername(kv, username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return '';
+  if (await kv.get(userKey(normalized))) return normalized;
+  return normalizeUsername(await kv.get(usernameLookupKey(normalized)) || normalized);
+}
+
+export async function resolvePendingUsername(kv, username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return '';
+  if (await kv.get(pendingUserKey(normalized))) return normalized;
+  return normalizeUsername(await kv.get(pendingUsernameLookupKey(normalized)) || normalized);
 }
 
 export function makeWorkshopId() {

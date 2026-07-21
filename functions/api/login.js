@@ -1,6 +1,6 @@
 import {
   json, handleOptions, parseBody, requireKV, userKey, pendingUserKey, orderKey,
-  maskOrder, normalizeUsername, verifyPassword, createSession
+  maskOrder, normalizeUsername, resolveUsername, resolvePendingUsername, verifyPassword, createSession
 } from '../_shared/cityrail-cloudflare.js';
 
 export async function onRequestOptions() { return handleOptions(); }
@@ -10,12 +10,14 @@ export async function onRequestPost(context) {
   try {
     const kv = requireKV(env);
     const body = await parseBody(request);
-    const username = normalizeUsername(body.username);
+    const requestedUsername = normalizeUsername(body.username);
     const password = String(body.password || '');
-    if (!username || !password) return json({ error: '用户名和密码不能为空' }, 400);
+    if (!requestedUsername || !password) return json({ error: '用户名和密码不能为空' }, 400);
+    const username = await resolveUsername(kv, requestedUsername);
     const userText = await kv.get(userKey(username));
     if (!userText) {
-      const pendingOrderId = await kv.get(pendingUserKey(username));
+      const pendingUsername = await resolvePendingUsername(kv, requestedUsername);
+      const pendingOrderId = await kv.get(pendingUserKey(pendingUsername));
       if (pendingOrderId) {
         const orderText = await kv.get(orderKey(pendingOrderId));
         if (orderText) {
