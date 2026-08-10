@@ -3,7 +3,8 @@ import json, re, sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 idx=(ROOT/'index.html').read_text(encoding='utf-8')
-js=(ROOT/'js/cityrail-runtime.js').read_text(encoding='utf-8')
+js=(ROOT/'js/cityrail-runtime-v594.js').read_text(encoding='utf-8')
+preview_data=(ROOT/'js/cityrail-city-network-preview-data.js').read_text(encoding='utf-8')
 css=(ROOT/'css/cityrail.css').read_text(encoding='utf-8')
 headers=(ROOT/'_headers').read_text(encoding='utf-8')
 errors=[]
@@ -12,15 +13,42 @@ if any('js/legacy/' in src for src in script_srcs): errors.append('index still l
 local_js=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', idx)
 local_js=[x for x in local_js if './js/' in x or '/js/' in x or x.startswith('js/')]
 expected_js=[
-    'cityrail-runtime.js',
+    'cityrail-leaflet-css-authority.js',
+    'cityrail-heroicons-authority.js',
+    'cityrail-release-authority.js',
+    'cityrail-core-utils.js',
+    'cityrail-state-bridge.js',
+    'cityrail-runtime-core-authority.js',
+    'cityrail-runtime-state-authority.js',
+    'cityrail-save-service-authority.js',
+    'cityrail-transfer-corridors-authority.js',
+    'cityrail-city-network-preview-data.js',
+    'cityrail-city-network-preview-authority.js',
+    'cityrail-runtime-v594.js',
+    'cityrail-unified-map-control.js',
     'cityrail-control-center.js',
     'cityrail-apple-spatial-ui-authority.js',
     'cityrail-maplibre-pmtiles-authority.js',
     'cityrail-living-city.js',
+    'cityrail-city-mascot-3d.js',
+    'cityrail-undo-authority.js',
+    'cityrail-draw-undo-authority.js',
+    'cityrail-through-branch-depot-authority.js',
+    'cityrail-service-pattern-authority.js',
+    'cityrail-save-import-resume-authority.js',
+    'cityrail-passenger-integrity-authority.js',
+    'cityrail-station-occupancy-authority.js',
+    'cityrail-city-profile-authority.js',
+    'cityrail-dwell-boarding-authority.js',
+    'cityrail-train-position-repair-authority.js',
+    'cityrail-train-graph-authority.js',
+    'cityrail-system-dialog-authority.js',
     'cityrail-external-sources-v1.js',
+    'cityrail-real-network-registry.js',
     'cityrail-real-network-importer.js',
     'cityrail-schematic-map.js',
     'cityrail-performance-authority.js',
+    'cityrail-dispatch-finalizer-authority.js',
 ]
 inline_js=(
     'id="cityrail-inline-runtime"' in idx
@@ -36,7 +64,7 @@ external_css_ok=len(local_css)==1 and 'cityrail.css' in local_css[0]
 if not (external_css_ok or inline_css): errors.append(f'unexpected local CSS entries: {local_css}')
 bad_text=[ ''.join(map(chr,[21040,22320,22270,36873,25321,20572,31449])), ''.join(map(chr,[26087]))+'ATS', ''.join(map(chr,[26087,32447,36335,36816,33829])), 'cityrail-'+'v'+'141', 'v'+'141', 'V'+'141']
 for bad in bad_text:
-    for name,body in [('index.html',idx),('js/cityrail-runtime.js',js),('css/cityrail.css',css)]:
+    for name,body in [('index.html',idx),('js/cityrail-runtime-v594.js',js),('css/cityrail.css',css)]:
         if bad in body: errors.append(f'{bad} remains in {name}')
 # release package should not contain old docs/archive notes
 archive=[p.name for p in ROOT.iterdir() if p.is_file() and (p.suffix=='.md' or p.name.endswith('.bak') or p.name=='refactor-manifest.json')]
@@ -49,6 +77,20 @@ if 'Object.defineProperty(Element.prototype' in js:
 for forbidden in ['workshop/mine?token=', 'token: token()', 'cityrail-v146-single-control-owner.js', 'cityrail-performance-authority-v400.js']:
     if forbidden in idx + js + headers:
         errors.append(f'forbidden legacy/security pattern remains: {forbidden}')
+for forbidden in ['id="cityrail-city-profiles"', "document.getElementById('cityrail-city-profiles')"]:
+    if forbidden in idx + js:
+        errors.append(f'forbidden inline city profile bootstrap remains: {forbidden}')
+if preview_data.count('\n') < 400 or 'window.CityRailCityNetworkPreviews = {"version"' in preview_data:
+    errors.append('city network preview data should stay reviewable by city')
+preview_authority=(ROOT/'js/cityrail-city-network-preview-authority.js').read_text(encoding='utf-8')
+if 'CityRailCityNetworkPreviewAuthority' not in preview_authority:
+    errors.append('missing city network preview authority')
+for body_name, body in [('cityrail-runtime-v594.js', js), ('cityrail-city-profile-authority.js', (ROOT/'js/cityrail-city-profile-authority.js').read_text(encoding='utf-8'))]:
+    if 'function buildRealNetworkVisual' in body or 'const buildRealNetworkVisual' in body:
+        errors.append(f'real network preview renderer duplicated in {body_name}')
+    for forbidden in ['cityVisualPalettes', 'const palettes', 'function hashCity', 'const hashCity', 'SVG_NS']:
+        if forbidden in body:
+            errors.append(f'city visual renderer detail duplicated in {body_name}: {forbidden}')
 if 'Content-Security-Policy:' not in headers or "object-src 'none'" not in headers or "frame-ancestors 'none'" not in headers:
     errors.append('security headers missing baseline CSP protections')
 v145=(ROOT/'js/cityrail-control-center.js').read_text(encoding='utf-8')

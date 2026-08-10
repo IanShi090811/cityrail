@@ -1,4 +1,4 @@
-const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v596-known-logic-fixes';
+const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v597-unified-map-control';
 const SHELL_URLS = [
   '/',
   '/index.html',

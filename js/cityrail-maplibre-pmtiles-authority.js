@@ -1,16 +1,20 @@
 (function(){
   'use strict';
-  const W=window,D=document,VERSION='v458-vector-basemap-zoom-sync-governor';
+  const W=window,D=document,VERSION='v504-maplibre-3d-base-layer-keyboard';
   if(W.__cityrailMaplibrePmtilesAuthority) return;
   W.__cityrailMaplibrePmtilesAuthority=true;
+  const B=W.CityRailStateBridge;
+  const U=W.CityRailCoreUtils;
 
   const VECTOR_KEY='pmtilesVector';
+  const THREE_D_KEY='maplibre3d';
   const DEFAULT_BASE_LAYER='dark';
   const RASTER_KEYS=['dark','autonavi2026Road','autonavi2026Satellite','tencentSatellite','tencentTerrain','cartoLight','cartoVoyager','esriImagery'];
   const RASTER_ALIAS_KEYS=['satellite','cartoDark','light','street','osm','osmStandard','gaodeRoad','gaodeSatellite','gray','topo','hot','voyager'];
-  const ORDER=['dark','autonavi2026Road','autonavi2026Satellite','tencentSatellite','tencentTerrain','cartoLight','cartoVoyager','esriImagery',VECTOR_KEY];
+  const ORDER=['dark','autonavi2026Road','autonavi2026Satellite','tencentSatellite','tencentTerrain','cartoLight','cartoVoyager','esriImagery',VECTOR_KEY,THREE_D_KEY];
   const LABELS={
     pmtilesVector:'矢量地图',
+    maplibre3d:'3D地图',
     dark:'CARTO暗色',
     autonavi2026Road:'高德2026标准',
     autonavi2026Satellite:'高德2026卫星',
@@ -23,6 +27,10 @@
   const LEGACY_KEY_MAP={
     osm:VECTOR_KEY,
     osmStandard:VECTOR_KEY,
+    '3d':THREE_D_KEY,
+    threeD:THREE_D_KEY,
+    maplibre3d:THREE_D_KEY,
+    cityrail3d:THREE_D_KEY,
     satellite:'esriImagery',
     cartoDark:'dark',
     gaode:'autonavi2026Road',
@@ -43,11 +51,23 @@
     'tencent-terrain':'tencentTerrain'
   };
   const DEFAULT_STYLE_URL='https://tiles.openfreemap.org/styles/liberty';
+  const THREE_D_STORAGE_KEY='cityrail_3d_map';
+  const THREE_D_CAMERA_STORAGE_KEY='cityrail_3d_camera';
+  const THREE_D_VIEW={ pitch:62, bearing:-25, zoom:15.5 };
+  const BUILDING_LAYER_ID='cityrail-3d-buildings';
+  const LINE_SOURCE_ID='cityrail-3d-lines';
+  const STATION_SOURCE_ID='cityrail-3d-stations';
+  const LINE_UNDERLAY_LAYER_ID='cityrail-3d-line-underlay';
+  const LINE_LAYER_ID='cityrail-3d-line';
+  const STATION_HALO_LAYER_ID='cityrail-3d-station-halo';
+  const STATION_LAYER_ID='cityrail-3d-station';
+  const STATION_LABEL_LAYER_ID='cityrail-3d-station-label';
   const state={
     active:false,
     gl:null,
     container:null,
     virtualLayer:null,
+    threeDLayer:null,
     previousSetter:null,
     lastError:null,
     protocolInstalled:false,
@@ -58,7 +78,13 @@
     vectorLocked:false,
     deferredSyncReason:'',
     lastResizeWidth:0,
-    lastResizeHeight:0
+    lastResizeHeight:0,
+    threeD:false,
+    threeDPitch:THREE_D_VIEW.pitch,
+    threeDBearing:THREE_D_VIEW.bearing,
+    overlaySignature:'',
+    overlayFrame:0,
+    overlayTimer:0
   };
   let ProtocolCtor=null;
 
@@ -77,14 +103,18 @@
     const mapped=LEGACY_KEY_MAP[raw]||raw;
     return ORDER.includes(mapped)?mapped:DEFAULT_BASE_LAYER;
   }
+  function isMaplibreKey(key){ return key===VECTOR_KEY || key===THREE_D_KEY; }
+  function isThreeDKey(key){ return canonicalKey(key)===THREE_D_KEY; }
   function automaticReason(reason){
     return /^(v\d+|boot|dom|late|ensure|visible|save-loaded|city-open-default|home-deferred|city-enter|finalize|clean)/i.test(String(reason||''));
   }
-  function vectorDef(){
+  function vectorDef(key){
+    const next=canonicalKey(key||VECTOR_KEY);
     return {
       vector:true,
       coord:'wgs84',
-      label:LABELS[VECTOR_KEY],
+      label:LABELS[next]||LABELS[VECTOR_KEY],
+      maplibre3d:next===THREE_D_KEY,
       styleUrl:styleUrl(),
       options:{cityrailCoord:'wgs84',coordSystem:'wgs84',coordinateSystem:'wgs84'}
     };
@@ -96,7 +126,23 @@
     return defs;
   }
   function defs(){
-    return Object.assign({[VECTOR_KEY]:vectorDef()},rasterDefs());
+    return Object.assign({[VECTOR_KEY]:vectorDef(VECTOR_KEY),[THREE_D_KEY]:vectorDef(THREE_D_KEY)},rasterDefs());
+  }
+  function choiceKeys(){
+    ensureVirtualLayer();
+    return ORDER.filter(key=>isMaplibreKey(key)||(W.tileLayers&&W.tileLayers[key]));
+  }
+  function publishMapChoices(){
+    try{
+      const choices=W.CityRailMapChoicesV219;
+      if(choices){
+        choices.labels=Object.assign({},choices.labels||{},LABELS);
+        choices.defs=Object.assign({},choices.defs||{},defs());
+      }
+      if(W.CityRailCleanDomesticBasemap){
+        W.CityRailCleanDomesticBasemap.labels=Object.assign({},W.CityRailCleanDomesticBasemap.labels||{},LABELS);
+      }
+    }catch(e){}
   }
   function coordForKey(key){
     const def=defs()[canonicalKey(key)] || {};
@@ -138,8 +184,12 @@
     style.textContent=[
       '#map .cityrail-maplibre-basemap{position:absolute;inset:0;z-index:210;pointer-events:none;visibility:hidden;background:#eef2f4;}',
       'html.cityrail-vector-basemap-active #map .cityrail-maplibre-basemap{visibility:visible;}',
+      'html.cityrail-maplibre-3d-active #map .cityrail-maplibre-basemap{visibility:visible;background:#dce4e8;}',
       'html.cityrail-vector-basemap-active #map .leaflet-tile-pane{display:none!important;opacity:0!important;visibility:hidden!important;}',
-      'html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailwayPane-pane,html.cityrail-vector-basemap-active #map .leaflet-cityrailOpenRailway-pane{display:block!important;opacity:1!important;visibility:visible!important;}',
+      'html.cityrail-vector-basemap-active:not(.cityrail-maplibre-3d-active) #map .leaflet-cityrailOpenRailwayPane-pane,html.cityrail-vector-basemap-active:not(.cityrail-maplibre-3d-active) #map .leaflet-cityrailOpenRailway-pane{display:block!important;opacity:1!important;visibility:visible!important;}',
+      'html.cityrail-maplibre-3d-active #map .leaflet-cityrailOpenRailwayPane-pane,html.cityrail-maplibre-3d-active #map .leaflet-cityrailOpenRailway-pane{display:none!important;opacity:0!important;visibility:hidden!important;}',
+      'html.cityrail-maplibre-3d-active #map .cityrail-line-path{opacity:.001!important;}',
+      'html.cityrail-maplibre-3d-active #map .leaflet-tooltip-pane{display:none!important;}',
       '#map .leaflet-pane,#map .leaflet-control-container{position:absolute;}',
       '#map .maplibregl-control-container{display:none!important;}'
     ].join('\n');
@@ -200,6 +250,293 @@
       try{ state.gl.resize(); }catch(e){}
     }
   }
+  function clamp(value,min,max){ return Math.max(min,Math.min(max,num(value,min))); }
+  function normalizeBearing(value){
+    let n=num(value,0)%360;
+    if(n>180) n-=360;
+    if(n<-180) n+=360;
+    return Math.round(n*10)/10;
+  }
+  function load3DCamera(){
+    try{
+      const raw=W.localStorage&&W.localStorage.getItem(THREE_D_CAMERA_STORAGE_KEY);
+      if(!raw) return;
+      const parsed=JSON.parse(raw);
+      state.threeDPitch=clamp(parsed&&parsed.pitch,0,70);
+      state.threeDBearing=normalizeBearing(parsed&&parsed.bearing);
+    }catch(e){}
+  }
+  function save3DCamera(){
+    try{ W.localStorage.setItem(THREE_D_CAMERA_STORAGE_KEY,JSON.stringify({pitch:state.threeDPitch,bearing:state.threeDBearing})); }catch(e){}
+  }
+  function set3DCamera(next,reason,animate){
+    const pitch=Object.prototype.hasOwnProperty.call(next||{},'pitch') ? clamp(next.pitch,0,70) : state.threeDPitch;
+    const bearing=Object.prototype.hasOwnProperty.call(next||{},'bearing') ? normalizeBearing(next.bearing) : state.threeDBearing;
+    state.threeDPitch=pitch;
+    state.threeDBearing=bearing;
+    save3DCamera();
+    if(state.gl&&state.active&&state.threeD){
+      const view=leafletView();
+      const camera={center:view.center,zoom:Math.max(num(view.zoom,0),THREE_D_VIEW.zoom),pitch,bearing};
+      try{
+        if(animate!==false&&state.gl.easeTo) state.gl.easeTo(Object.assign({duration:180},camera));
+        else state.gl.jumpTo(camera);
+      }catch(e){}
+    }
+    D.documentElement.dataset.cityrail3dPitch=String(Math.round(pitch));
+    D.documentElement.dataset.cityrail3dBearing=String(Math.round(bearing));
+    D.documentElement.dataset.cityrail3dCamera=reason||'camera';
+    return {pitch,bearing};
+  }
+  function reset3DCamera(reason){
+    return set3DCamera({pitch:THREE_D_VIEW.pitch,bearing:THREE_D_VIEW.bearing},reason||'reset',true);
+  }
+  function sid(value){ return String(value == null ? '' : value); }
+  function num(value,fallback=0){ const n=Number(value); return Number.isFinite(n) ? n : fallback; }
+  function finiteCoord(lat,lng){
+    const y=Number(lat), x=Number(lng);
+    return Number.isFinite(y)&&Number.isFinite(x)&&Math.abs(y)<=85.2&&Math.abs(x)<=180;
+  }
+  function cleanColor(value,fallback){
+    const text=String(value||'').trim();
+    return /^#[0-9a-f]{6}$/i.test(text) ? text : (fallback||'#0a84ff');
+  }
+  function stationPos(station,lineId){
+    if(!station) return null;
+    try{
+      if(typeof W.getStationPosition==='function'){
+        const pos=W.getStationPosition(station,lineId);
+        if(pos&&finiteCoord(pos.lat,pos.lng)) return {lat:num(pos.lat),lng:num(pos.lng)};
+      }
+    }catch(e){}
+    const lp=station.linePositions&&lineId!=null?station.linePositions[sid(lineId)]:null;
+    if(lp&&finiteCoord(lp.lat,lp.lng)) return {lat:num(lp.lat),lng:num(lp.lng)};
+    return finiteCoord(station.lat,station.lng) ? {lat:num(station.lat),lng:num(station.lng)} : null;
+  }
+  const stations=B.stations;
+  const lines=B.lines;
+  function stationById(id){
+    try{
+      const idx=W.cityrailGetRuntimeIndexes&&W.cityrailGetRuntimeIndexes();
+      if(idx&&idx.stationById) return idx.stationById.get(sid(id)) || null;
+    }catch(e){}
+    return stations().find(st=>sid(st&&st.id)===sid(id)) || null;
+  }
+  function isConnector(line){
+    try{ if(typeof W.cityrailIsConnectorLine==='function') return !!W.cityrailIsConnectorLine(line); }catch(e){}
+    return !!(line&&(line.isConnector||line.kind==='connector'||line.type==='connector'));
+  }
+  function lineNodes(line){
+    try{
+      if(typeof W.getLineTrainNodes==='function'){
+        const nodes=W.getLineTrainNodes(line);
+        if(Array.isArray(nodes)&&nodes.length>=2) return nodes;
+      }
+    }catch(e){}
+    const out=[];
+    (Array.isArray(line&&line.stationIds)?line.stationIds:[]).forEach((stationId,index)=>{
+      const st=stationById(stationId);
+      const pos=stationPos(st,line&&line.id);
+      if(pos) out.push({lat:pos.lat,lng:pos.lng,type:'station',id:stationId});
+      (Array.isArray(line&&line.waypoints)?line.waypoints:[])
+        .filter(wp=>Math.round(num(wp&&wp.segIdx,-1))===index)
+        .sort((a,b)=>num(a&&a.order,0)-num(b&&b.order,0))
+        .forEach(wp=>{ if(finiteCoord(wp.lat,wp.lng)) out.push({lat:num(wp.lat),lng:num(wp.lng),type:'waypoint'}); });
+    });
+    return out;
+  }
+  function simplifyCoords(coords,maxPoints){
+    if(!Array.isArray(coords)||coords.length<=maxPoints) return coords;
+    const out=[coords[0]];
+    const step=(coords.length-1)/(maxPoints-1);
+    for(let i=1;i<maxPoints-1;i++) out.push(coords[Math.max(1,Math.min(coords.length-2,Math.round(i*step)))]);
+    out.push(coords[coords.length-1]);
+    return out;
+  }
+  function lineFeature(line,index){
+    if(!line||!Array.isArray(line.stationIds)||line.stationIds.length<2) return null;
+    const coords=lineNodes(line)
+      .map(point=>[num(point&&point.lng,NaN),num(point&&point.lat,NaN)])
+      .filter(point=>finiteCoord(point[1],point[0]));
+    if(coords.length<2) return null;
+    const connector=isConnector(line);
+    return {
+      type:'Feature',
+      id:sid(line.id||index),
+      properties:{
+        id:sid(line.id||index),
+        name:sid(line.name||line.ref||line.id||'线路'),
+        color:cleanColor(line.color,connector?'#8e8e93':'#0a84ff'),
+        connector:connector?1:0
+      },
+      geometry:{type:'LineString',coordinates:simplifyCoords(coords,1800)}
+    };
+  }
+  function stationColor(station){
+    const id=sid(station&&station.id);
+    const hit=lines().find(line=>!isConnector(line)&&Array.isArray(line.stationIds)&&line.stationIds.some(stationId=>sid(stationId)===id));
+    return cleanColor(hit&&hit.color,'#f5f7fb');
+  }
+  function buildLineGeoJSON(){
+    const features=[];
+    lines().forEach((line,index)=>{
+      const feature=lineFeature(line,index);
+      if(feature) features.push(feature);
+    });
+    return {type:'FeatureCollection',features};
+  }
+  function buildStationGeoJSON(){
+    const features=[];
+    stations().forEach((station,index)=>{
+      const pos=stationPos(station,null);
+      if(!pos) return;
+      features.push({
+        type:'Feature',
+        id:sid(station.id||index),
+        properties:{
+          id:sid(station.id||index),
+          name:sid(station.name||station.id||'车站'),
+          color:stationColor(station)
+        },
+        geometry:{type:'Point',coordinates:[pos.lng,pos.lat]}
+      });
+    });
+    return {type:'FeatureCollection',features};
+  }
+  function hashText(text){
+    let h=2166136261;
+    for(let i=0;i<text.length;i++){
+      h^=text.charCodeAt(i);
+      h=Math.imul(h,16777619);
+    }
+    return (h>>>0).toString(36);
+  }
+  function overlaySignature(){
+    const st=B.get();
+    const lineSig=lines().map(line=>[
+      sid(line&&line.id),
+      sid(line&&line.name),
+      sid(line&&line.color),
+      Array.isArray(line&&line.stationIds)?line.stationIds.length:0,
+      Array.isArray(line&&line.waypoints)?line.waypoints.length:0,
+      num(line&&line._topologyVersion,0),
+      num(line&&line._geometryVersion,0)
+    ].join(':')).join('|');
+    const stationSig=stations().map(station=>[
+      sid(station&&station.id),
+      sid(station&&station.name),
+      num(station&&station.lat,0).toFixed(6),
+      num(station&&station.lng,0).toFixed(6),
+      station&&station.linePositions?Object.keys(station.linePositions).length:0
+    ].join(':')).join('|');
+    return [VERSION,st.activeCityKey||'',lines().length,stations().length,hashText(lineSig),hashText(stationSig)].join('|');
+  }
+  function ensureSource(gl,id,data){
+    const existing=gl.getSource(id);
+    if(existing&&typeof existing.setData==='function') existing.setData(data);
+    else gl.addSource(id,{type:'geojson',data,lineMetrics:false,tolerance:.22,buffer:96});
+  }
+  function addLayerIfMissing(gl,layer){
+    if(!gl.getLayer(layer.id)) gl.addLayer(layer);
+  }
+  function vectorSourceName(gl){
+    const style=gl&&gl.getStyle&&gl.getStyle();
+    const sources=style&&style.sources||{};
+    if(sources.openmaptiles) return 'openmaptiles';
+    const hit=Object.keys(sources).find(key=>sources[key]&&sources[key].type==='vector');
+    return hit||'openmaptiles';
+  }
+  function ensureBuildingLayer(gl){
+    if(!gl||gl.getLayer(BUILDING_LAYER_ID)) return;
+    gl.addLayer({
+      id:BUILDING_LAYER_ID,
+      type:'fill-extrusion',
+      source:vectorSourceName(gl),
+      'source-layer':'building',
+      minzoom:14,
+      paint:{
+        'fill-extrusion-color':'#d8d8d8',
+        'fill-extrusion-height':['coalesce',['to-number',['get','render_height']],['to-number',['get','height']],['*',['coalesce',['to-number',['get','building:levels']],4],3],12],
+        'fill-extrusion-base':['coalesce',['to-number',['get','render_min_height']],['to-number',['get','min_height']],0],
+        'fill-extrusion-opacity':.88
+      }
+    });
+  }
+  function ensureGameLayers(gl){
+    const lineData=buildLineGeoJSON();
+    const stationData=buildStationGeoJSON();
+    ensureSource(gl,LINE_SOURCE_ID,lineData);
+    ensureSource(gl,STATION_SOURCE_ID,stationData);
+    addLayerIfMissing(gl,{id:LINE_UNDERLAY_LAYER_ID,type:'line',source:LINE_SOURCE_ID,paint:{
+      'line-color':'rgba(255,255,255,.88)',
+      'line-width':['interpolate',['linear'],['zoom'],8,4,12,6,16,10],
+      'line-opacity':['case',['==',['get','connector'],1],.18,.42],
+      'line-blur':1.6
+    },layout:{'line-cap':'round','line-join':'round'}});
+    addLayerIfMissing(gl,{id:LINE_LAYER_ID,type:'line',source:LINE_SOURCE_ID,paint:{
+      'line-color':['get','color'],
+      'line-width':['interpolate',['linear'],['zoom'],8,2.3,12,3.8,16,7.2],
+      'line-opacity':['case',['==',['get','connector'],1],.72,.96]
+    },layout:{'line-cap':'round','line-join':'round'}});
+    addLayerIfMissing(gl,{id:STATION_HALO_LAYER_ID,type:'circle',source:STATION_SOURCE_ID,minzoom:9,paint:{
+      'circle-color':'rgba(255,255,255,.95)',
+      'circle-radius':['interpolate',['linear'],['zoom'],9,2.5,13,4.8,16,8.2],
+      'circle-opacity':.88,
+      'circle-stroke-color':'rgba(0,0,0,.24)',
+      'circle-stroke-width':1
+    }});
+    addLayerIfMissing(gl,{id:STATION_LAYER_ID,type:'circle',source:STATION_SOURCE_ID,minzoom:9,paint:{
+      'circle-color':['get','color'],
+      'circle-radius':['interpolate',['linear'],['zoom'],9,1.4,13,2.8,16,4.6],
+      'circle-opacity':.94
+    }});
+    addLayerIfMissing(gl,{id:STATION_LABEL_LAYER_ID,type:'symbol',source:STATION_SOURCE_ID,minzoom:13,layout:{
+      'text-field':['get','name'],
+      'text-font':['Noto Sans Regular'],
+      'text-size':['interpolate',['linear'],['zoom'],13,10,16,12],
+      'text-anchor':'top',
+      'text-offset':[0,.85],
+      'text-allow-overlap':false,
+      'text-ignore-placement':false
+    },paint:{
+      'text-color':'#111827',
+      'text-halo-color':'rgba(255,255,255,.92)',
+      'text-halo-width':1.4
+    }});
+    state.overlaySignature=overlaySignature();
+    D.documentElement.dataset.cityrail3dLines=String(lineData.features.length);
+    D.documentElement.dataset.cityrail3dStations=String(stationData.features.length);
+  }
+  function refreshGameLayers(reason){
+    if(!state.threeD||!state.gl||!state.gl.isStyleLoaded||!state.gl.isStyleLoaded()) return false;
+    const sig=overlaySignature();
+    if(sig===state.overlaySignature&&reason!=='force') return true;
+    try{ ensureGameLayers(state.gl); D.documentElement.dataset.cityrail3dOverlaySync=reason||'sync'; return true; }
+    catch(error){ state.lastError=error&&error.message?error.message:String(error); D.documentElement.dataset.cityrail3dOverlayError=state.lastError.slice(0,160); return false; }
+  }
+  function scheduleOverlayRefresh(reason,delay=80){
+    if(state.overlayTimer) W.clearTimeout(state.overlayTimer);
+    state.overlayTimer=W.setTimeout(()=>{ state.overlayTimer=0; refreshGameLayers(reason||'timer'); },delay);
+  }
+  function bindOverlaySync(){
+    if(W.__cityrail3dOverlaySyncBound) return;
+    W.__cityrail3dOverlaySyncBound=true;
+    ['cityrail-save-loaded','cityrail:runtime-integrity','cityrail:dailyPassengerReset'].forEach(name=>{
+      try{ W.addEventListener(name,()=>scheduleOverlayRefresh(name,120)); }catch(e){}
+    });
+    const names=['renderLine','refreshLinePolyline','refreshAllStations'];
+    names.forEach(name=>{
+      const fn=W[name];
+      if(typeof fn!=='function'||fn.__cityrail3dWrapped) return;
+      const wrapped=function(){
+        const result=fn.apply(this,arguments);
+        scheduleOverlayRefresh(name,90);
+        return result;
+      };
+      U.markWrapper(wrapped,'__cityrail3dWrapped',fn);
+      try{ W[name]=wrapped; }catch(e){}
+    });
+  }
   async function ensureMaplibre(){
     if(!W.maplibregl) return null;
     installStyle();
@@ -224,13 +561,23 @@
       fadeDuration:0,
       preserveDrawingBuffer:false,
       antialias:false,
+      maxPitch:70,
       maxTileCacheSize:768
     });
     state.gl.on('error',event=>{
       state.lastError=event&&event.error?String(event.error.message||event.error):'maplibre error';
       D.documentElement.dataset.cityrailVectorBasemapError=state.lastError.slice(0,120);
     });
-    state.gl.once('load',()=>syncCamera('load'));
+    state.gl.once('load',()=>{
+      if(state.threeD){
+        try{ ensureBuildingLayer(state.gl); ensureGameLayers(state.gl); }catch(e){ state.lastError=e&&e.message?e.message:String(e); }
+      }
+      syncCamera('load');
+    });
+    state.gl.on('styledata',()=>{
+      if(!state.threeD) return;
+      try{ ensureBuildingLayer(state.gl); ensureGameLayers(state.gl); }catch(e){}
+    });
     return state.gl;
   }
   function syncCamera(reason){
@@ -241,7 +588,11 @@
       return;
     }
     const view=leafletView();
-    try{ state.gl.jumpTo({center:view.center,zoom:view.zoom,bearing:0,pitch:0}); }catch(e){}
+    const camera=state.threeD
+      ? {center:view.center,zoom:view.zoom,bearing:state.threeDBearing,pitch:state.threeDPitch}
+      : {center:view.center,zoom:view.zoom,bearing:0,pitch:0};
+    try{ state.gl.jumpTo(camera); }catch(e){}
+    if(state.threeD) refreshGameLayers(reason||'camera');
     resizeIfNeeded(reason||'sync');
     D.documentElement.dataset.cityrailVectorBasemapSync=reason||'sync';
   }
@@ -260,8 +611,11 @@
   function ensureVirtualLayer(){
     if(!W.L||!W.tileLayers) return null;
     if(!state.virtualLayer) state.virtualLayer=W.L.layerGroup();
+    if(!state.threeDLayer) state.threeDLayer=W.L.layerGroup();
     state.virtualLayer.options=Object.assign({},state.virtualLayer.options||{},{cityrailCoord:'wgs84',coordSystem:'wgs84',coordinateSystem:'wgs84'});
+    state.threeDLayer.options=Object.assign({},state.threeDLayer.options||{},{cityrailCoord:'wgs84',coordSystem:'wgs84',coordinateSystem:'wgs84',maplibre3d:true});
     W.tileLayers[VECTOR_KEY]=state.virtualLayer;
+    W.tileLayers[THREE_D_KEY]=state.threeDLayer;
     if(W.tileLayers.osm){
       try{ if(W.map&&W.map.hasLayer(W.tileLayers.osm)) W.map.removeLayer(W.tileLayers.osm); }catch(e){}
       try{ delete W.tileLayers.osm; }catch(e){ W.tileLayers.osm=undefined; }
@@ -283,13 +637,33 @@
     }catch(e){ return key==='openrailway'; }
   }
   function isRasterBaseLayer(key,layer){
-    if(!layer||key===VECTOR_KEY||isOpenRailwayLayer(key,layer)) return false;
+    if(!layer||isMaplibreKey(key)||isOpenRailwayLayer(key,layer)) return false;
     if(RASTER_KEYS.includes(key)||RASTER_ALIAS_KEYS.includes(key)) return true;
     try{
       const url=String(layer._url||'');
       if(url) return true;
     }catch(e){}
     return false;
+  }
+  function setOpenRailwayHiddenFor3D(hidden,reason){
+    try{
+      const overlay=W.__cityrailOrmOverlay || (W.tileLayers&&W.tileLayers.openrailway);
+      if(hidden&&overlay&&W.map&&W.map.hasLayer&&W.map.hasLayer(overlay)) W.map.removeLayer(overlay);
+    }catch(e){}
+    try{
+      D.querySelectorAll('#map .leaflet-cityrailOpenRailwayPane-pane,#map .leaflet-cityrailOpenRailway-pane').forEach(pane=>{
+        if(hidden){
+          pane.style.setProperty('display','none','important');
+          pane.style.setProperty('opacity','0','important');
+          pane.style.setProperty('visibility','hidden','important');
+        }else{
+          pane.style.removeProperty('display');
+          pane.style.removeProperty('opacity');
+          pane.style.removeProperty('visibility');
+        }
+      });
+    }catch(e){}
+    D.documentElement.dataset.cityrail3dOverlayIsolation=hidden?(reason||VERSION):'off';
   }
   function removeRasterLayers(){
     try{
@@ -316,9 +690,11 @@
     }catch(e){}
   }
   function enforceVectorIsolation(reason){
-    if(!state.active && canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer)!==VECTOR_KEY) return false;
+    const activeKey=state.threeD ? THREE_D_KEY : VECTOR_KEY;
+    if(!state.active && !isMaplibreKey(canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer))) return false;
     D.documentElement.classList.add('cityrail-vector-basemap-active');
-    D.documentElement.dataset.cityrailBaseLayer=VECTOR_KEY;
+    D.documentElement.classList.toggle('cityrail-maplibre-3d-active',state.threeD);
+    D.documentElement.dataset.cityrailBaseLayer=activeKey;
     D.documentElement.dataset.cityrailVectorIsolation=reason||VERSION;
     const container=ensureContainer();
     if(container){
@@ -328,6 +704,7 @@
     }
     removeRasterLayers();
     setLeafletTilePaneHidden(true);
+    setOpenRailwayHiddenFor3D(state.threeD,reason||'isolation');
     return true;
   }
   function bindRasterLayerGuard(){
@@ -339,7 +716,7 @@
         try{
           const layer=event&&event.layer;
           const key=layerKeyFor(layer);
-          if((state.active||canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer)===VECTOR_KEY)&&isRasterBaseLayer(key,layer)){
+          if((state.active||isMaplibreKey(canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer)))&&isRasterBaseLayer(key,layer)){
             W.setTimeout(()=>{ try{ if(W.map&&W.map.hasLayer(layer)) W.map.removeLayer(layer); enforceVectorIsolation('guard-'+(key||'raster')); }catch(e){} },0);
           }
         }catch(e){}
@@ -348,8 +725,9 @@
   }
   function syncChoiceState(activeKey){
     ensureVirtualLayer();
+    publishMapChoices();
     if(Array.isArray(W.layerKeys)){
-      W.layerKeys.splice(0,W.layerKeys.length,...ORDER.filter(key=>key===VECTOR_KEY||(W.tileLayers&&W.tileLayers[key])));
+      W.layerKeys.splice(0,W.layerKeys.length,...choiceKeys());
     }
     const key=canonicalKey(activeKey||W.__cityrailPreferredMapLayerKey||DEFAULT_BASE_LAYER);
     const idx=Math.max(0,(W.layerKeys||ORDER).indexOf(key));
@@ -359,20 +737,30 @@
     const btn=D.getElementById('btn-layer');
     if(btn){
       btn.textContent=LABELS[W.__cityrailPreferredMapLayerKey]||LABELS[VECTOR_KEY];
-      btn.title='切换缓存底图：CARTO、高德、腾讯、Esri、矢量地图。高德和腾讯使用 GCJ-02，其余底图使用 WGS84。';
+      btn.title='切换底图：CARTO、高德、腾讯、Esri、矢量地图、3D地图。高德和腾讯使用 GCJ-02，其余底图使用 WGS84。';
     }
     D.documentElement.dataset.cityrailBaseLayer=W.__cityrailPreferredMapLayerKey;
     D.documentElement.dataset.cityrailMapChoices=VERSION;
     try{ if(typeof W.cityrailSyncMapCredit==='function') W.cityrailSyncMapCredit(W.__cityrailPreferredMapLayerKey); }catch(e){}
+    try{
+      if(W.__cityrailPreferredMapLayerKey===THREE_D_KEY){
+        const credit=D.getElementById('cityrail-map-credit');
+        if(credit) credit.textContent='地图：3D地图';
+      }
+    }catch(e){}
   }
-  function activateVector(reason){
+  function activateVector(reason,modeKey){
+    const activeKey=isThreeDKey(modeKey) ? THREE_D_KEY : VECTOR_KEY;
     const anchor=dataAnchor();
     state.vectorLocked=true;
+    state.threeD=activeKey===THREE_D_KEY;
     W.__cityrailVectorBaseLayerLocked=true;
     W.__cityrailUserSelectedBaseLayer=true;
-    W.__cityrailPreferredMapLayerKey=VECTOR_KEY;
+    W.__cityrailPreferredMapLayerKey=activeKey;
     D.documentElement.classList.add('cityrail-vector-basemap-active');
-    D.documentElement.dataset.cityrailBaseLayer=VECTOR_KEY;
+    D.documentElement.classList.toggle('cityrail-maplibre-3d-active',state.threeD);
+    D.documentElement.dataset.cityrail3dMap=state.threeD?'on':'off';
+    D.documentElement.dataset.cityrailBaseLayer=activeKey;
     D.documentElement.dataset.cityrailBaseLayerReason=reason||VERSION;
     try{
       if(W.CityRailMapCoordinateAdapter&&typeof W.CityRailMapCoordinateAdapter.setActive==='function'){
@@ -387,19 +775,33 @@
     }catch(e){
       D.documentElement.dataset.cityrailMapCoord='wgs84';
     }
-    syncChoiceState(VECTOR_KEY);
+    syncChoiceState(activeKey);
     if(!enteredCity()) return true;
     const layer=ensureVirtualLayer();
-    try{ if(layer&&W.map&&!W.map.hasLayer(layer)) layer.addTo(W.map); }catch(e){}
+    const targetLayer=activeKey===THREE_D_KEY ? state.threeDLayer : layer;
+    try{ if(targetLayer&&W.map&&!W.map.hasLayer(targetLayer)) targetLayer.addTo(W.map); }catch(e){}
+    try{
+      const otherLayer=activeKey===THREE_D_KEY ? state.virtualLayer : state.threeDLayer;
+      if(otherLayer&&W.map&&W.map.hasLayer(otherLayer)) W.map.removeLayer(otherLayer);
+    }catch(e){}
     removeRasterLayers();
     state.active=true;
     bindRasterLayerGuard();
     enforceVectorIsolation(reason||'activate');
-    ensureMaplibre().then(()=>syncCamera(reason||'activate')).catch(error=>{
+    if(state.threeD) bindOverlaySync();
+    ensureMaplibre().then(()=>{
+      if(state.threeD){
+        try{ ensureBuildingLayer(state.gl); ensureGameLayers(state.gl); }catch(e){}
+        apply3DCamera(reason||'activate-3d');
+      }else{
+        syncCamera(reason||'activate');
+      }
+    }).catch(error=>{
       state.lastError=error&&error.message?error.message:String(error);
       D.documentElement.dataset.cityrailVectorBasemapError=state.lastError.slice(0,120);
     });
     bindSync();
+    if(state.threeD) bindKeyboardControls();
     try{ if(W.map&&W.map.invalidateSize) W.map.invalidateSize(); }catch(e){}
     return true;
   }
@@ -407,8 +809,12 @@
     state.vectorLocked=false;
     W.__cityrailVectorBaseLayerLocked=false;
     state.active=false;
+    state.threeD=false;
     D.documentElement.classList.remove('cityrail-vector-basemap-active');
+    D.documentElement.classList.remove('cityrail-maplibre-3d-active');
+    D.documentElement.dataset.cityrail3dMap='off';
     setLeafletTilePaneHidden(false);
+    setOpenRailwayHiddenFor3D(false,'deactivate');
     try{
       if(state.container){
         state.container.style.removeProperty('visibility');
@@ -418,17 +824,22 @@
     try{
       if(state.virtualLayer&&W.map&&W.map.hasLayer(state.virtualLayer)) W.map.removeLayer(state.virtualLayer);
     }catch(e){}
+    try{
+      if(state.threeDLayer&&W.map&&W.map.hasLayer(state.threeDLayer)) W.map.removeLayer(state.threeDLayer);
+    }catch(e){}
   }
   function setLayer(key,reason){
     const next=canonicalKey(key);
-    if(next===VECTOR_KEY) return activateVector(reason||'set-vector');
+    if(next===VECTOR_KEY) return activateVector(reason||'set-vector',VECTOR_KEY);
+    if(next===THREE_D_KEY) return activateVector(reason||'set-3d',THREE_D_KEY);
     const anchor=dataAnchor();
-    if((state.vectorLocked||W.__cityrailVectorBaseLayerLocked||canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer)===VECTOR_KEY) && automaticReason(reason)){
+    const currentKey=canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer);
+    if((state.vectorLocked||W.__cityrailVectorBaseLayerLocked||isMaplibreKey(currentKey)) && automaticReason(reason)){
       state.active=true;
       state.vectorLocked=true;
       W.__cityrailVectorBaseLayerLocked=true;
-      W.__cityrailPreferredMapLayerKey=VECTOR_KEY;
-      syncChoiceState(VECTOR_KEY);
+      W.__cityrailPreferredMapLayerKey=currentKey===THREE_D_KEY?THREE_D_KEY:VECTOR_KEY;
+      syncChoiceState(W.__cityrailPreferredMapLayerKey);
       return enforceVectorIsolation('blocked-raster-'+(reason||VERSION));
     }
     deactivateVector();
@@ -442,20 +853,73 @@
     reanchorAfterLayer(next,reason||VERSION,anchor);
     return true;
   }
+  function apply3DCamera(reason){
+    const m=W.map;
+    try{
+      if(m&&typeof m.getZoom==='function'&&typeof m.setZoom==='function'&&enteredCity()){
+        const z=Number(m.getZoom())||0;
+        if(z<14.2) m.setZoom(THREE_D_VIEW.zoom,{animate:true});
+      }
+    }catch(e){}
+    const view=leafletView();
+    try{
+      if(state.gl&&state.gl.easeTo) state.gl.easeTo({center:view.center,zoom:Math.max(num(view.zoom,0),THREE_D_VIEW.zoom),pitch:state.threeDPitch,bearing:state.threeDBearing,duration:650});
+    }catch(e){ syncCamera(reason||'3d-camera'); }
+  }
+  function set3DEnabled(on,reason){
+    return on ? setLayer(THREE_D_KEY,reason||'3d-on') : setLayer(VECTOR_KEY,reason||'3d-off');
+  }
+  function toggle3D(reason){ return set3DEnabled(!state.threeD,reason||'toggle'); }
+  function editableTarget(target){
+    const el=target&&target.closest?target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'):null;
+    return !!el;
+  }
+  function adjust3DBearing(delta,reason){
+    return set3DCamera({bearing:state.threeDBearing+num(delta,0)},reason||'bearing',true);
+  }
+  function adjust3DPitch(delta,reason){
+    return set3DCamera({pitch:state.threeDPitch+num(delta,0)},reason||'pitch',true);
+  }
+  function bindKeyboardControls(){
+    if(W.__cityrail3dKeyboardControlsBound) return;
+    W.__cityrail3dKeyboardControlsBound=true;
+    W.addEventListener('keydown',event=>{
+      if(!state.threeD||!state.active||event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||editableTarget(event.target)) return;
+      const key=String(event.key||'');
+      let handled=true;
+      if(key==='ArrowLeft'||key==='q'||key==='Q') adjust3DBearing(-10,'keyboard-bearing-left');
+      else if(key==='ArrowRight'||key==='e'||key==='E') adjust3DBearing(10,'keyboard-bearing-right');
+      else if(key==='ArrowUp'||key==='r'||key==='R') adjust3DPitch(5,'keyboard-pitch-up');
+      else if(key==='ArrowDown'||key==='f'||key==='F') adjust3DPitch(-5,'keyboard-pitch-down');
+      else if(key==='0') reset3DCamera('keyboard-reset');
+      else handled=false;
+      if(handled){
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },true);
+  }
   function nextLayer(){
     syncChoiceState();
-    const keys=ORDER.filter(key=>key===VECTOR_KEY||(W.tileLayers&&W.tileLayers[key]));
+    const keys=choiceKeys();
     const cur=canonicalKey(W.__cityrailPreferredMapLayerKey||DEFAULT_BASE_LAYER);
     const idx=Math.max(0,keys.indexOf(cur));
     return setLayer(keys[(idx+1)%keys.length]||VECTOR_KEY,'cycle');
   }
   function patchSetters(){
+    if(W.CityRailUnifiedMapControl&&typeof W.CityRailUnifiedMapControl.registerMaplibre==='function'){
+      if(!state.previousSetter&&typeof W.CityRailUnifiedMapControl.setRasterBaseLayer==='function') state.previousSetter=W.CityRailUnifiedMapControl.setRasterBaseLayer;
+      W.CityRailUnifiedMapControl.registerMaplibre({setLayer,nextLayer});
+      state.setterPatched=true;
+      return;
+    }
     if(!state.previousSetter&&typeof W.cityrailSetBaseMapLayer==='function') state.previousSetter=W.cityrailSetBaseMapLayer;
     if(!state.rasterDefs) state.rasterDefs=rasterDefs();
     if(!state.setterPatched&&state.previousSetter){
       W.cityrailSetBaseMapLayer=function(key,reason){
         const next=canonicalKey(key);
         if(next===VECTOR_KEY) return setLayer(VECTOR_KEY,reason||'global-vector');
+        if(next===THREE_D_KEY) return setLayer(THREE_D_KEY,reason||'global-3d');
         return setLayer(next,reason||'global-raster');
       };
       W.cityrailSetBaseMapLayer.__v416Previous=state.previousSetter;
@@ -463,6 +927,7 @@
     }
   }
   function bindButton(){
+    if(W.CityRailUnifiedMapControl) return;
     const btn=D.getElementById('btn-layer');
     const handle=event=>{
       if(!(event.target&&event.target.closest&&event.target.closest('#btn-layer'))) return;
@@ -567,44 +1032,83 @@
       }catch(e){}
       return result;
     };
-    api.openCity.__v438ServerOnDemandMap=true;
-    api.openCity.__original=old;
+    U.markWrapper(api.openCity,'__v438ServerOnDemandMap',old);
     return true;
   }
   function boot(reason){
     patchSetters();
     installStyle();
     ensureVirtualLayer();
+    load3DCamera();
     bindRasterLayerGuard();
     bindButton();
+    bindKeyboardControls();
     installOpenCityWrapper();
-    const wanted=(state.vectorLocked||W.__cityrailVectorBaseLayerLocked) ? VECTOR_KEY : canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer||DEFAULT_BASE_LAYER);
+    let wanted=canonicalKey(W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer||DEFAULT_BASE_LAYER);
+    try{
+      W.localStorage.removeItem(THREE_D_STORAGE_KEY);
+    }catch(e){}
+    if(state.vectorLocked||W.__cityrailVectorBaseLayerLocked) wanted=state.threeD?THREE_D_KEY:VECTOR_KEY;
+    state.threeD=wanted===THREE_D_KEY;
+    D.documentElement.classList.toggle('cityrail-maplibre-3d-active',state.threeD);
+    D.documentElement.dataset.cityrail3dMap=state.threeD?'on':'off';
     syncChoiceState(wanted);
-    if(wanted===VECTOR_KEY) enforceVectorIsolation(reason||'boot-vector');
+    if(state.threeD){
+      bindOverlaySync();
+      setLayer(THREE_D_KEY,reason||'boot-3d');
+    } else if(wanted===VECTOR_KEY) setLayer(VECTOR_KEY,reason||'boot-vector');
     return true;
   }
 
   W.CityRailMapLibrePmtilesAuthority={
     version:VERSION,
     key:VECTOR_KEY,
+    threeDKey:THREE_D_KEY,
     keys:()=>ORDER.slice(),
     setLayer,
     nextLayer,
     sync:boot,
+    set3DEnabled,
+    toggle3D,
+    is3DEnabled:()=>!!state.threeD,
+    rotate3D:adjust3DBearing,
+    pitch3D:adjust3DPitch,
+    reset3DCamera,
+    refresh3D:()=>refreshGameLayers('force'),
+    gl:()=>state.gl,
     enforceVectorIsolation,
     resourceMode:vectorServerMode,
     installOpenCityWrapper,
     report:()=>({
       version:VERSION,
       active:state.active,
+      threeD:state.threeD,
+      currentKey:W.__cityrailPreferredMapLayerKey||D.documentElement.dataset.cityrailBaseLayer||'',
+      pitch:state.threeDPitch,
+      bearing:state.threeDBearing,
       styleUrl:state.styleUrl||styleUrl(),
       maplibreLoaded:!!W.maplibregl,
       protocolInstalled:state.protocolInstalled,
       container:!!(state.container&&state.container.isConnected),
       lastError:state.lastError,
       resourceMode:state.resourceMode,
+      overlaySignature:state.overlaySignature,
+      lines:Number(D.documentElement.dataset.cityrail3dLines)||0,
+      stations:Number(D.documentElement.dataset.cityrail3dStations)||0,
       choices:ORDER.slice()
     })
+  };
+  W.CityRailMapLibre3D={
+    version:VERSION,
+    enable:(reason)=>set3DEnabled(true,reason||'api-enable'),
+    disable:(reason)=>set3DEnabled(false,reason||'api-disable'),
+    toggle:(reason)=>toggle3D(reason||'api-toggle'),
+    enabled:()=>!!state.threeD,
+    rotate:(delta,reason)=>adjust3DBearing(delta,reason||'api-rotate'),
+    pitch:(delta,reason)=>adjust3DPitch(delta,reason||'api-pitch'),
+    resetCamera:(reason)=>reset3DCamera(reason||'api-reset'),
+    refresh:(reason)=>refreshGameLayers(reason||'api-refresh'),
+    report:()=>W.CityRailMapLibrePmtilesAuthority.report()
   };
 
   if(D.readyState==='complete') boot('now');
