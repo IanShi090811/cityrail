@@ -1,0 +1,14 @@
+.git/
+.wrangler/
+node_modules/
+android/
+desktop/
+releases/desktop/*.dmg
+releases/desktop/*.exe
+.DS_Store
+__pycache__/
+*.pyc
+*.zip
+!releases/*.zip
+!releases/**/*.zip
+server/users.json
