@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "webVersion": "cityrail-v595-long-simulation-stability-20260810",
-  "displayVersion": "v595",
-  "releaseVersion": "20260810-web-v595-desktop-1.1.1",
+  "webVersion": "cityrail-v596-known-logic-fixes-20260810",
+  "displayVersion": "v596",
+  "releaseVersion": "20260810-web-v596-desktop-1.1.1",
   "paymentMode": "download-first-then-unlock",
   "onlineUrl": "https://www.cityrailgame.com/",
   "desktop": {

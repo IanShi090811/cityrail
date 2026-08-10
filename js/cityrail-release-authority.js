@@ -1,11 +1,12 @@
-/* CityRail v595: single release-note authority.
+/* CityRail v596: single release-note authority.
    Player-facing changelog text lives here once and is rendered by CityRailHelp. */
 (function(){
   'use strict';
   const W = window;
-  const VERSION = 'v595-release-notes-authority';
+  const VERSION = 'v596-release-notes-authority';
   if (W.CityRailReleaseNotes && W.CityRailReleaseNotes.version === VERSION) return;
   const changelogEntries = [
+    { version:'v596', body:'修复16个已知逻辑问题' },
     { version:'v595', body:'长时间模拟后拖动地图不再越来越卡。真实线网运行数小时后，地图拖动、暂停和继续都会保持稳定，不再反复经历“先流畅、后卡顿”的循环。' },
     { version:'v594', body:'真实线网导入会同步带入可识别的车辆段。导入城市线网后，玩家可以直接看到对应车辆段和接入线，开车、回段和检修衔接更完整。' },
     { version:'v593', body:'长时间模拟更稳。北京、上海这类大线网开始模拟后，客流继续按真实规则增长，但后台不再反复做整网扫描，暂停和继续也更轻快。' },

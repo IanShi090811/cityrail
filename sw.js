@@ -1,4 +1,4 @@
-const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v595-long-simulation-stability';
+const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v596-known-logic-fixes';
 const SHELL_URLS = [
   '/',
   '/index.html',

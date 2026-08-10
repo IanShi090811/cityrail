@@ -2978,10 +2978,29 @@ cityrailApplyPassengerShapeProfiles();
       .filter(item => item.index === 0 || item.index === ids.length - 1 || stops.has(sid(item.id)) || stops.has(sid(item.index)))
       .map(item => item.index);
   }
-  function terminalTurnbackSec(line){
-    try { if(typeof getTerminalTurnbackDwellSec === 'function') return Math.max(3, num(getTerminalTurnbackDwellSec(line), 0)); } catch(e) {}
-    return Math.max(3, typeof getDwellBase === 'function' ? num(getDwellBase(line), 25) : 25);
-  }
+	  function terminalTurnbackSec(line){
+	    try { if(typeof getTerminalTurnbackDwellSec === 'function') return Math.max(3, num(getTerminalTurnbackDwellSec(line), 0)); } catch(e) {}
+	    return Math.max(3, typeof getDwellBase === 'function' ? num(getDwellBase(line), 25) : 25);
+	  }
+	  function lineWaitingPressure(line){
+	    const ids = Array.isArray(line && line.stationIds) ? line.stationIds : [];
+	    if(!ids.length) return 0;
+	    const st = S();
+	    const pools = st.stationWaitingPool || {};
+	    let waiting = 0;
+	    ids.forEach(id => { waiting += Math.max(0, num(pools[id] && pools[id].waiting, 0)); });
+	    let capacity = 1200;
+	    try { if(typeof getTrainCapacity === 'function') capacity = Math.max(1, num(getTrainCapacity(line), 1200)); } catch(e) {}
+	    return Math.max(0, waiting / Math.max(1, capacity * ids.length));
+	  }
+	  function dwellPressureBucket(line){
+	    return Math.round(Math.min(4, lineWaitingPressure(line)) * 10);
+	  }
+	  function serviceDwellSec(line){
+	    const base = Math.max(1, typeof getDwellBase === 'function' ? num(getDwellBase(line), 25) : 25);
+	    const pressure = Math.min(4, lineWaitingPressure(line));
+	    return base * (1 + Math.min(1.2, pressure * 0.28));
+	  }
 	  function servicePlan(line, options = {}){
 	    const ids = Array.isArray(line && line.stationIds) ? line.stationIds : [];
 	    const loop = isLoop(line);
@@ -3002,11 +3021,12 @@ cityrailApplyPassengerShapeProfiles();
 	      sid(line && line.speed),
 	      sid(line && line.trainType),
 	      sid(line && line.cars),
-	      sid(line && line.loopMode),
-	      line && line.isLoop ? 1 : 0,
-	      stopIndexes.join(','),
-	      track && track.key || ''
-	    ].join('|');
+		      sid(line && line.loopMode),
+		      line && line.isLoop ? 1 : 0,
+		      stopIndexes.join(','),
+		      track && track.key || '',
+		      dwellPressureBucket(line)
+		    ].join('|');
 	    if(authorityLoopCache && authorityLoopCache.servicePlan && authorityLoopCache.servicePlan.has(cacheKey)) return authorityLoopCache.servicePlan.get(cacheKey);
     let distanceKm = 0;
     try { if(typeof getLineDistance === 'function') distanceKm = Math.max(0, num(getLineDistance(line), 0)); } catch(e) {}
@@ -3018,7 +3038,7 @@ cityrailApplyPassengerShapeProfiles();
       }
     } catch(e) {}
     const estimatedRunOneWaySec = profileRunOneWaySec > 0 ? profileRunOneWaySec : (distanceKm > 0 ? distanceKm / speed * 3600 : 0);
-    const dwell = Math.max(1, typeof getDwellBase === 'function' ? num(getDwellBase(line), 25) : 25);
+	    const dwell = serviceDwellSec(line);
     const turnback = loop ? 0 : terminalTurnbackSec(line);
     const intermediateStops = loop
       ? stopIndexes.length
@@ -3060,10 +3080,10 @@ cityrailApplyPassengerShapeProfiles();
     if(authorityLoopCache && authorityLoopCache.servicePlan) authorityLoopCache.servicePlan.set(cacheKey, out);
     return out;
   }
-  function roundTripSec(line, options = {}){
-    const cacheKey = sid(line && line.id);
-    const serviceKey = sid(options.serviceType || 'local') + '|' + sid(options.serviceKind || 'local');
-    const roundTripKey = cacheKey + '|' + serviceKey;
+	  function roundTripSec(line, options = {}){
+	    const cacheKey = sid(line && line.id);
+	    const serviceKey = sid(options.serviceType || 'local') + '|' + sid(options.serviceKind || 'local');
+	    const roundTripKey = cacheKey + '|' + serviceKey + '|' + dwellPressureBucket(line);
     if(authorityLoopCache && authorityLoopCache.roundTrip && authorityLoopCache.roundTrip.has(roundTripKey)) return authorityLoopCache.roundTrip.get(roundTripKey);
     let result = 0;
     try { result = Math.max(120, num(servicePlan(line, options).roundTripSec, 0)); } catch(e) {}
@@ -11517,19 +11537,6 @@ const ZONE_TYPES = {
   leisure:         { name: '文旅休闲',  label: '文旅休闲' },
 };
 
-// 基于上海真实站点数据分配功能区
-// 关键词匹配规则：名称含特定关键词的站归为对应类型
-const ZONE_KEYWORDS = {
-  office: ['广场','路','街','CBD','金融','商务','中心','大厦','企业','银行','办公'],
-  shopping: ['城','商场','步行街','市','市场','公园','老街','商业','百货'],
-  school: ['大学','学院','校区','教育'],
-  hospital: ['医院','诊所','卫生','医疗','门诊'],
-  leisure: ['乐园','剧院','博物馆','展览','体育','文化','景区','旅游','会展','艺术'],
-  railway_station: ['火车站','站','枢纽','客运','高铁'],
-  airport: ['机场','航空'],
-  residential: ['新村','花园','苑','村','宅','小区','里','公寓'],
-};
-
 function guessZoneType(name) {
   const zones = guessZoneTypes(name);
   return zones[0] || null;
@@ -11851,18 +11858,26 @@ const SPEED_LEVELS = [];
 for (let v = 60; v <= 200; v += 10) SPEED_LEVELS.push(v);
 SPEED_LEVELS.push(430);
 
-// 线路双向小时运能 = 定员/节 × 编组数 × 小时发车对数 × 2方向
-// 以高峰发车间隔为准
-function getLineBidirCapacity(line) {
+function cityrailCapacityFromHeadwaySec(line, headwaySec) {
   const tt = TRAIN_TYPES[normalizeLineTrainType(line)] || TRAIN_TYPES['A'];
   const cars = line.cars || 6;
   const speed = line.speed || 80;
   const speedBoost = Math.min(1.5, 0.6 + speed / 200);
   const maxTPH = Math.round(tt.baseMaxTPH * speedBoost);
-  const peakMin = line.peakHeadwayMin || LINE_SERVICE_DEFAULTS.peakHeadwayMin;
-  const tph = Math.round(60 / peakMin);
+  const tph = Math.round(3600 / Math.max(30, Number(headwaySec) || 360));
   const effectiveTPH = Math.min(tph, maxTPH);
   return tt.capPerCar * cars * effectiveTPH * 2;
+}
+
+// 线路当前双向小时运能 = 定员/节 × 编组数 × 当前时段发车对数 × 2方向
+function getLineBidirCapacity(line, mode) {
+  const designHeadwaySec = Math.max(30, (line.peakHeadwayMin || LINE_SERVICE_DEFAULTS.peakHeadwayMin) * 60);
+  if (mode === 'design' || mode === 'peak') return cityrailCapacityFromHeadwaySec(line, designHeadwaySec);
+  return cityrailCapacityFromHeadwaySec(line, getCurrentHeadway(line));
+}
+
+function getLineDesignBidirCapacity(line) {
+  return getLineBidirCapacity(line, 'design');
 }
 
 // 默认新车配置
@@ -12666,105 +12681,9 @@ function _findRouteWithGraph(fromId, toId, graph, pref) {
 // ═══ PassengerBatch 批次生成 ═══
 // 每个批次代表一批相同起终点与路径的乘客，大幅降低对象数量与CPU占用
 function generatePassengers(dtGameSec) {
-  if (state.currentTimeFactor <= 0 || !odMatrixCache || !odMatrixCache.matrix) return;
-  // v159: never skip generation because of object pressure. We compact equivalent
-  // batches instead, so passenger demand stays numerically identical.
-  if (state.batches && state.batches.length >= 35000) {
-    try { compactWaitingBatchesV9(); } catch(e) {}
-  }
-  const od = odMatrixCache.matrix;
-  const stations = odMatrixCache.stations;
-  const n = stations.length;
-  if (n < 2) return;
-  const tf = state.currentTimeFactor;
-  if (!state.batches) state.batches = [];
-  if (!state._batchAccum) state._batchAccum = {};
-
-  // v253: build a stable active OD-pair table once per OD cache, then process it in slices.
-  // Typed arrays keep the exact generation order while avoiding large array/object churn on 600+ station networks.
-  if (!odMatrixCache._activePairsV253 || odMatrixCache._activePairsV253Stations !== stations || odMatrixCache._activePairsV253Matrix !== od) {
-    const pairs = [];
-    for (let i = 0; i < n; i++) {
-      const origin = stations[i];
-      if (!origin) continue;
-      if (cityrailStationBlocksExternalPassengers(origin)) continue;
-      for (let j = 0; j < n; j++) {
-        if (i === j) continue;
-        const dest = stations[j];
-        if (!dest || cityrailStationBlocksExternalPassengers(dest)) continue;
-        const odVal = od[i][j] || 0;
-        if (odVal > 0) pairs.push([i, j, odVal]);
-      }
-    }
-    // Heavier OD pairs first makes early simulation visually responsive; cursor rotation still covers all pairs.
-    pairs.sort((a,b)=>b[2]-a[2]);
-    const len = pairs.length;
-    const IdArray = len <= 65535 ? Uint16Array : Uint32Array;
-    const from = new IdArray(len);
-    const to = new IdArray(len);
-    const val = new Float64Array(len);
-    for (let k = 0; k < len; k++) {
-      from[k] = pairs[k][0];
-      to[k] = pairs[k][1];
-      val[k] = pairs[k][2];
-    }
-    odMatrixCache._activePairsV253 = { from, to, val, length: len };
-    odMatrixCache._activePairsV253Cursor = 0;
-    odMatrixCache._activePairsV253Stations = stations;
-    odMatrixCache._activePairsV253Matrix = od;
-    odMatrixCache._activePairsV9 = null;
-  }
-
-  const pairs = odMatrixCache._activePairsV253;
-  if (!pairs || !pairs.length) return;
-  const totalPairs = pairs.length;
-  const heavy = state.batches && state.batches.length > 16000;
-  const networkScale = Math.max(0, (state.stations && state.stations.length) || n);
-  const megaNet = networkScale >= 420 || totalPairs >= 90000;
-  const largeNet = networkScale >= 240 || totalPairs >= 42000;
-  const targetPairs = megaNet ? (heavy ? 96 : 150) : (largeNet ? (heavy ? 150 : 260) : (heavy ? 300 : 760));
-  const chunkSize = Math.min(totalPairs, targetPairs); // 大线网按更小 OD 切片轮转，避免首帧路由尖峰
-  const multiplier = totalPairs / chunkSize; // preserve expected total generation over a full cursor cycle
-  let cursor = odMatrixCache._activePairsV253Cursor || 0;
-
-  beginRealtimeODBatchV350();
-  try {
-    for (let c = 0; c < chunkSize; c++) {
-      const i = pairs.from[cursor], j = pairs.to[cursor], odVal = pairs.val[cursor];
-      cursor = (cursor + 1) % totalPairs;
-      const origin = stations[i];
-      const dest = stations[j];
-      if (!origin || !dest) continue;
-      if (cityrailStationBlocksExternalPassengers(origin) || cityrailStationBlocksExternalPassengers(dest)) continue;
-      const genPerSec = odVal * tf / 86400;
-      const genAmount = genPerSec * dtGameSec * PASSENGER_BATCH_SCALE * multiplier;
-      const accumKey = origin.id + '_' + dest.id;
-      state._batchAccum[accumKey] = (state._batchAccum[accumKey] || 0) + genAmount;
-      const toCreate = Math.floor(state._batchAccum[accumKey]);
-      if (toCreate <= 0) continue;
-      state._batchAccum[accumKey] -= toCreate;
-      const batch = createPassengerBatch(origin.id, dest.id, toCreate);
-      if (batch.state !== 'arrived' && batch.legs && batch.legs.length > 0) {
-        // v9: merge with an equivalent waiting batch when possible, reducing object count without changing passenger count.
-        if (!mergeWaitingBatchV9(batch)) {
-          state.batches.push(batch);
-          if (!state._batchMap) state._batchMap = {};
-          state._batchMap[batch.id] = batch;
-          addWaitingIndexV9(batch);
-        }
-        state._totalGenerated += batch.count;
-        recordRealtimeOD(origin.id, dest.id, batch.count);
-        const pool = state.stationWaitingPool[origin.id];
-        if (pool) { pool.waiting += batch.count; pool.totalArrived += batch.count; }
-      } else {
-        if (state._batchMap && batch && batch.id != null) delete state._batchMap[batch.id];
-        state._totalDelivered += batch.count;
-      }
-    }
-  } finally {
-    odMatrixCache._activePairsV253Cursor = cursor;
-    flushRealtimeODBatchV350();
-  }
+  const service = window.CityRailPassengerDemandService;
+  if (!service || typeof service.tick !== 'function') return 0;
+  return service.tick(dtGameSec, 'generatePassengers');
 }
 
 // v9 helper: key for waiting-indexed boarding.
@@ -12912,14 +12831,31 @@ function boardFromWaitingIndexV41(train, line, arrivingIdx, pool, availableSpace
   return boardedScale;
 }
 
-// 清理已送达批次
+// 清理已送达批次，并同步批次索引，保证乘客集合只有一个权威来源。
 function cleanupArrivedBatches() {
-  if (!state.batches || state.batches.length === 0) return;
-  state.batches = state.batches.filter(b => b.state !== 'arrived');
+  if (!state.batches || state.batches.length === 0) return 0;
+  const keep = [];
+  const nextMap = {};
+  let removed = 0;
+  for (const batch of state.batches) {
+    if (!batch || batch.state === 'arrived') {
+      removed++;
+      continue;
+    }
+    keep.push(batch);
+    if (batch.id != null) nextMap[batch.id] = batch;
+  }
+  if (!removed) return 0;
+  state.batches = keep;
+  state.passengerBatches = keep;
+  state._batchMap = nextMap;
+  rebuildWaitingIndexesV41();
+  return removed;
 }
 // 每 N 秒游戏时间执行一次清理
 let _lastCleanupTime = 0;
 let _lastSdRefreshTime = 0; // 车站详情面板刷新节流
+let _lastPanelRefreshTime = 0;
 
 // 重置乘客系统状态（模拟重启/午夜日结时调用）
 function resetPassengerSystem(reason = 'daily-reset') {
@@ -12927,6 +12863,8 @@ function resetPassengerSystem(reason = 'daily-reset') {
   state.passengerBatches = [];
   state._batchAccum = {};
   state._batchMap = {};
+  state._waitingIndexV9 = Object.create(null);
+  state._waitingMergeIndexV9 = Object.create(null);
   state.__passengerLegCache = null;
   state.__waitingIndexReadyV41 = true;
   state._totalDelivered = 0;
@@ -12964,9 +12902,14 @@ function resetPassengerSystem(reason = 'daily-reset') {
   state.fareIncome = 0;
   state._fareCountedBatchIds = {};
   _routeGraphStale = true;
+  _routeGraphCache = null;
+  _routePairCache = new Map();
+  _routeTreeCache = new Map();
   _passengerLineByIdCache = null;
   _passengerLineByIdSource = null;
   _passengerLineByIdCount = 0;
+  odMatrixCache = null;
+  try { window.odMatrixCache = null; } catch(e) {}
   _lastCleanupTime = 0;
   try { lastFareScanAt = 0; lastFareScanSig = ''; } catch(e) {}
 
@@ -19244,6 +19187,12 @@ function renderStation(station) {
     baseMarker._stationId = station.id;
     baseMarker._isFallback = true;
     baseMarker._isPrimary = true;
+    baseMarker.bindTooltip(station.name || station.id || '站点', {
+      direction: 'top',
+      offset: [0, -10],
+      className: 'station-name-tooltip'
+    });
+    baseMarker.options.title = station.name || station.id || '站点';
     baseMarker.on('click', function(e){ handleStationLayerClick(station, null, e); });
     stationMarkers[station.id] = baseMarker;
     stationTransferPolygons[station.id] = [baseMarker];
@@ -20530,15 +20479,18 @@ window.cityrailRecordRealtimeOD = recordRealtimeOD;
 
 // 获取当前时段的OD流向权重表
 function getZoneODTable(hour) {
-  if (hour >= 5 && hour < 12) return ZONE_OD_WEIGHTS.morning;
-  if (hour >= 16 && hour < 22) return ZONE_OD_WEIGHTS.evening;
-  return ZONE_OD_WEIGHTS.midday;
+  return getWeightedZoneODTable(hour);
 }
 // 获取当前时段名称（用于OD矩阵缓存有效期判断）
 function getZonePeriodName(hour) {
-  if (hour >= 5 && hour < 12) return 'morning';
-  if (hour >= 16 && hour < 22) return 'evening';
-  return 'midday';
+  const h = ((Number(hour) % 24) + 24) % 24;
+  const s = cityrailZonePeriodStrengths(h);
+  return [
+    'q' + Math.floor(h * 4),
+    'm' + Math.round(s.morning * 8),
+    'd' + Math.round(s.midday * 8),
+    'e' + Math.round(s.evening * 8)
+  ].join('-');
 }
 function cloneZoneODTable(table) {
   const out = {};
@@ -20557,17 +20509,43 @@ function applyZoneODMultipliers(table, multipliers) {
   });
   return table;
 }
+function cityrailZonePeriodStrengths(hour) {
+  const morning = cityrailTimeWindowStrength(hour, 5, 12, 0.5);
+  const evening = cityrailTimeWindowStrength(hour, 16, 22, 0.5);
+  const midday = Math.max(0, 1 - Math.max(morning, evening));
+  const total = Math.max(0.0001, morning + midday + evening);
+  return {
+    morning: morning / total,
+    midday: midday / total,
+    evening: evening / total
+  };
+}
+function addWeightedZoneODTable(target, table, weight) {
+  const w = Math.max(0, Number(weight) || 0);
+  if (!w) return target;
+  Object.keys(table || {}).forEach(from => {
+    if (!target[from]) target[from] = {};
+    Object.keys(table[from] || {}).forEach(to => {
+      target[from][to] = (Number(target[from][to]) || 0) + (Number(table[from][to]) || 0) * w;
+    });
+  });
+  return target;
+}
 function getActiveCityWeights() {
   const profile = window.getActiveCityProfile ? window.getActiveCityProfile() : null;
   return cityrailEnsureCityWeights(profile) || cityrailDerivedCityWeights(profile || {});
 }
 function getWeightedZoneODTable(hour) {
-  const period = getZonePeriodName(hour);
   const profile = window.getActiveCityProfile ? window.getActiveCityProfile() : null;
   const weights = getActiveCityWeights();
-  const table = cloneZoneODTable(ZONE_OD_WEIGHTS[period] || ZONE_OD_WEIGHTS.midday);
-  applyZoneODMultipliers(table, weights && weights.odMultipliers && weights.odMultipliers[period]);
-  applyZoneODMultipliers(table, profile && profile.odMultipliers && profile.odMultipliers[period]);
+  const strengths = cityrailZonePeriodStrengths(hour);
+  const table = {};
+  ['morning', 'midday', 'evening'].forEach(period => {
+    const periodTable = cloneZoneODTable(ZONE_OD_WEIGHTS[period] || ZONE_OD_WEIGHTS.midday);
+    applyZoneODMultipliers(periodTable, weights && weights.odMultipliers && weights.odMultipliers[period]);
+    applyZoneODMultipliers(periodTable, profile && profile.odMultipliers && profile.odMultipliers[period]);
+    addWeightedZoneODTable(table, periodTable, strengths[period]);
+  });
   return table;
 }
 function cityrailStationWeight(station, role, weights) {
@@ -20930,11 +20908,10 @@ function buildZoneODMatrix() {
 	    const origin = stations[i];
 	    if (stationExternalBlocked[i]) continue;
 	    const fromZone = getStationZoneType(origin);
-    // 该站服务人口的出行产生率（日均出行次数 ≈ 2.0 次/人）
-    // 出行产生率提升客流密度，使候车人数快速达到可见水平
-    const genRate = 200;
+    // 该站服务人口的日均出行次数。
+    const dailyTripsPerServedPerson = 2;
     const originWeight = cityrailStationWeight(origin, 'origin', cityWeights);
-    const outFlowBase = servedPop[i] * genRate / 100 * originWeight; // 转换为OD矩阵基数
+    const outFlowBase = servedPop[i] * dailyTripsPerServedPerson * originWeight; // 转换为OD矩阵基数
 
     // 用重力模型分配目的地
     var totalGravity = 0;
@@ -21235,22 +21212,49 @@ try {
   window.cityrailSingleTrackMinimumHeadwayMin = cityrailSingleTrackMinimumHeadwayMin;
 } catch(e) {}
 
-// Get current headway in seconds based on time of day
+function cityrailSmoothStep(edge0, edge1, value) {
+  const span = Math.max(0.0001, edge1 - edge0);
+  const x = Math.max(0, Math.min(1, (value - edge0) / span));
+  return x * x * (3 - 2 * x);
+}
+
+function cityrailTimeWindowStrength(hour, start, end, rampHours) {
+  const h = ((Number(hour) % 24) + 24) % 24;
+  const ramp = Math.max(1 / 60, Number(rampHours) || 0.25);
+  return cityrailSmoothStep(start - ramp, start + ramp, h) *
+    (1 - cityrailSmoothStep(end - ramp, end + ramp, h));
+}
+
+function cityrailHeadwayBlend(hour) {
+  const peak = Math.max(
+    cityrailTimeWindowStrength(hour, 7, 9, 0.25),
+    cityrailTimeWindowStrength(hour, 17, 19, 0.25)
+  );
+  const serviceShoulder = Math.max(
+    cityrailTimeWindowStrength(hour, 6, 10, 0.25),
+    cityrailTimeWindowStrength(hour, 16, 20, 0.25)
+  );
+  const normal = Math.max(0, serviceShoulder - peak);
+  const offPeak = Math.max(0, 1 - peak - normal);
+  return { peak, normal, offPeak };
+}
+
+// Get current headway in seconds based on a continuous time-of-day blend.
 function getCurrentHeadway(line) {
-  const hour = state.simulationHour;
-  const isPeak = (hour >= 7 && hour < 9) || (hour >= 17 && hour < 19);
-  const isNormal = (hour >= 6 && hour < 7) || (hour >= 9 && hour < 10) || (hour >= 16 && hour < 17) || (hour >= 19 && hour < 20);
-  let min = line.normalHeadwayMin || LINE_SERVICE_DEFAULTS.normalHeadwayMin;
-  if (isPeak) min = line.peakHeadwayMin || LINE_SERVICE_DEFAULTS.peakHeadwayMin;
-  else if (!isNormal) min = line.offPeakHeadwayMin || LINE_SERVICE_DEFAULTS.offPeakHeadwayMin;
+  const blend = cityrailHeadwayBlend(state.simulationHour);
+  const peakMin = line.peakHeadwayMin || LINE_SERVICE_DEFAULTS.peakHeadwayMin;
+  const normalMin = line.normalHeadwayMin || LINE_SERVICE_DEFAULTS.normalHeadwayMin;
+  const offPeakMin = line.offPeakHeadwayMin || LINE_SERVICE_DEFAULTS.offPeakHeadwayMin;
+  const min = peakMin * blend.peak + normalMin * blend.normal + offPeakMin * blend.offPeak;
   const playerHeadway = Math.max(1, min) * 60;
   return Math.max(playerHeadway, cityrailSingleTrackMinimumHeadwaySec(line));
 }
 
 // 获取当前时段名称：'peak' / 'normal' / 'offpeak'
 function getHeadwayPeriod(hour) {
-  if ((hour >= 7 && hour < 9) || (hour >= 17 && hour < 19)) return 'peak';
-  if ((hour >= 6 && hour < 7) || (hour >= 9 && hour < 10) || (hour >= 16 && hour < 17) || (hour >= 19 && hour < 20)) return 'normal';
+  const blend = cityrailHeadwayBlend(hour);
+  if (blend.peak >= blend.normal && blend.peak >= blend.offPeak) return 'peak';
+  if (blend.normal >= blend.offPeak) return 'normal';
   return 'offpeak';
 }
 
@@ -22622,9 +22626,8 @@ function trainAnimationFrame(nowTime) {
   }
 
   // 控制中心与线网图面板（暂停状态下也要刷新，反映拖拽时间轴后数据变化）
-  if (!window._lastPanelRefresh) window._lastPanelRefresh = 0;
-  if (!mapBusy && nowTime - window._lastPanelRefresh >= 1400) {
-    window._lastPanelRefresh = nowTime;
+  if (!mapBusy && nowTime - _lastPanelRefreshTime >= 1400) {
+    _lastPanelRefreshTime = nowTime;
     renderCtrlCenter();
   }
 
@@ -23030,6 +23033,12 @@ function createTrainTickContext() {
 
 // 防撞：检查前方车站是否被其他列车占用
 const SAFE_HOLDING_DISTANCE = 0.15; // km，机外等待安全距离（约150m）
+function cityrailStationDepartureClearanceKm(line) {
+  const platformM = typeof getLinePlatformLength === 'function' && line && Array.isArray(line.stationIds) && line.stationIds.length
+    ? Math.max(80, Number(line.platformLengthM) || 0)
+    : 0;
+  return Math.max(0.08, Math.min(0.12, (platformM || 100) / 1000));
+}
 function isStationOccupied(lineOrId, direction, stationIdx, excludeTrainId, tickContext) {
   if (tickContext && tickContext.occupiedStations) {
     const set = tickContext.occupiedStations.get(cityrailTrainOccKey(lineOrId, direction, stationIdx, null));
@@ -23060,7 +23069,7 @@ function isStationOccupied(lineOrId, direction, stationIdx, excludeTrainId, tick
         const lngDelta = Math.abs(Number(t.lng) - Number(station.lng));
         if (latDelta >= 0.003 || lngDelta >= 0.003) return false;
         const distKm = haversine(t.lat, t.lng, station.lat, station.lng);
-        if (distKm < 0.2) return true; // 200米内视为刚离开
+        if (distKm < cityrailStationDepartureClearanceKm(line)) return true;
       }
     }
     return false;
@@ -27313,6 +27322,71 @@ function cityrailScheduleNextSimLoop(reason) {
 }
 try { window.cityrailScheduleNextSimLoop = cityrailScheduleNextSimLoop; } catch(e) {}
 
+function cityrailNormalizeSimulationHour(hour) {
+  const value = Number(hour);
+  if (!Number.isFinite(value)) return Number(state && state.simulationHour) || 0;
+  return ((value % 24) + 24) % 24;
+}
+
+function cityrailSyncSimulationTimeUi() {
+  const slider = document.getElementById('time-slider');
+  const label = document.getElementById('time-label');
+  if (slider) slider.value = state.simulationHour;
+  if (label) label.textContent = formatTime(state.simulationHour);
+}
+
+function cityrailResetLineDispatchClock(line, nowSec, reason) {
+  if (!line) return;
+  let headway = 360;
+  try { headway = Math.max(30, Number(getCurrentHeadway(line)) || 360); } catch(e) {}
+  line._lastFwdDispatch = nowSec - headway;
+  line._lastBwdDispatch = nowSec - headway;
+  delete line._v300Schedule;
+  delete line._v300LastDispatchSec;
+  delete line._v300TerminalReleaseSec;
+  delete line._v309HeadwaySlotState;
+  delete line._v308DepotWaveState;
+  delete line._strictSchedule;
+  delete line._v246LastRestoreAttemptKey;
+  line._cityrailDispatchClockResetReason = reason || 'time-change';
+  line._cityrailDispatchClockResetAt = Date.now();
+}
+
+function cityrailResetDispatchClockForTimeChange(reason) {
+  const nowSec = cityrailNormalizeSimulationHour(state && state.simulationHour) * 3600;
+  (state.lines || []).forEach(line => cityrailResetLineDispatchClock(line, nowSec, reason));
+  state.__cityrailTimeControlEpoch = Math.max(0, Math.floor(Number(state.__cityrailTimeControlEpoch) || 0)) + 1;
+  state.__cityrailLastRunSimulationAt = 0;
+  state.__runSimulationIndexCache = null;
+  try { if (window.CityRailPassengerDemandService && typeof CityRailPassengerDemandService.invalidate === 'function') CityRailPassengerDemandService.invalidate(reason || 'time-change'); } catch(e) {}
+  try { if (window.CityRailDispatchAuthorityV300 && typeof CityRailDispatchAuthorityV300.dispatchLoop === 'function' && state.isSimulating) CityRailDispatchAuthorityV300.dispatchLoop(); } catch(e) {}
+}
+
+function cityrailSetSimulationTime(hour, reason, options) {
+  const opts = options || {};
+  const previous = Number(state.simulationHour) || 0;
+  const next = cityrailNormalizeSimulationHour(hour);
+  state.simulationHour = next;
+  cityrailSyncSimulationTimeUi();
+  if (opts.manual) {
+    cityrailResetDispatchClockForTimeChange(reason || 'manual-time-change');
+  }
+  state.__cityrailLastTimeSet = {
+    previousHour: previous,
+    nextHour: next,
+    manual: !!opts.manual,
+    reason: reason || '',
+    at: Date.now()
+  };
+  if (state.isSimulating && opts.runSimulation !== false) runSimulation();
+  if (state.isSimulating && opts.reschedule !== false) cityrailScheduleNextSimLoop(reason || 'time-change');
+  return next;
+}
+try {
+  window.cityrailSetSimulationTime = cityrailSetSimulationTime;
+  window.cityrailResetDispatchClockForTimeChange = cityrailResetDispatchClockForTimeChange;
+} catch(e) {}
+
 function runSimLoop() {
   if (!state.isSimulating) return;
 
@@ -27334,8 +27408,7 @@ function runSimLoop() {
     });
   }
 
-  document.getElementById('time-slider').value = state.simulationHour;
-  document.getElementById('time-label').textContent = formatTime(state.simulationHour);
+  cityrailSyncSimulationTimeUi();
 
   // 直接执行 runSimulation
   runSimulation();
@@ -27377,8 +27450,10 @@ function clearAll() {
 // Time slider — 节流 runSimulation 避免拖动时卡顿
 let _timeSliderRaf = null;
 document.getElementById('time-slider').addEventListener('input', (e) => {
-  state.simulationHour = parseFloat(e.target.value);
-  document.getElementById('time-label').textContent = formatTime(state.simulationHour);
+  cityrailSetSimulationTime(parseFloat(e.target.value), 'time-slider', {
+    manual: true,
+    runSimulation: false
+  });
   if (state.isSimulating && !_timeSliderRaf) {
     _timeSliderRaf = requestAnimationFrame(() => {
       _timeSliderRaf = null;
@@ -27461,6 +27536,62 @@ cityrailSyncSpeedLabel(state.simSpeed || (document.getElementById('speed-slider'
   schedule();
 })();
 
+function cityrailOverlayVisible(el) {
+  if (!el || el.classList.contains('hidden')) return false;
+  const style = getComputedStyle(el);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function cityrailCloseOverlayElement(id) {
+  const el = document.getElementById(id);
+  if (!cityrailOverlayVisible(el)) return false;
+  if (id === 'settings-overlay' && typeof closeSettings === 'function') closeSettings();
+  else if (id === 'line-config-overlay' && typeof closeLineConfig === 'function') closeLineConfig();
+  else if (id === 'ctrl-center-overlay' && typeof toggleCtrlCenter === 'function') toggleCtrlCenter();
+  else if (id === 'station-detail-overlay' && typeof closeStationDetail === 'function') closeStationDetail();
+  else {
+    el.classList.add('hidden');
+    const buttonId = {
+      'nav-overlay':'btn-navigate',
+      'new-line-dialog-overlay':'btn-new-line',
+      'vt-overlay':'btn-vt'
+    }[id];
+    if (buttonId) document.getElementById(buttonId)?.classList.remove('active');
+  }
+  try { if (typeof window.cityrailRefreshInteractiveSurfaces === 'function') window.cityrailRefreshInteractiveSurfaces(); } catch(e) {}
+  return true;
+}
+
+function cityrailCloseTopOverlay(reason) {
+  const ids = [
+    'settings-overlay',
+    'vt-overlay',
+    'line-config-overlay',
+    'station-detail-overlay',
+    'ctrl-center-overlay',
+    'new-line-dialog-overlay',
+    'nav-overlay'
+  ];
+  let top = null;
+  ids.forEach((id, index) => {
+    const el = document.getElementById(id);
+    if (!cityrailOverlayVisible(el)) return;
+    const z = Number(getComputedStyle(el).zIndex);
+    const score = (Number.isFinite(z) ? z : 0) * 100 + index;
+    if (!top || score >= top.score) top = { id, score };
+  });
+  if (!top) return false;
+  const closed = cityrailCloseOverlayElement(top.id);
+  if (closed) {
+    document.documentElement.dataset.cityrailLastOverlayClose = reason || top.id;
+    document.documentElement.dataset.cityrailLastOverlayClosedId = top.id;
+  }
+  return closed;
+}
+try { window.cityrailCloseTopOverlay = cityrailCloseTopOverlay; } catch(e) {}
+
 // Toggle map layer. v219 owns the multi-map cycle; keep this legacy handler as fallback only.
 document.getElementById('btn-layer').addEventListener('click', (event) => {
   if (window.CityRailMapChoicesV219 && typeof window.CityRailMapChoicesV219.nextLayer === 'function') {
@@ -27486,16 +27617,14 @@ document.getElementById('btn-layer').addEventListener('click', (event) => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  // ESC: close settings overlay
-  if (e.key.toLowerCase() === 'escape' && !settingsOverlay.classList.contains('hidden')) {
-    e.preventDefault();
-    closeSettings();
-    return;
-  }
-  // ESC in add mode: always exit, even when focused on inputs
   if (e.key.toLowerCase() === 'escape' && editLineId && editModeType) {
     e.preventDefault();
     closeLineConfig();
+    return;
+  }
+  if (e.key.toLowerCase() === 'escape' && cityrailCloseTopOverlay('escape-key')) {
+    e.preventDefault();
+    e.stopPropagation();
     return;
   }
 
@@ -27509,20 +27638,6 @@ document.addEventListener('keydown', (e) => {
       toggleSimulation();
       return;
     case 'escape':
-      if (state.currentLineId) {
-        const cfgOverlay2 = document.getElementById('line-config-overlay');
-        if (cfgOverlay2 && !cfgOverlay2.classList.contains('hidden')) {
-          closeLineConfig();
-          e.preventDefault();
-          return;
-        }
-      }
-      const ccOverlay = document.getElementById('ctrl-center-overlay');
-      if (ccOverlay && !ccOverlay.classList.contains('hidden')) {
-        toggleCtrlCenter();
-        e.preventDefault();
-        return;
-      }
       cityrailClearLineNodeFocus(null, 'escape-key');
       hideCurrentLineNodes();
       state.showCurrentLineNodes = false;
@@ -37961,7 +38076,7 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
   }
   function isOpenOD(st){ return !!st && statusOf(st)===OPEN && stationRuntimeOpen(st); }
   function stationById(id){ const s=S(); return s&&Array.isArray(s.stations)?s.stations.find(x=>x&&str(x.id)===str(id)):null; }
-  function getStationFlowFactor(id){
+	  function getStationFlowFactor(id){
     // stable station-level variation in the 1.0–1.25 range, normalized later so total network target remains 15k/km.
     let h=2166136261, key=str(id);
     for(let i=0;i<key.length;i++){ h^=key.charCodeAt(i); h=Math.imul(h,16777619); }
@@ -37974,9 +38089,17 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
     } catch(e) {
       livingFactor = 1;
     }
-    return stable * livingFactor;
-  }
-  function getLineLengthKm(){
+	    return stable * livingFactor;
+	  }
+	  const BATCH_ACCUM_UNIT = 1000000;
+	  function consumeAccumulatedDemand(accum, key, amount){
+	    const current = Number.isFinite(Number(accum[key])) ? Math.round(Number(accum[key])) : 0;
+	    const next = current + Math.round(Math.max(0, num(amount)) * BATCH_ACCUM_UNIT);
+	    const whole = Math.floor(next / BATCH_ACCUM_UNIT);
+	    accum[key] = next - whole * BATCH_ACCUM_UNIT;
+	    return whole;
+	  }
+	  function getLineLengthKm(){
     const s=S(); if(!s) return 0;
     try{
       if(typeof window.cityrailFastNetworkLengthKm==='function'){
@@ -38482,13 +38605,11 @@ window.CityRail && window.CityRail.boot && window.CityRail.boot();
       const pressureFactor=originPressureFactor(origin && origin.id);
       const localFareDemand=odFareDemandMultiplier(origin && origin.id, dest && dest.id);
       // Station factor changes distribution, then normalized by avgFactor so network total remains targetDaily.
-      const expected=effectivePairTargetTick * (odVal/totalWeight) * (originFactor/avgFactor) * pressureFactor * localFareDemand * multiplier;
-      const key=origin.id+'_'+dest.id;
-      s._batchAccum[key]=(s._batchAccum[key]||0)+expected;
-      let toCreate=Math.floor(s._batchAccum[key]);
-      if(toCreate<=0) continue;
-      s._batchAccum[key]-=toCreate;
-      attempts += toCreate;
+	      const expected=effectivePairTargetTick * (odVal/totalWeight) * (originFactor/avgFactor) * pressureFactor * localFareDemand * multiplier;
+	      const key=origin.id+'_'+dest.id;
+	      let toCreate=consumeAccumulatedDemand(s._batchAccum,key,expected);
+	      if(toCreate<=0) continue;
+	      attempts += toCreate;
       generated += addRealBatch(origin,dest,toCreate,originFactor);
     }
     odCache._activePairsV78Cursor=cursor;
