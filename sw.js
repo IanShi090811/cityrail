@@ -1,4 +1,4 @@
-const CITYRAIL_SW_VERSION = 'cityrail-sw-20260717-download-v1';
+const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v595-long-simulation-stability';
 const SHELL_URLS = [
   '/',
   '/index.html',
@@ -30,6 +30,8 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/api/map-tile/')) return;
+  const isVersionedAsset = url.searchParams.has('v') && /\.(?:js|css|mjs)$/i.test(url.pathname);
   if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
     event.respondWith(
       fetch(request)
@@ -39,6 +41,20 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match(request).then(hit => hit || caches.match('/index.html')))
+    );
+    return;
+  }
+  if (isVersionedAsset) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CITYRAIL_SW_VERSION).then(cache => cache.put(request, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
