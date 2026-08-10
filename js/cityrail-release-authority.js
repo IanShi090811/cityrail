@@ -1,11 +1,12 @@
-/* CityRail v597: single release-note authority.
+/* CityRail v598: single release-note authority.
    Player-facing changelog text lives here once and is rendered by CityRailHelp. */
 (function(){
   'use strict';
   const W = window;
-  const VERSION = 'v597-release-notes-authority';
+  const VERSION = 'v598-release-notes-authority';
   if (W.CityRailReleaseNotes && W.CityRailReleaseNotes.version === VERSION) return;
   const changelogEntries = [
+    { version:'v598', body:'手机浏览器可以把 CityRail 添加到桌面，像 App 一样打开。' },
     { version:'v597', body:'修复16个已知逻辑问题' },
     { version:'v596', body:'修复16个已知逻辑问题' },
     { version:'v595', body:'长时间模拟后拖动地图不再越来越卡。真实线网运行数小时后，地图拖动、暂停和继续都会保持稳定，不再反复经历“先流畅、后卡顿”的循环。' },

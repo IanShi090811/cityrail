@@ -2,13 +2,27 @@
   "name": "CityRail 轨道交通模拟器",
   "short_name": "CityRail",
   "description": "城市轨道交通规划、客流与调度模拟器。",
+  "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "scope": "/",
+  "lang": "zh-CN",
+  "dir": "ltr",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
   "orientation": "any",
   "background_color": "#020B18",
   "theme_color": "#020B18",
-  "categories": ["simulation", "education", "utilities"],
+  "prefer_related_applications": false,
+  "categories": [
+    "simulation",
+    "education",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/logo.webp",
@@ -17,10 +31,48 @@
       "purpose": "any maskable"
     },
     {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "进入游戏",
+      "short_name": "游戏",
+      "url": "/?source=pwa-shortcut-play",
+      "icons": [
+        {
+          "src": "/logo.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "下载客户端",
+      "short_name": "下载",
+      "url": "/download.html?source=pwa-shortcut-download",
+      "icons": [
+        {
+          "src": "/favicon.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  }
 }

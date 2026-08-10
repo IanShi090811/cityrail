@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "webVersion": "cityrail-v597-unified-map-control-20260810",
-  "displayVersion": "v597",
-  "releaseVersion": "20260810-web-v597-desktop-1.1.1",
+  "webVersion": "cityrail-v598-pwa-install-20260810",
+  "displayVersion": "v598",
+  "releaseVersion": "20260810-web-v598-desktop-1.1.1",
   "paymentMode": "download-first-then-unlock",
   "onlineUrl": "https://www.cityrailgame.com/",
   "desktop": {

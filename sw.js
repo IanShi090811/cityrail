@@ -1,9 +1,10 @@
-const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v597-unified-map-control';
+const CITYRAIL_SW_VERSION = 'cityrail-sw-20260810-v598-pwa-install';
 const SHELL_URLS = [
   '/',
   '/index.html',
   '/download.html',
   '/manifest.webmanifest',
+  '/logo.png',
   '/logo.webp',
   '/favicon.png'
 ];

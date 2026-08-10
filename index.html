@@ -14,26 +14,32 @@
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="application-name" content="CityRail 都市城轨">
 <meta name="apple-mobile-web-app-title" content="CityRail">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="news_keywords" content="地铁模拟游戏,轨道交通模拟游戏,城市轨道交通规划,铁路调度游戏,ATS调度模拟,独立游戏">
 <meta name="theme-color" content="#020B18">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="/logo.png">
+<link rel="apple-touch-icon" sizes="512x512" href="/logo.png">
 <link rel="preload" href="vendor/leaflet/leaflet.css" as="style">
 <link rel="preload" href="vendor/leaflet/leaflet.js" as="script">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.css" as="style">
 <link rel="preload" href="vendor/maplibre/maplibre-gl.js" as="script">
-<link rel="preload" href="js/cityrail-heroicons-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-release-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-core-utils.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-state-bridge.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-runtime-core-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-runtime-state-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-save-service-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-transfer-corridors-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-city-network-preview-data.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-city-network-preview-authority.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-runtime-v594.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-unified-map-control.js?v=20260810-v597-unified-map-control" as="script">
-<link rel="preload" href="js/cityrail-city-mascot-3d.js?v=20260810-v597-unified-map-control" as="script">
+<link rel="preload" href="js/cityrail-heroicons-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-release-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-core-utils.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-state-bridge.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-pwa-install-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-runtime-core-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-runtime-state-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-save-service-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-transfer-corridors-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-city-network-preview-data.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-city-network-preview-authority.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-runtime-v594.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-unified-map-control.js?v=20260810-v598-pwa-install" as="script">
+<link rel="preload" href="js/cityrail-city-mascot-3d.js?v=20260810-v598-pwa-install" as="script">
 <link rel="preload" href="js/cityrail-schematic-map.js?v=20260716-v493-london-force-schematic" as="script">
 <link rel="canonical" href="https://cityrailgame.pages.dev/">
 <meta property="og:type" content="website">
@@ -315,7 +321,7 @@
 </script>
 <script>
   (function(){
-	    var BUILD = 'cityrail-v597-unified-map-control-20260810';
+	    var BUILD = 'cityrail-v598-pwa-install-20260810';
     window.CITYRAIL_BUILD_VERSION = BUILD;
     window.cityrailBuildDisplay = function(rawBuild) {
       var raw = String(rawBuild || BUILD || '').trim();
@@ -412,7 +418,7 @@
 <!-- v146.8 Cloudflare inline assets: local CSS/JS are embedded to avoid missing asset deployment issues. -->
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
-<script src="js/cityrail-leaflet-css-authority.js?v=20260810-v597-unified-map-control"></script>
+<script src="js/cityrail-leaflet-css-authority.js?v=20260810-v598-pwa-install"></script>
 <style id="cityrail-inline-css">
 
 /* CityRail consolidated Apple-style UI. */
@@ -9615,40 +9621,41 @@ html:not(.cityrail-light-ui) .cityrail-system-card{
 <!-- CITYRAIL_PASSENGER_50PCT_APPLIED -->
 
 <script>window.__CITYRAIL_DISABLE_LEGACY_CONTROL_CENTER__=true;</script>
-<script src="js/cityrail-heroicons-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-release-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-core-utils.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-state-bridge.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-runtime-core-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-runtime-state-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-save-service-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-transfer-corridors-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-city-network-preview-data.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-city-network-preview-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-runtime-v594.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-unified-map-control.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-control-center.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-apple-spatial-ui-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-maplibre-pmtiles-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-living-city.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-city-mascot-3d.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-undo-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-draw-undo-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-through-branch-depot-authority.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-service-pattern-authority.js?v=20260810-v597-unified-map-control"></script>
+<script src="js/cityrail-heroicons-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-release-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-core-utils.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-state-bridge.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-pwa-install-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-runtime-core-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-runtime-state-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-save-service-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-transfer-corridors-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-city-network-preview-data.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-city-network-preview-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-runtime-v594.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-unified-map-control.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-control-center.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-apple-spatial-ui-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-maplibre-pmtiles-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-living-city.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-city-mascot-3d.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-undo-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-draw-undo-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-through-branch-depot-authority.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-service-pattern-authority.js?v=20260810-v598-pwa-install"></script>
 <script src="js/cityrail-save-import-resume-authority.js?v=20260804-v402-architecture-control-system"></script>
 <script src="js/cityrail-passenger-integrity-authority.js?v=20260804-v402-architecture-control-system"></script>
 <script src="js/cityrail-station-occupancy-authority.js?v=20260804-v403-frame-rate-control-system"></script>
-<script src="js/cityrail-city-profile-authority.js?v=20260810-v597-unified-map-control"></script>
+<script src="js/cityrail-city-profile-authority.js?v=20260810-v598-pwa-install"></script>
 <script src="js/cityrail-dwell-boarding-authority.js?v=20260804-v402-architecture-control-system"></script>
 <script src="js/cityrail-train-position-repair-authority.js?v=20260804-v402-architecture-control-system"></script>
 <script src="js/cityrail-train-graph-authority.js?v=20260804-v402-architecture-control-system"></script>
 <script src="js/cityrail-system-dialog-authority.js?v=20260804-v402-architecture-control-system"></script>
-<script src="js/cityrail-external-sources-v1.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-real-network-registry.js?v=20260810-v597-unified-map-control"></script>
-<script src="js/cityrail-real-network-importer.js?v=20260810-v597-unified-map-control"></script>
+<script src="js/cityrail-external-sources-v1.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-real-network-registry.js?v=20260810-v598-pwa-install"></script>
+<script src="js/cityrail-real-network-importer.js?v=20260810-v598-pwa-install"></script>
 <script src="js/cityrail-schematic-map.js?v=20260716-v493-london-force-schematic"></script>
 <script src="js/cityrail-performance-authority.js?v=20260804-v509-station-label-zoom-sync"></script>
-<script src="js/cityrail-dispatch-finalizer-authority.js?v=20260810-v597-unified-map-control"></script>
+<script src="js/cityrail-dispatch-finalizer-authority.js?v=20260810-v598-pwa-install"></script>
 </body>
 </html>

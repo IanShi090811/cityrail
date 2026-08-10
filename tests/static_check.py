@@ -18,6 +18,7 @@ expected_js=[
     'cityrail-release-authority.js',
     'cityrail-core-utils.js',
     'cityrail-state-bridge.js',
+    'cityrail-pwa-install-authority.js',
     'cityrail-runtime-core-authority.js',
     'cityrail-runtime-state-authority.js',
     'cityrail-save-service-authority.js',
